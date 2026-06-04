@@ -125,6 +125,21 @@ export interface UpdateTaskInput {
   dueDate?: string;
 }
 
+export interface CreateClassMeetingInput {
+  courseId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  location?: string;
+}
+
+export interface UpdateClassMeetingInput {
+  dayOfWeek?: number;
+  startTime?: string;
+  endTime?: string;
+  location?: string | null;
+}
+
 // ─── IPC channel names ────────────────────────────────────────────────────────
 // Defined once as constants so main/preload/renderer all use the exact same
 // string — a typo anywhere would be a compile error instead of a silent bug.
@@ -148,6 +163,12 @@ export const IPC = {
     CREATE: 'tasks:create',
     UPDATE: 'tasks:update',
     DELETE: 'tasks:delete',
+  },
+  CLASS_MEETINGS: {
+    LIST:   'class_meetings:list',
+    CREATE: 'class_meetings:create',
+    UPDATE: 'class_meetings:update',
+    DELETE: 'class_meetings:delete',
   },
 } as const;
 
@@ -173,6 +194,12 @@ export interface WindowApi {
     list(): Promise<Task[]>;
     create(input: CreateTaskInput): Promise<Task>;
     update(id: string, input: UpdateTaskInput): Promise<Task>;
+    delete(id: string): Promise<void>;
+  };
+  classMeetings: {
+    list(filters?: { courseId?: string }): Promise<ClassMeeting[]>;
+    create(input: CreateClassMeetingInput): Promise<ClassMeeting>;
+    update(id: string, input: UpdateClassMeetingInput): Promise<ClassMeeting>;
     delete(id: string): Promise<void>;
   };
 }

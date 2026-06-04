@@ -10,7 +10,7 @@ export interface DeadlineInfo {
 // Parse a YYYY-MM-DD string as a local-timezone midnight date.
 // Using `new Date("2026-06-10")` without this parses as UTC midnight, which causes
 // off-by-one errors in negative-offset timezones (e.g., EST shows June 9 at 7 PM).
-function parseDateLocal(dateStr: string): Date {
+export function parseDateLocal(dateStr: string): Date {
   const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
   return new Date(year, month - 1, day);
 }

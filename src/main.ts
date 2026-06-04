@@ -5,6 +5,7 @@ import { initDb } from './main/db/connection';
 import { registerCourseHandlers } from './main/ipc/registerCourseHandlers';
 import { registerAssignmentHandlers } from './main/ipc/registerAssignmentHandlers';
 import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
+import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
 
 if (started) {
   app.quit();
@@ -17,6 +18,7 @@ function registerIpcHandlers(): void {
   registerCourseHandlers();
   registerAssignmentHandlers();
   registerTaskHandlers();
+  registerClassMeetingHandlers();
 }
 
 const createWindow = () => {

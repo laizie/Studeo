@@ -1,11 +1,13 @@
 import { Circle, Clock3, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
-import type { Assignment, AssignmentStatus } from '../../../shared/types';
+import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
 
 interface Props {
   assignment: Assignment;
   onEdit: (assignment: Assignment) => void;
+  /** Pass the course to show a colored course badge (used in cross-course views like This Week). */
+  course?: Course;
 }
 
 // Clicking the status icon cycles through the three states in order.
@@ -29,7 +31,7 @@ const URGENCY_CLASS: Record<string, string> = {
   upcoming: 'text-stone-400',
 };
 
-export default function AssignmentRow({ assignment, onEdit }: Props) {
+export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
 
@@ -74,6 +76,16 @@ export default function AssignmentRow({ assignment, onEdit }: Props) {
       <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-stone-500 bg-stone-100">
         {assignment.type}
       </span>
+
+      {/* Course badge — only shown in cross-course views (e.g. This Week) */}
+      {course && (
+        <span
+          className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
+          style={{ backgroundColor: `${course.color}1a`, color: course.color }}
+        >
+          {course.abbreviation}
+        </span>
+      )}
 
       {/* Due date */}
       <span className="shrink-0 text-xs text-stone-400 w-14 text-right hidden md:block">
