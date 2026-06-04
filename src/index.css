@@ -3,6 +3,9 @@
 @import '@fontsource/dm-sans/500.css';
 @import '@fontsource/dm-sans/600.css';
 
+/* Enable class-based dark mode: dark: utilities apply when .dark is on any ancestor */
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -18,5 +21,10 @@
     -webkit-font-smoothing: antialiased;
     background-color: #f9f5f0;
     color: #292524;
+  }
+
+  .dark body {
+    background-color: #1c1917;
+    color: #e7e5e4;
   }
 }

@@ -178,10 +178,10 @@ export default function CalendarPage() {
     <div className="p-8 flex flex-col" style={{ height: 'calc(100vh - 40px)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 shrink-0">
-        <h1 className="text-2xl font-semibold text-stone-800">Calendar</h1>
+        <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">Calendar</h1>
 
         {/* Mode toggle */}
-        <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg">
+        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg">
           {(['assignments', 'lectures'] as Mode[]).map(m => (
             <button
               key={m}
@@ -192,8 +192,8 @@ export default function CalendarPage() {
               className={cn(
                 'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                 mode === m
-                  ? 'bg-white text-stone-800 shadow-sm font-medium'
-                  : 'text-stone-500 hover:text-stone-700'
+                  ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 shadow-sm font-medium'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
               )}
             >
               {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}

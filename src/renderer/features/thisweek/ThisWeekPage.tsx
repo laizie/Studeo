@@ -92,8 +92,8 @@ export default function ThisWeekPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800">This Week</h1>
-          <p className="mt-0.5 text-sm text-stone-400">{formatWeekRange(weekStart, weekEnd)}</p>
+          <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">This Week</h1>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">{formatWeekRange(weekStart, weekEnd)}</p>
         </div>
         <label className="flex items-center gap-2 mt-1 cursor-pointer select-none">
           <input
@@ -110,7 +110,7 @@ export default function ThisWeekPage() {
       {isLoading && (
         <div className="space-y-2 animate-pulse">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 rounded-lg" />
+            <div key={i} className="h-10 bg-stone-100 dark:bg-stone-800 rounded-lg" />
           ))}
         </div>
       )}
@@ -126,7 +126,7 @@ export default function ThisWeekPage() {
           {!showCompleted && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-stone-400 underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-stone-400 dark:text-stone-500 underline hover:text-stone-600 transition-colors"
             >
               Show completed
             </button>
@@ -162,7 +162,7 @@ export default function ThisWeekPage() {
 
       {/* Stats footer */}
       {!isLoading && relevant.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-stone-100 flex gap-4 text-xs text-stone-400">
+        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-stone-800 flex gap-4 text-xs text-stone-400 dark:text-stone-500">
           <span>{relevant.filter(a => a.status === 'completed').length} completed</span>
           <span>{relevant.filter(a => a.status !== 'completed').length} remaining</span>
           {!showCompleted && assignments && (

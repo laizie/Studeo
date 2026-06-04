@@ -49,15 +49,15 @@ function StatChip({ label, value, urgent }: {
   return (
     <div className={cn(
       'flex-1 min-w-[130px] max-w-[200px] rounded-xl px-4 py-3 border shadow-sm',
-      isUrgent ? 'bg-red-50 border-red-200' : 'bg-white border-[#e8ddd0]',
+      isUrgent ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900' : 'bg-white dark:bg-stone-800 border-[#e8ddd0] dark:border-stone-700',
     )}>
       <div className={cn(
         'text-2xl font-semibold tabular-nums',
-        isUrgent ? 'text-red-500' : 'text-stone-800',
+        isUrgent ? 'text-red-500' : 'text-stone-800 dark:text-stone-100',
       )}>
         {value}
       </div>
-      <div className="text-xs text-stone-400 mt-0.5">{label}</div>
+      <div className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">{label}</div>
     </div>
   );
 }
@@ -78,7 +78,7 @@ function SectionLabel({ title, count, urgent }: {
       {count !== undefined && count > 0 && (
         <span className={cn(
           'text-xs px-1.5 py-0.5 rounded-full font-medium',
-          urgent ? 'bg-red-100 text-red-500' : 'bg-stone-100 text-stone-500',
+          urgent ? 'bg-red-100 dark:bg-red-950 text-red-500' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400',
         )}>
           {count}
         </span>
@@ -95,13 +95,13 @@ function AssignmentItem({ assignment, course }: {
   return (
     <Link
       to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors"
+      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
     >
       <div
         className="w-0.5 h-5 rounded-full shrink-0"
         style={{ backgroundColor: course?.color ?? '#a8a29e' }}
       />
-      <span className="flex-1 text-sm text-stone-700 truncate">{assignment.name}</span>
+      <span className="flex-1 text-sm text-stone-700 dark:text-stone-200 truncate">{assignment.name}</span>
       {course && (
         <span
           className="text-xs px-1.5 py-0.5 rounded shrink-0 font-medium"
@@ -132,10 +132,10 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
         className="w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: course?.color ?? '#a8a29e' }}
       />
-      <span className="text-sm text-stone-700 flex-1 truncate">
+      <span className="text-sm text-stone-700 dark:text-stone-200 flex-1 truncate">
         {course?.abbreviation ?? '?'}
       </span>
-      <span className="text-xs text-stone-400 shrink-0">{formatTime(meeting.start_time)}</span>
+      <span className="text-xs text-stone-400 dark:text-stone-500 shrink-0">{formatTime(meeting.start_time)}</span>
     </Link>
   );
 }
@@ -223,8 +223,8 @@ export default function DashboardPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800">{greetingText()}</h1>
-          <p className="mt-0.5 text-sm text-stone-400">{todayLabel()}</p>
+          <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">{greetingText()}</h1>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">{todayLabel()}</p>
         </div>
         <button
           onClick={() => setDialogOpen(true)}
@@ -241,7 +241,7 @@ export default function DashboardPage() {
           <p className="text-stone-400 text-sm">No courses yet. Add your first one to get started.</p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="mt-3 text-sm text-stone-500 underline hover:text-stone-700 transition-colors"
+            className="mt-3 text-sm text-stone-500 dark:text-stone-400 underline hover:text-stone-700 transition-colors"
           >
             Add course
           </button>
@@ -346,11 +346,11 @@ export default function DashboardPage() {
                           className="w-2 h-2 rounded-full shrink-0"
                           style={{ backgroundColor: c.color }}
                         />
-                        <span className="text-sm text-stone-700 flex-1 truncate group-hover:text-stone-900">
+                        <span className="text-sm text-stone-700 dark:text-stone-200 flex-1 truncate group-hover:text-stone-900 dark:group-hover:text-white">
                           {c.name}
                         </span>
                         {total > 0 && (
-                          <span className="text-xs text-stone-400 shrink-0 tabular-nums">
+                          <span className="text-xs text-stone-400 dark:text-stone-500 shrink-0 tabular-nums">
                             {done}/{total}
                           </span>
                         )}
