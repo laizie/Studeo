@@ -7,6 +7,7 @@ import {
   Calendar,
   Timer,
   Settings,
+  Plus,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -27,14 +28,25 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
   );
 
-export default function Sidebar() {
+interface Props {
+  onOpenQuickAdd: () => void;
+}
+
+export default function Sidebar({ onOpenQuickAdd }: Props) {
   return (
     <nav className="w-56 h-full flex flex-col bg-[#2c1f14] dark:bg-[#141210] shrink-0">
-      {/* App name */}
-      <div className="px-4 py-5 border-b border-[#3d2b1f] dark:border-[#1e1a17]">
+      {/* App name + quick add */}
+      <div className="px-4 py-5 border-b border-[#3d2b1f] dark:border-[#1e1a17] flex items-center justify-between">
         <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">
           ClassTrack
         </span>
+        <button
+          onClick={onOpenQuickAdd}
+          title="Quick add (⌘N)"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+        >
+          <Plus size={14} />
+        </button>
       </div>
 
       {/* Main navigation */}
