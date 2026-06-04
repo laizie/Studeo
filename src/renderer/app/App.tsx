@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import Layout from './Layout';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import CoursesPage from '../features/courses/CoursesPage';
+import CourseDetailPage from '../features/courses/CourseDetailPage';
 import ThisWeekPage from '../features/thisweek/ThisWeekPage';
 import TasksPage from '../features/tasks/TasksPage';
 import CalendarPage from '../features/calendar/CalendarPage';
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<DashboardPage />} />
           <Route path="courses" element={<CoursesPage />} />
+          <Route path="courses/:id" element={<CourseDetailPage />} />
           <Route path="this-week" element={<ThisWeekPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
