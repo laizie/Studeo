@@ -48,6 +48,7 @@
     "vite": "^8.0.16"
   },
   "dependencies": {
+    "@fontsource/dm-sans": "^5.2.8",
     "@tanstack/react-query": "^5.101.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

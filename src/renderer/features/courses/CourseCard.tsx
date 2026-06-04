@@ -22,7 +22,7 @@ export default function CourseCard({ course }: Props) {
   return (
     <Link
       to={`/courses/${course.id}`}
-      className="bg-white border border-stone-200 rounded-lg overflow-hidden flex items-center group hover:border-stone-300 hover:shadow-sm transition-all"
+      className="bg-white border border-[#e8ddd0] rounded-xl overflow-hidden flex items-center group shadow-sm hover:shadow-md hover:border-[#d4c8b8] transition-all"
     >
       {/* Color accent bar */}
       <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: course.color }} />
