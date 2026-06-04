@@ -175,29 +175,31 @@ export default function CourseDetailPage() {
             ))}
           </div>
 
-          {filtered.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="text-stone-400 text-sm">
-                {allAssignments.length === 0
-                  ? 'No assignments yet.'
-                  : 'No assignments in this window.'}
-              </p>
-              {allAssignments.length === 0 && (
-                <button
-                  onClick={openAdd}
-                  className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
-                >
-                  Add first assignment
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="-mx-3">
-              {filtered.map(a => (
-                <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
-              ))}
-            </div>
-          )}
+          <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+            {filtered.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-stone-400 text-sm">
+                  {allAssignments.length === 0
+                    ? 'No assignments yet.'
+                    : 'No assignments in this window.'}
+                </p>
+                {allAssignments.length === 0 && (
+                  <button
+                    onClick={openAdd}
+                    className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
+                  >
+                    Add first assignment
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                {filtered.map(a => (
+                  <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Class Schedule ───────────────────────────────────────────────── */}
@@ -213,14 +215,15 @@ export default function CourseDetailPage() {
             </button>
           </div>
 
+          <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
           {(!meetings || meetings.length === 0) ? (
-            <p className="text-sm text-stone-400 dark:text-[#e0b870] py-4">No class times yet.</p>
+            <p className="text-sm text-stone-400 dark:text-[#e0b870] py-4 px-4">No class times yet.</p>
           ) : (
-            <div className="-mx-3">
+            <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
               {meetings.map(m => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#553311] rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] rounded-lg transition-colors"
                 >
                   <span className="w-8 text-xs font-semibold text-stone-500 dark:text-[#c4a882] shrink-0">
                     {DAY_NAMES[m.day_of_week]}
@@ -251,6 +254,7 @@ export default function CourseDetailPage() {
               ))}
             </div>
           )}
+          </div>
         </div>
 
       </div>

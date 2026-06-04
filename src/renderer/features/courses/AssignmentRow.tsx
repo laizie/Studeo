@@ -52,7 +52,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#553311] rounded-lg transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] rounded-lg transition-colors">
       {/* Status toggle — click to advance through not_started → in_progress → completed */}
       <button
         onClick={handleStatusToggle}

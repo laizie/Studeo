@@ -191,16 +191,16 @@ export default function ThisWeekPage() {
 
       {/* Grouped rows */}
       {!isLoading && relevant.length > 0 && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {Array.from(grouped.entries()).map(([label, items]) => (
-            <div key={label}>
+            <div key={label} className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
-                'text-xs font-semibold uppercase tracking-wide mb-1 px-3',
-                label === 'Overdue' ? 'text-red-400' : 'text-stone-400'
+                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-[#e8ddd0] dark:border-[#442918] bg-stone-50 dark:bg-[#664433]',
+                label === 'Overdue' ? 'text-red-400' : 'text-stone-400 dark:text-[#c4a882]'
               )}>
                 {label}
               </div>
-              <div className="-mx-3">
+              <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
                 {items.map(a => (
                   <AssignmentRow
                     key={a.id}

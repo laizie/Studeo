@@ -170,7 +170,7 @@ export default function TasksPage() {
 
       {/* Task list */}
       {!isLoading && filtered.length > 0 && (
-        <div className="-mx-3">
+        <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden divide-y divide-[#e8ddd0] dark:divide-[#442918]">
           {filtered.map(t => (
             <TaskRow key={t.id} task={t} onEdit={openEdit} />
           ))}
