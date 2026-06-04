@@ -1,11 +1,81 @@
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { useCourses } from '../../lib/queries/useCourses';
+import CourseCard from './CourseCard';
+import CreateCourseDialog from './CreateCourseDialog';
+
 export default function CoursesPage() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { data: courses, isLoading, isError } = useCourses();
+
+  const count = courses?.length ?? 0;
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold text-stone-800">Courses</h1>
-      <p className="mt-1 text-sm text-stone-500">
-        Manage your courses and assignments.
-      </p>
-      <div className="mt-8 text-stone-400 text-sm">Course list will appear here.</div>
+    <div className="p-8 max-w-2xl">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-800">Courses</h1>
+          <p className="mt-0.5 text-sm text-stone-500">
+            {isLoading
+              ? 'Loading…'
+              : count > 0
+              ? `${count} course${count !== 1 ? 's' : ''}`
+              : 'Add your courses to get started'}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setIsDialogOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
+        >
+          <Plus size={15} />
+          Add course
+        </button>
+      </div>
+
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-stone-100 rounded-lg h-12 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {/* Error */}
+      {isError && (
+        <p className="text-sm text-red-500">
+          Failed to load courses. Restart the app and try again.
+        </p>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && !isError && count === 0 && (
+        <div className="text-center py-24">
+          <p className="text-stone-400 text-sm">No courses yet.</p>
+          <button
+            onClick={() => setIsDialogOpen(true)}
+            className="mt-3 text-sm text-stone-500 underline hover:text-stone-700 transition-colors"
+          >
+            Add your first course
+          </button>
+        </div>
+      )}
+
+      {/* Course list */}
+      {!isLoading && count > 0 && (
+        <div className="flex flex-col gap-2">
+          {(courses ?? []).map(course => (
+            <CourseCard key={course.id} course={course} />
+          ))}
+        </div>
+      )}
+
+      <CreateCourseDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+      />
     </div>
   );
 }

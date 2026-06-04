@@ -6,9 +6,9 @@
 // Security rule: never expose ipcRenderer itself — only wrap specific channels.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { WindowApi } from './shared/types';
 import { IPC } from './shared/types';
 import type {
+  WindowApi,
   CreateCourseInput,
   UpdateCourseInput,
   AssignmentStatus,
