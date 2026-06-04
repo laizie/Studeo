@@ -8,6 +8,7 @@ import TasksPage from '../features/tasks/TasksPage';
 import CalendarPage from '../features/calendar/CalendarPage';
 import StudyPage from '../features/study/StudyPage';
 import SettingsPage from '../features/settings/SettingsPage';
+import BatchAddPage from '../features/courses/BatchAddPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="courses/:id" element={<CourseDetailPage />} />
+          <Route path="courses/:id/batch" element={<BatchAddPage />} />
           <Route path="this-week" element={<ThisWeekPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />

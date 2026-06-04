@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Rows3 } from 'lucide-react';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useClassMeetings, useDeleteClassMeeting } from '../../lib/queries/useClassMeetings';
@@ -139,14 +139,23 @@ export default function CourseDetailPage() {
         {/* ── Assignments ──────────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-stone-700">Assignments</h2>
-            <button
-              onClick={openAdd}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
-            >
-              <Plus size={14} />
-              Add
-            </button>
+            <h2 className="text-base font-semibold text-stone-700 dark:text-stone-300">Assignments</h2>
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/courses/${id}/batch`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e8ddd0] dark:border-stone-700 text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+              >
+                <Rows3 size={14} />
+                Batch add
+              </Link>
+              <button
+                onClick={openAdd}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 dark:bg-stone-700 text-white rounded-lg hover:bg-stone-700 dark:hover:bg-stone-600 transition-colors"
+              >
+                <Plus size={14} />
+                Add
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg w-fit">
