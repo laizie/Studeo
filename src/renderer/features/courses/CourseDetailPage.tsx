@@ -75,7 +75,7 @@ export default function CourseDetailPage() {
         <div className="h-px bg-stone-100 mt-6" />
         <div className="space-y-2 mt-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 dark:bg-stone-800 rounded-lg" />
+            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] rounded-lg" />
           ))}
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function CourseDetailPage() {
     return (
       <div className="p-8">
         <p className="text-sm text-stone-500">Course not found.</p>
-        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-400 dark:text-stone-500 underline hover:text-stone-600">
+        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-400 dark:text-[#e0b870] underline hover:text-stone-600">
           ← Back to Courses
         </Link>
       </div>
@@ -100,7 +100,7 @@ export default function CourseDetailPage() {
       {/* Back link */}
       <Link
         to="/courses"
-        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-stone-500 hover:text-stone-600 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         Courses
@@ -114,7 +114,7 @@ export default function CourseDetailPage() {
         />
         <div className="min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100 leading-tight">
+            <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] leading-tight">
               {course.name}
             </h1>
             <span
@@ -128,7 +128,7 @@ export default function CourseDetailPage() {
             </span>
           </div>
           {course.building && (
-            <p className="mt-1 text-sm text-stone-400 dark:text-stone-500">{course.building}</p>
+            <p className="mt-1 text-sm text-stone-400 dark:text-[#e0b870]">{course.building}</p>
           )}
         </div>
       </div>
@@ -139,18 +139,18 @@ export default function CourseDetailPage() {
         {/* ── Assignments ──────────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-stone-700 dark:text-stone-300">Assignments</h2>
+            <h2 className="text-base font-semibold text-stone-700 dark:text-[#d4b896]">Assignments</h2>
             <div className="flex items-center gap-2">
               <Link
                 to={`/courses/${id}/batch`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e8ddd0] dark:border-stone-700 text-stone-600 dark:text-stone-400 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] text-stone-600 dark:text-[#c4a882] rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors"
               >
                 <Rows3 size={14} />
                 Batch add
               </Link>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 dark:bg-stone-700 text-white rounded-lg hover:bg-stone-700 dark:hover:bg-stone-600 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
               >
                 <Plus size={14} />
                 Add
@@ -158,7 +158,7 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg w-fit">
+          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg w-fit">
             {DUE_FILTERS.map(f => (
               <button
                 key={f.value}
@@ -166,8 +166,8 @@ export default function CourseDetailPage() {
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
-                    ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 shadow-sm font-medium'
-                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                    ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
                 )}
               >
                 {f.label}
@@ -185,7 +185,7 @@ export default function CourseDetailPage() {
               {allAssignments.length === 0 && (
                 <button
                   onClick={openAdd}
-                  className="mt-3 text-sm text-stone-500 dark:text-stone-400 underline hover:text-stone-700 transition-colors"
+                  className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
                 >
                   Add first assignment
                 </button>
@@ -206,7 +206,7 @@ export default function CourseDetailPage() {
             <h2 className="text-base font-semibold text-stone-700">Class Schedule</h2>
             <button
               onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
             >
               <Plus size={14} />
               Add time
@@ -214,15 +214,15 @@ export default function CourseDetailPage() {
           </div>
 
           {(!meetings || meetings.length === 0) ? (
-            <p className="text-sm text-stone-400 dark:text-stone-500 py-4">No class times yet.</p>
+            <p className="text-sm text-stone-400 dark:text-[#e0b870] py-4">No class times yet.</p>
           ) : (
             <div className="-mx-3">
               {meetings.map(m => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-stone-800 rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#553311] rounded-lg transition-colors"
                 >
-                  <span className="w-8 text-xs font-semibold text-stone-500 dark:text-stone-400 shrink-0">
+                  <span className="w-8 text-xs font-semibold text-stone-500 dark:text-[#c4a882] shrink-0">
                     {DAY_NAMES[m.day_of_week]}
                   </span>
                   <span className="flex-1 text-sm text-stone-700">
@@ -231,7 +231,7 @@ export default function CourseDetailPage() {
                   <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
-                      className="p-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 rounded transition-colors"
+                      className="p-1 text-stone-400 dark:text-[#e0b870] hover:text-stone-600 rounded transition-colors"
                       title="Edit"
                     >
                       <Pencil size={13} />
@@ -241,7 +241,7 @@ export default function CourseDetailPage() {
                         if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
                       }}
                       disabled={deleteMeeting.isPending}
-                      className="p-1 text-stone-400 dark:text-stone-500 hover:text-red-500 rounded transition-colors disabled:opacity-50"
+                      className="p-1 text-stone-400 dark:text-[#e0b870] hover:text-red-500 rounded transition-colors disabled:opacity-50"
                       title="Delete"
                     >
                       <Trash2 size={13} />

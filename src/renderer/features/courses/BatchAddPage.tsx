@@ -23,10 +23,10 @@ function makeRow(name = '', type: AssignmentType = 'Assignment', dueDate = ''): 
 // ── Shared input style ────────────────────────────────────────────────────────
 
 const INPUT =
-  'w-full px-2.5 py-1.5 text-sm border border-[#e8ddd0] dark:border-stone-700 rounded-lg ' +
-  'bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-100 ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-stone-500 focus:border-transparent ' +
-  'placeholder:text-stone-300 dark:placeholder:text-stone-600';
+  'w-full px-2.5 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] rounded-lg ' +
+  'bg-white dark:bg-[#332211] text-stone-800 dark:text-[#f0e0cc] ' +
+  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-[#e0b870] focus:border-transparent ' +
+  'placeholder:text-stone-300 dark:placeholder:text-[#cc9a58]';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ export default function BatchAddPage() {
       {/* Back link */}
       <Link
         to={courseId ? `/courses/${courseId}` : '/courses'}
-        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         {course?.name ?? 'Course'}
@@ -165,41 +165,41 @@ export default function BatchAddPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">
+        <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">
           Batch add assignments
         </h1>
-        <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
+        <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">
           {course ? `Adding to ${course.name}` : 'Loading…'}
         </p>
       </div>
 
       {/* ── Import from syllabus (collapsible) ─────────────────────────── */}
-      <div className="mb-6 border border-[#e8ddd0] dark:border-stone-700 rounded-xl overflow-hidden">
+      <div className="mb-6 border border-[#e8ddd0] dark:border-[#442918] rounded-xl overflow-hidden">
         <button
           onClick={() => setImportOpen(v => !v)}
-          className="w-full flex items-center justify-between px-5 py-3.5 bg-stone-50 dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-left"
+          className="w-full flex items-center justify-between px-5 py-3.5 bg-stone-50 dark:bg-[#553311] hover:bg-stone-100 dark:hover:bg-[#664433] transition-colors text-left"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <FileText size={15} className="text-stone-400 dark:text-stone-500 shrink-0" />
-            <span className="text-sm font-medium text-stone-700 dark:text-stone-200 shrink-0">
+            <FileText size={15} className="text-stone-400 dark:text-[#e0b870] shrink-0" />
+            <span className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0] shrink-0">
               Import from syllabus
             </span>
-            <span className="text-xs text-stone-400 dark:text-stone-500 truncate hidden sm:block">
+            <span className="text-xs text-stone-400 dark:text-[#e0b870] truncate hidden sm:block">
               Paste your syllabus text and we'll extract the assignments
             </span>
           </div>
           <ChevronDown
             size={15}
             className={cn(
-              'text-stone-400 dark:text-stone-500 transition-transform shrink-0 ml-3',
+              'text-stone-400 dark:text-[#e0b870] transition-transform shrink-0 ml-3',
               importOpen && 'rotate-180',
             )}
           />
         </button>
 
         {importOpen && (
-          <div className="p-5 border-t border-[#e8ddd0] dark:border-stone-700 bg-white dark:bg-stone-900 space-y-4">
-            <p className="text-xs text-stone-400 dark:text-stone-500">
+          <div className="p-5 border-t border-[#e8ddd0] dark:border-[#442918] bg-white dark:bg-[#332211] space-y-4">
+            <p className="text-xs text-stone-400 dark:text-[#e0b870]">
               Each line is treated as one assignment. Dates like "Jan 15", "2/14", or "March 1st"
               are extracted automatically. Lines with no date will appear in the grid with an empty
               due date for you to fill in.
@@ -217,7 +217,7 @@ export default function BatchAddPage() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <label className="text-xs text-stone-500 dark:text-stone-400 shrink-0">Year</label>
+                <label className="text-xs text-stone-500 dark:text-[#c4a882] shrink-0">Year</label>
                 <input
                   type="number"
                   value={importYear}
@@ -231,14 +231,14 @@ export default function BatchAddPage() {
               <button
                 onClick={handleImport}
                 disabled={!syllabusText.trim()}
-                className="px-4 py-1.5 text-sm bg-stone-800 dark:bg-stone-700 text-white rounded-lg hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Parse &amp; add to grid
               </button>
 
               <button
                 onClick={() => { setImportOpen(false); setSyllabusText(''); }}
-                className="text-sm text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+                className="text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
               >
                 Cancel
               </button>
@@ -248,21 +248,21 @@ export default function BatchAddPage() {
       </div>
 
       {/* ── Grid ───────────────────────────────────────────────────────── */}
-      <div className="border border-[#e8ddd0] dark:border-stone-700 rounded-xl overflow-hidden mb-4">
+      <div className="border border-[#e8ddd0] dark:border-[#442918] rounded-xl overflow-hidden mb-4">
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 bg-stone-50 dark:bg-stone-800 border-b border-[#e8ddd0] dark:border-stone-700 px-4 py-2.5">
-          <span className="text-xs font-medium text-stone-500 dark:text-stone-400">Assignment name</span>
-          <span className="text-xs font-medium text-stone-500 dark:text-stone-400">Type</span>
-          <span className="text-xs font-medium text-stone-500 dark:text-stone-400">Due date</span>
+        <div className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 bg-stone-50 dark:bg-[#553311] border-b border-[#e8ddd0] dark:border-[#442918] px-4 py-2.5">
+          <span className="text-xs font-medium text-stone-500 dark:text-[#c4a882]">Assignment name</span>
+          <span className="text-xs font-medium text-stone-500 dark:text-[#c4a882]">Type</span>
+          <span className="text-xs font-medium text-stone-500 dark:text-[#c4a882]">Due date</span>
           <span />
         </div>
 
         {/* Data rows */}
-        <div className="divide-y divide-[#e8ddd0] dark:divide-stone-800">
+        <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
           {rows.map((row, idx) => (
             <div
               key={row.id}
-              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800/60 transition-colors"
+              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-[#332211] hover:bg-stone-50 dark:hover:bg-[#553311]/60 transition-colors"
             >
               <input
                 ref={el => { nameRefs.current[row.id] = el; }}
@@ -291,7 +291,7 @@ export default function BatchAddPage() {
               />
               <button
                 onClick={() => removeRow(row.id)}
-                className="p-1 text-stone-300 dark:text-stone-600 hover:text-red-400 dark:hover:text-red-500 rounded transition-colors"
+                className="p-1 text-stone-300 dark:text-[#cc9a58] hover:text-red-400 dark:hover:text-red-400 rounded transition-colors"
                 title="Remove row"
                 tabIndex={-1}
               >
@@ -304,7 +304,7 @@ export default function BatchAddPage() {
         {/* Add row */}
         <button
           onClick={() => addRowAfter()}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors border-t border-[#e8ddd0] dark:border-stone-700"
+          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors border-t border-[#e8ddd0] dark:border-[#442918]"
         >
           <Plus size={14} />
           Add row
@@ -326,7 +326,7 @@ export default function BatchAddPage() {
         <button
           onClick={handleSave}
           disabled={validRows.length === 0 || saving}
-          className="px-5 py-2 text-sm bg-stone-800 dark:bg-stone-700 text-white rounded-lg hover:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-5 py-2 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving
             ? 'Saving…'
@@ -334,11 +334,11 @@ export default function BatchAddPage() {
         </button>
         <Link
           to={courseId ? `/courses/${courseId}` : '/courses'}
-          className="px-4 py-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+          className="px-4 py-2 text-sm text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors"
         >
           Cancel
         </Link>
-        <span className="text-xs text-stone-300 dark:text-stone-600 ml-2">
+        <span className="text-xs text-stone-300 dark:text-[#cc9a58] ml-2">
           Enter to jump rows · Tab to move between fields
         </span>
       </div>
