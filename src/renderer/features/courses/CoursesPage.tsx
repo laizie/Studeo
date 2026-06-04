@@ -11,7 +11,7 @@ export default function CoursesPage() {
   const count = courses?.length ?? 0;
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-8">
       {/* Page header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -36,7 +36,7 @@ export default function CoursesPage() {
 
       {/* Loading skeleton */}
       {isLoading && (
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-stone-100 rounded-lg h-12 animate-pulse" />
           ))}
@@ -65,7 +65,7 @@ export default function CoursesPage() {
 
       {/* Course list */}
       {!isLoading && count > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {(courses ?? []).map(course => (
             <CourseCard key={course.id} course={course} />
           ))}

@@ -69,7 +69,7 @@ export default function CourseDetailPage() {
   // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="p-8 max-w-3xl space-y-4 animate-pulse">
+      <div className="p-8 space-y-4 animate-pulse">
         <div className="h-4 w-24 bg-stone-100 rounded" />
         <div className="h-8 w-64 bg-stone-100 rounded" />
         <div className="h-px bg-stone-100 mt-6" />
@@ -96,7 +96,7 @@ export default function CourseDetailPage() {
 
   // ── Loaded ───────────────────────────────────────────────────────────────────
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-8">
       {/* Back link */}
       <Link
         to="/courses"
@@ -133,60 +133,118 @@ export default function CourseDetailPage() {
         </div>
       </div>
 
-      {/* Assignments header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold text-stone-700">Assignments</h2>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
-        >
-          <Plus size={14} />
-          Add
-        </button>
-      </div>
+      {/* Two-column layout at lg+: assignments left, schedule right */}
+      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-10 lg:items-start">
 
-      {/* Filter tabs — segmented control style */}
-      <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 rounded-lg w-fit">
-        {DUE_FILTERS.map(f => (
-          <button
-            key={f.value}
-            onClick={() => setDueFilter(f.value)}
-            className={cn(
-              'px-3 py-1 text-sm rounded-md transition-colors',
-              dueFilter === f.value
-                ? 'bg-white text-stone-800 shadow-sm font-medium'
-                : 'text-stone-500 hover:text-stone-700'
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Assignment list */}
-      {filtered.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="text-stone-400 text-sm">
-            {allAssignments.length === 0
-              ? 'No assignments yet.'
-              : 'No assignments in this window.'}
-          </p>
-          {allAssignments.length === 0 && (
+        {/* ── Assignments ──────────────────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-stone-700">Assignments</h2>
             <button
               onClick={openAdd}
-              className="mt-3 text-sm text-stone-500 underline hover:text-stone-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
             >
-              Add first assignment
+              <Plus size={14} />
+              Add
             </button>
+          </div>
+
+          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 rounded-lg w-fit">
+            {DUE_FILTERS.map(f => (
+              <button
+                key={f.value}
+                onClick={() => setDueFilter(f.value)}
+                className={cn(
+                  'px-3 py-1 text-sm rounded-md transition-colors',
+                  dueFilter === f.value
+                    ? 'bg-white text-stone-800 shadow-sm font-medium'
+                    : 'text-stone-500 hover:text-stone-700'
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-stone-400 text-sm">
+                {allAssignments.length === 0
+                  ? 'No assignments yet.'
+                  : 'No assignments in this window.'}
+              </p>
+              {allAssignments.length === 0 && (
+                <button
+                  onClick={openAdd}
+                  className="mt-3 text-sm text-stone-500 underline hover:text-stone-700 transition-colors"
+                >
+                  Add first assignment
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="-mx-3">
+              {filtered.map(a => (
+                <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
+              ))}
+            </div>
           )}
         </div>
-      ) : (
-        <div className="-mx-3">
-          {filtered.map(a => (
-            <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
-          ))}
+
+        {/* ── Class Schedule ───────────────────────────────────────────────── */}
+        <div className="mt-10 lg:mt-0">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-stone-700">Class Schedule</h2>
+            <button
+              onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
+            >
+              <Plus size={14} />
+              Add time
+            </button>
+          </div>
+
+          {(!meetings || meetings.length === 0) ? (
+            <p className="text-sm text-stone-400 py-4">No class times yet.</p>
+          ) : (
+            <div className="-mx-3">
+              {meetings.map(m => (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 rounded-lg transition-colors"
+                >
+                  <span className="w-8 text-xs font-semibold text-stone-500 shrink-0">
+                    {DAY_NAMES[m.day_of_week]}
+                  </span>
+                  <span className="flex-1 text-sm text-stone-700">
+                    {formatTime(m.start_time)} – {formatTime(m.end_time)}
+                  </span>
+                  <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
+                      className="p-1 text-stone-400 hover:text-stone-600 rounded transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
+                      }}
+                      disabled={deleteMeeting.isPending}
+                      className="p-1 text-stone-400 hover:text-red-500 rounded transition-colors disabled:opacity-50"
+                      title="Delete"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+      </div>
 
       <AddAssignmentDialog
         courseId={course.id}
@@ -194,60 +252,6 @@ export default function CourseDetailPage() {
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
       />
-
-      {/* ── Class Schedule ──────────────────────────────────────────────────── */}
-      <div className="mt-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-stone-700">Class Schedule</h2>
-          <button
-            onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
-          >
-            <Plus size={14} />
-            Add time
-          </button>
-        </div>
-
-        {(!meetings || meetings.length === 0) ? (
-          <p className="text-sm text-stone-400 py-4">No class times yet.</p>
-        ) : (
-          <div className="-mx-3">
-            {meetings.map(m => (
-              <div
-                key={m.id}
-                className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 rounded-lg transition-colors"
-              >
-                <span className="w-8 text-xs font-semibold text-stone-500 shrink-0">
-                  {DAY_NAMES[m.day_of_week]}
-                </span>
-                <span className="flex-1 text-sm text-stone-700">
-                  {formatTime(m.start_time)} – {formatTime(m.end_time)}
-                </span>
-                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
-                    className="p-1 text-stone-400 hover:text-stone-600 rounded transition-colors"
-                    title="Edit"
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
-                    }}
-                    disabled={deleteMeeting.isPending}
-                    className="p-1 text-stone-400 hover:text-red-500 rounded transition-colors disabled:opacity-50"
-                    title="Delete"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       <ClassMeetingDialog
         courseId={course.id}
         meeting={editingMeeting}

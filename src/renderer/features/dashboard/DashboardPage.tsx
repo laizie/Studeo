@@ -31,7 +31,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -56,7 +56,7 @@ export default function DashboardPage() {
 
       {/* Loading skeleton */}
       {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-stone-100 rounded-lg h-32 animate-pulse" />
           ))}
@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
       {/* Course grid */}
       {!isLoading && courseCount > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {(courses ?? []).map(course => {
             const stats = statsByCourse.get(course.id) ?? { total: 0, completed: 0 };
             return (

@@ -88,7 +88,7 @@ export default function ThisWeekPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
