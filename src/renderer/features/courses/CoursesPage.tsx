@@ -1,12 +1,26 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
+import { useAssignments } from '../../lib/queries/useAssignments';
 import CourseCard from './CourseCard';
 import CreateCourseDialog from './CreateCourseDialog';
 
 export default function CoursesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: courses, isLoading, isError } = useCourses();
+  const { data: assignments } = useAssignments();
+
+  const statsByCourse = useMemo(() => {
+    const map = new Map<string, { total: number; completed: number }>();
+    for (const c of courses ?? []) map.set(c.id, { total: 0, completed: 0 });
+    for (const a of assignments ?? []) {
+      const s = map.get(a.course_id);
+      if (!s) continue;
+      s.total += 1;
+      if (a.status === 'completed') s.completed += 1;
+    }
+    return map;
+  }, [courses, assignments]);
 
   const count = courses?.length ?? 0;
 
@@ -38,7 +52,7 @@ export default function CoursesPage() {
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-stone-100 rounded-lg h-12 animate-pulse" />
+            <div key={i} className="bg-stone-100 rounded-xl h-28 animate-pulse" />
           ))}
         </div>
       )}
@@ -66,9 +80,17 @@ export default function CoursesPage() {
       {/* Course list */}
       {!isLoading && count > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {(courses ?? []).map(course => (
-            <CourseCard key={course.id} course={course} />
-          ))}
+          {(courses ?? []).map(course => {
+            const stats = statsByCourse.get(course.id) ?? { total: 0, completed: 0 };
+            return (
+              <CourseCard
+                key={course.id}
+                course={course}
+                total={stats.total}
+                completed={stats.completed}
+              />
+            );
+          })}
         </div>
       )}
 

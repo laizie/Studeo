@@ -5,13 +5,15 @@ import { useDeleteCourse } from '../../lib/queries/useCourses';
 
 interface Props {
   course: Course;
+  total?: number;
+  completed?: number;
 }
 
-export default function CourseCard({ course }: Props) {
+export default function CourseCard({ course, total = 0, completed = 0 }: Props) {
   const deleteCourse = useDeleteCourse();
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   function handleDelete(e: React.MouseEvent) {
-    // Stop the click from bubbling up to the Link and navigating
     e.preventDefault();
     e.stopPropagation();
     if (confirm(`Delete "${course.name}"? This will also delete all its assignments.`)) {
@@ -22,45 +24,61 @@ export default function CourseCard({ course }: Props) {
   return (
     <Link
       to={`/courses/${course.id}`}
-      className="bg-white border border-[#e8ddd0] rounded-xl overflow-hidden flex items-center group shadow-sm hover:shadow-md hover:border-[#d4c8b8] transition-all"
+      className="relative bg-white border border-[#e8ddd0] rounded-xl overflow-hidden flex shadow-sm hover:shadow-md hover:border-[#d4c8b8] transition-all group"
     >
       {/* Color accent bar */}
-      <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: course.color }} />
+      <div className="w-1.5 shrink-0" style={{ backgroundColor: course.color }} />
 
-      {/* Name + abbreviation + building */}
-      <div className="flex-1 px-4 py-3 flex items-center gap-3 min-w-0">
-        <span className="font-medium text-stone-800 truncate flex-1 group-hover:text-stone-900">
-          {course.name}
-        </span>
-
-        <span
-          className="shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium"
-          style={{
-            backgroundColor: `${course.color}1a`,
-            color: course.color,
-          }}
-        >
-          {course.abbreviation}
-        </span>
-
-        {course.building && (
-          <span className="text-sm text-stone-400 truncate hidden sm:block max-w-40">
-            {course.building}
+      {/* Card body */}
+      <div className="flex-1 p-5 min-w-0">
+        {/* Name + abbreviation */}
+        <div className="flex items-start justify-between gap-3 pr-5">
+          <h3 className="font-semibold text-stone-800 truncate leading-snug group-hover:text-stone-900">
+            {course.name}
+          </h3>
+          <span
+            className="shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium"
+            style={{ backgroundColor: `${course.color}2a`, color: course.color }}
+          >
+            {course.abbreviation}
           </span>
+        </div>
+
+        {/* Building */}
+        {course.building && (
+          <p className="mt-1 text-xs text-stone-400 truncate">{course.building}</p>
         )}
+
+        {/* Progress */}
+        <div className="mt-4">
+          {total > 0 ? (
+            <>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-stone-400">{completed} / {total} done</span>
+                <span className="text-xs text-stone-400">{pct}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${pct}%`, backgroundColor: course.color }}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-stone-300">No assignments yet</p>
+          )}
+        </div>
       </div>
 
-      {/* Delete — appears on hover */}
-      <div className="px-3">
-        <button
-          onClick={handleDelete}
-          disabled={deleteCourse.isPending}
-          className="opacity-0 group-hover:opacity-100 p-1 text-stone-400 hover:text-red-500 rounded transition-all disabled:opacity-50"
-          title="Delete course"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
+      {/* Delete — top-right, appears on hover */}
+      <button
+        onClick={handleDelete}
+        disabled={deleteCourse.isPending}
+        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-500 rounded transition-all disabled:opacity-50"
+        title="Delete course"
+      >
+        <Trash2 size={13} />
+      </button>
     </Link>
   );
 }
