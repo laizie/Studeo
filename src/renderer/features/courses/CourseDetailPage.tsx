@@ -1,12 +1,23 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
-import type { Assignment } from '../../../shared/types';
+import { useClassMeetings, useDeleteClassMeeting } from '../../lib/queries/useClassMeetings';
+import type { Assignment, ClassMeeting } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
+import ClassMeetingDialog from './ClassMeetingDialog';
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatTime(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
 
 type DueFilter = '7' | '14' | '30' | 'all';
 
@@ -31,11 +42,15 @@ export default function CourseDetailPage() {
   const [dueFilter, setDueFilter]               = useState<DueFilter>('all');
   const [dialogOpen, setDialogOpen]             = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
+  const [meetingDialogOpen, setMeetingDialogOpen]       = useState(false);
+  const [editingMeeting, setEditingMeeting]             = useState<ClassMeeting | undefined>();
 
   const { data: course,      isLoading: courseLoading      } = useCourse(id ?? '');
   const { data: assignments, isLoading: assignmentsLoading } = useAssignments(
     id ? { courseId: id } : {}
   );
+  const { data: meetings } = useClassMeetings(id ? { courseId: id } : {});
+  const deleteMeeting = useDeleteClassMeeting();
 
   const isLoading  = courseLoading || assignmentsLoading;
   const allAssignments = assignments ?? [];
@@ -178,6 +193,66 @@ export default function CourseDetailPage() {
         assignment={editingAssignment}
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
+      />
+
+      {/* ── Class Schedule ──────────────────────────────────────────────────── */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-stone-700">Class Schedule</h2>
+          <button
+            onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
+          >
+            <Plus size={14} />
+            Add time
+          </button>
+        </div>
+
+        {(!meetings || meetings.length === 0) ? (
+          <p className="text-sm text-stone-400 py-4">No class times yet.</p>
+        ) : (
+          <div className="-mx-3">
+            {meetings.map(m => (
+              <div
+                key={m.id}
+                className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 rounded-lg transition-colors"
+              >
+                <span className="w-8 text-xs font-semibold text-stone-500 shrink-0">
+                  {DAY_NAMES[m.day_of_week]}
+                </span>
+                <span className="flex-1 text-sm text-stone-700">
+                  {formatTime(m.start_time)} – {formatTime(m.end_time)}
+                </span>
+                <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
+                    className="p-1 text-stone-400 hover:text-stone-600 rounded transition-colors"
+                    title="Edit"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
+                    }}
+                    disabled={deleteMeeting.isPending}
+                    className="p-1 text-stone-400 hover:text-red-500 rounded transition-colors disabled:opacity-50"
+                    title="Delete"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ClassMeetingDialog
+        courseId={course.id}
+        meeting={editingMeeting}
+        isOpen={meetingDialogOpen}
+        onClose={() => setMeetingDialogOpen(false)}
       />
     </div>
   );
