@@ -34,9 +34,9 @@ interface Props {
 
 export default function Sidebar({ onOpenQuickAdd }: Props) {
   return (
-    <nav className="w-56 h-full flex flex-col bg-[#2c1f14] dark:bg-[#141210] shrink-0">
+    <nav className="w-56 h-full flex flex-col bg-[#2c1f14] dark:bg-[#1c1008] shrink-0">
       {/* App name + quick add */}
-      <div className="px-4 py-5 border-b border-[#3d2b1f] dark:border-[#1e1a17] flex items-center justify-between">
+      <div className="px-4 py-5 border-b border-[#3d2b1f] dark:border-[#1e140c] flex items-center justify-between">
         <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">
           ClassTrack
         </span>
@@ -60,7 +60,7 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
       </div>
 
       {/* Bottom: settings */}
-      <div className="px-2 pb-3 border-t border-[#3d2b1f] dark:border-[#1e1a17] pt-2">
+      <div className="px-2 pb-3 border-t border-[#3d2b1f] dark:border-[#1e140c] pt-2">
         <NavLink to="/settings" className={navLinkClass}>
           <Settings size={15} className="shrink-0" />
           Settings

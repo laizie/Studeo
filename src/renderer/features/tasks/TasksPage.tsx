@@ -6,8 +6,9 @@ import { parseDateLocal } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import TaskRow from './TaskRow';
 import AddTaskDialog from './AddTaskDialog';
+import { usePageFiltersStore, type TasksDueFilter } from '../../store/usePageFiltersStore';
 
-type DueFilter = 'week' | 'month' | 'all';
+type DueFilter = TasksDueFilter;
 
 const FILTERS: { label: string; value: DueFilter }[] = [
   { label: 'This week',  value: 'week'  },
@@ -49,8 +50,10 @@ function applyFilter(tasks: Task[], filter: DueFilter, showCompleted: boolean): 
 export default function TasksPage() {
   const { data: tasks, isLoading } = useTasks();
 
-  const [filter, setFilter]                   = useState<DueFilter>('all');
-  const [showCompleted, setShowCompleted]      = useState(false);
+  const filter          = usePageFiltersStore(s => s.tasksDueFilter);
+  const setFilter       = usePageFiltersStore(s => s.setTasksDueFilter);
+  const showCompleted   = usePageFiltersStore(s => s.tasksShowCompleted);
+  const setShowCompleted = usePageFiltersStore(s => s.setTasksShowCompleted);
   const [dialogOpen, setDialogOpen]            = useState(false);
   const [editingTask, setEditingTask]          = useState<Task | undefined>();
 
@@ -79,8 +82,8 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">Tasks</h1>
-          <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
+          <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Tasks</h1>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">
             {remainingCount > 0
               ? `${remainingCount} remaining`
               : allTasks.length > 0
@@ -90,7 +93,7 @@ export default function TasksPage() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
         >
           <Plus size={14} />
           Add task
@@ -99,7 +102,7 @@ export default function TasksPage() {
 
       {/* Filter bar */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg w-fit">
+        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg w-fit">
           {FILTERS.map(f => (
             <button
               key={f.value}
@@ -107,8 +110,8 @@ export default function TasksPage() {
               className={cn(
                 'px-3 py-1 text-sm rounded-md transition-colors',
                 filter === f.value
-                  ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 shadow-sm font-medium'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                  ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                  : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
               )}
             >
               {f.label}
@@ -131,7 +134,7 @@ export default function TasksPage() {
       {isLoading && (
         <div className="space-y-2 animate-pulse">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 dark:bg-stone-800 rounded-lg" />
+            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] rounded-lg" />
           ))}
         </div>
       )}
@@ -149,7 +152,7 @@ export default function TasksPage() {
           {allTasks.length === 0 && (
             <button
               onClick={openAdd}
-              className="mt-3 text-sm text-stone-500 dark:text-stone-400 underline hover:text-stone-700 transition-colors"
+              className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
             >
               Add your first task
             </button>
@@ -157,7 +160,7 @@ export default function TasksPage() {
           {allTasks.length > 0 && !showCompleted && completedCount > 0 && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-stone-400 dark:text-stone-500 underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-stone-400 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
             >
               Show {completedCount} completed
             </button>
@@ -176,7 +179,7 @@ export default function TasksPage() {
 
       {/* Footer stats */}
       {!isLoading && allTasks.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-stone-800 flex gap-4 text-xs text-stone-400 dark:text-stone-500">
+        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] flex gap-4 text-xs text-stone-400 dark:text-[#e0b870]">
           <span>{completedCount} completed</span>
           <span>{remainingCount} remaining</span>
           {!showCompleted && completedCount > 0 && (

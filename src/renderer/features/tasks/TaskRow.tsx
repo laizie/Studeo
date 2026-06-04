@@ -43,7 +43,7 @@ export default function TaskRow({ task, onEdit }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-stone-800 rounded-lg transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#553311] rounded-lg transition-colors">
       <button
         onClick={handleStatusToggle}
         disabled={updateTask.isPending}
@@ -53,11 +53,11 @@ export default function TaskRow({ task, onEdit }: Props) {
         <StatusIcon status={task.status} />
       </button>
 
-      <span className={`flex-1 text-sm truncate ${isCompleted ? 'line-through text-stone-400 dark:text-stone-600' : 'text-stone-800 dark:text-stone-100'}`}>
+      <span className={`flex-1 text-sm truncate ${isCompleted ? 'line-through text-stone-400 dark:text-[#cc9a58]' : 'text-stone-800 dark:text-[#f0e0cc]'}`}>
         {task.name}
       </span>
 
-      <span className="shrink-0 text-xs text-stone-400 dark:text-stone-500 w-14 text-right hidden md:block">
+      <span className="shrink-0 text-xs text-stone-400 dark:text-[#e0b870] w-14 text-right hidden md:block">
         {formatDueDate(task.due_date)}
       </span>
 
@@ -68,7 +68,7 @@ export default function TaskRow({ task, onEdit }: Props) {
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(task)}
-          className="p-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 rounded transition-colors"
+          className="p-1 text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] rounded transition-colors"
           title="Edit"
         >
           <Pencil size={13} />

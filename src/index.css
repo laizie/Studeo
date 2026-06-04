@@ -24,7 +24,108 @@
   }
 
   .dark body {
-    background-color: #1c1917;
-    color: #e7e5e4;
+    background-color: #332211;
+    color: #f0e0cc;
   }
+}
+
+/* ── react-big-calendar dark mode overrides ─────────────────────────────────── */
+
+.dark .rbc-calendar {
+  background-color: #332211;
+  color: #f0e0cc;
+}
+
+/* Toolbar */
+.dark .rbc-toolbar {
+  color: #f0e0cc;
+}
+.dark .rbc-toolbar button {
+  color: #c4a882;
+  border-color: #442918;
+  background: transparent;
+}
+.dark .rbc-toolbar button:hover {
+  background-color: #553311;
+  color: #f0e0cc;
+}
+.dark .rbc-toolbar button.rbc-active,
+.dark .rbc-toolbar button.rbc-active:hover {
+  background-color: #664433;
+  color: #f0e0cc;
+  border-color: #442918;
+  box-shadow: none;
+}
+
+/* Month view */
+.dark .rbc-month-view {
+  border-color: #442918;
+}
+.dark .rbc-header {
+  background-color: #553311;
+  color: #c4a882;
+  border-color: #442918;
+}
+.dark .rbc-header + .rbc-header {
+  border-color: #442918;
+}
+.dark .rbc-day-bg {
+  background-color: #332211;
+}
+.dark .rbc-day-bg + .rbc-day-bg {
+  border-color: #442918;
+}
+.dark .rbc-off-range-bg {
+  background-color: #3d2810;
+}
+.dark .rbc-off-range .rbc-date-cell a,
+.dark .rbc-off-range .rbc-button-link {
+  color: #cc9a58;
+}
+.dark .rbc-date-cell a,
+.dark .rbc-date-cell .rbc-button-link {
+  color: #c4a882;
+}
+.dark .rbc-today {
+  background-color: rgba(226, 165, 59, 0.14);
+}
+.dark .rbc-month-row + .rbc-month-row {
+  border-color: #442918;
+}
+.dark .rbc-show-more {
+  color: #e2a53b;
+}
+
+/* Week / day view */
+.dark .rbc-time-view {
+  border-color: #442918;
+}
+.dark .rbc-time-header {
+  background-color: #553311;
+  border-color: #442918;
+}
+.dark .rbc-time-header-content {
+  border-color: #442918;
+}
+.dark .rbc-time-header-cell .rbc-header {
+  border-color: #442918;
+}
+.dark .rbc-time-content {
+  background-color: #332211;
+  border-color: #442918;
+}
+.dark .rbc-time-content > .rbc-time-column {
+  border-color: #442918;
+}
+.dark .rbc-timeslot-group {
+  border-color: #442918;
+}
+.dark .rbc-time-slot {
+  color: #cc9a58;
+}
+.dark .rbc-day-slot .rbc-time-slot {
+  border-color: #553311;
+}
+.dark .rbc-current-time-indicator {
+  background-color: #e2a53b;
 }

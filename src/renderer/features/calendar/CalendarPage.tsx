@@ -4,6 +4,7 @@ import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import type { View } from 'react-big-calendar';
+import { usePageFiltersStore, type CalendarMode, type CalendarView } from '../../store/usePageFiltersStore';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
@@ -87,7 +88,7 @@ function expandMeetingsForRange(
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-type Mode = 'assignments' | 'lectures';
+type Mode = CalendarMode;
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -95,9 +96,11 @@ export default function CalendarPage() {
   const { data: assignments }  = useAssignments();
   const { data: allMeetings }  = useClassMeetings();
 
-  const [mode, setMode] = useState<Mode>('assignments');
+  const mode       = usePageFiltersStore(s => s.calendarMode);
+  const setMode    = usePageFiltersStore(s => s.setCalendarMode);
+  const calView    = usePageFiltersStore(s => s.calendarView) as View;
+  const setCalView = usePageFiltersStore(s => s.setCalendarView);
   const [calDate, setCalDate] = useState(new Date());
-  const [calView, setCalView] = useState<View>('month');
 
   // Track the visible range so we only expand meetings for what's on screen.
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>(() => ({
@@ -178,10 +181,10 @@ export default function CalendarPage() {
     <div className="p-8 flex flex-col" style={{ height: 'calc(100vh - 40px)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 shrink-0">
-        <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">Calendar</h1>
+        <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Calendar</h1>
 
         {/* Mode toggle */}
-        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg">
+        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg">
           {(['assignments', 'lectures'] as Mode[]).map(m => (
             <button
               key={m}
@@ -192,8 +195,8 @@ export default function CalendarPage() {
               className={cn(
                 'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                 mode === m
-                  ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 shadow-sm font-medium'
-                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+                  ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                  : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
               )}
             >
               {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}
@@ -212,7 +215,7 @@ export default function CalendarPage() {
           view={calView}
           views={mode === 'lectures' ? ['week', 'day'] : ['month']}
           onNavigate={setCalDate}
-          onView={v => setCalView(v)}
+          onView={v => setCalView(v as CalendarView)}
           onRangeChange={handleRangeChange}
           onSelectEvent={handleSelectEvent}
           eventPropGetter={eventPropGetter}
