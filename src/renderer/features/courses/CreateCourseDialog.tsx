@@ -95,7 +95,7 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
     >
       <div className="absolute inset-0 bg-black/30" />
 
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-stone-800">New course</h2>

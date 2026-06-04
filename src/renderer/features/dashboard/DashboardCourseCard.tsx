@@ -13,7 +13,7 @@ export default function DashboardCourseCard({ course, total, completed }: Props)
   return (
     <Link
       to={`/courses/${course.id}`}
-      className="bg-white border border-stone-200 rounded-lg overflow-hidden flex hover:shadow-md transition-shadow group"
+      className="bg-white border border-[#e8ddd0] rounded-xl overflow-hidden flex shadow-sm hover:shadow-md hover:border-[#d4c8b8] transition-all group"
     >
       {/* Color accent bar */}
       <div className="w-1.5 shrink-0" style={{ backgroundColor: course.color }} />

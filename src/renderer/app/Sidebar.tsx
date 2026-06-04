@@ -20,10 +20,10 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <nav className="w-56 h-full flex flex-col bg-stone-100 border-r border-stone-200 shrink-0">
+    <nav className="w-56 h-full flex flex-col bg-[#2c1f14] shrink-0">
       {/* App name */}
-      <div className="px-4 py-5 border-b border-stone-200">
-        <span className="text-sm font-semibold text-stone-800 tracking-tight">
+      <div className="px-4 py-5 border-b border-[#3d2b1f]">
+        <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">
           ClassTrack
         </span>
       </div>
@@ -37,10 +37,10 @@ export default function Sidebar() {
             end={end}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-2.5 px-2.5 py-1.5 rounded text-sm w-full transition-colors',
+                'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm w-full transition-colors',
                 isActive
-                  ? 'bg-stone-200 text-stone-900 font-medium'
-                  : 'text-stone-600 hover:bg-stone-200/70 hover:text-stone-800'
+                  ? 'bg-[#e2a53b] text-[#1e1208] font-semibold'
+                  : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]'
               )
             }
           >
