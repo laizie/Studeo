@@ -36,7 +36,10 @@ function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: 
   const color    = PHASE_COLORS[phase];
 
   return (
-    <svg width={200} height={200} className="-rotate-90">
+    <svg
+      viewBox="0 0 200 200"
+      className="-rotate-90 w-[200px] h-[200px] lg:w-[230px] lg:h-[230px]"
+    >
       {/* Track */}
       <circle cx={100} cy={100} r={RADIUS}
         fill="none" stroke="#e7e5e4" strokeWidth={7}
@@ -110,8 +113,8 @@ function MusicSection() {
   const isInvalid = musicUrl.length > 0 && !embed;
 
   return (
-    <div className="w-full max-w-md">
-      <div className="flex items-center justify-between mb-3">
+    <div className="w-full max-w-md lg:flex-1 lg:flex lg:flex-col">
+      <div className="flex items-center justify-between mb-3 shrink-0">
         <h2 className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Music</h2>
         {embed && (
           <a
@@ -131,7 +134,7 @@ function MusicSection() {
         onChange={handleChange}
         placeholder="Paste a Spotify or Apple Music URL…"
         className={cn(
-          'w-full px-3 py-2 text-sm border rounded-lg mb-3',
+          'w-full px-3 py-2 text-sm border rounded-lg mb-3 shrink-0',
           'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent',
           'placeholder:text-stone-300',
           isInvalid ? 'border-red-300' : 'border-stone-200'
@@ -139,21 +142,23 @@ function MusicSection() {
       />
 
       {isInvalid && (
-        <p className="text-xs text-red-400 -mt-2 mb-3">
+        <p className="text-xs text-red-400 -mt-2 mb-3 shrink-0">
           Paste a Spotify or Apple Music URL (playlist, album, or track).
         </p>
       )}
 
       {embed && (
-        <iframe
-          src={embed.embedUrl}
-          width="100%"
-          height={embed.height}
-          allow={embed.allow}
-          loading="lazy"
-          className="rounded-xl border-0 block"
-          title="Music Player"
-        />
+        <div className="flex-1 min-h-[175px] min-w-0">
+          <iframe
+            src={embed.embedUrl}
+            width="100%"
+            height="100%"
+            allow={embed.allow}
+            loading="lazy"
+            className="rounded-xl border-0 block w-full h-full"
+            title="Music Player"
+          />
+        </div>
       )}
     </div>
   );
@@ -190,121 +195,133 @@ export default function StudyPage() {
   const color = PHASE_COLORS[phase];
 
   return (
-    <div className="p-8 flex flex-col items-center">
-      <h1 className="text-2xl font-semibold text-stone-800 self-start mb-8">Study</h1>
+    <div className="p-8">
+      <div className="max-w-5xl mx-auto">
+      <h1 className="text-2xl font-semibold text-stone-800 mb-8">Study</h1>
 
-      {/* Phase tabs */}
-      <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg mb-10">
-        {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPhase(p)}
-            className={cn(
-              'px-4 py-1.5 text-sm rounded-md transition-colors',
-              phase === p
-                ? 'bg-white text-stone-800 shadow-sm font-medium'
-                : 'text-stone-500 hover:text-stone-700'
-            )}
-          >
-            {PHASE_LABELS[p]}
-          </button>
-        ))}
-      </div>
+      <div className="flex flex-col lg:flex-row lg:gap-16 items-center lg:items-stretch">
 
-      {/* Progress ring with time overlay */}
-      <div className="relative flex items-center justify-center mb-8">
-        <ProgressRing phase={phase} timeLeft={timeLeft} totalSecs={totalSecs} />
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span
-            className="text-5xl font-semibold tabular-nums tracking-tight"
-            style={{ color }}
-          >
-            {formatTime(timeLeft)}
-          </span>
-          <span className="text-xs text-stone-400 mt-1">{PHASE_LABELS[phase]}</span>
-        </div>
-      </div>
+        {/* ── Timer column ─────────────────────────────────────────────────── */}
+        <div className="flex flex-col items-center w-full max-w-sm shrink-0">
 
-      {/* Controls */}
-      <div className="flex items-center gap-4 mb-5">
-        <button
-          onClick={reset}
-          title="Reset"
-          className="p-2.5 text-stone-400 hover:text-stone-600 rounded-full hover:bg-stone-100 transition-colors"
-        >
-          <RotateCcw size={18} />
-        </button>
-
-        <button
-          onClick={isRunning ? pause : start}
-          className="flex items-center gap-2 px-8 py-3 rounded-full text-white font-medium text-sm shadow-sm transition-all hover:opacity-90 active:scale-95"
-          style={{ backgroundColor: color }}
-        >
-          {isRunning ? <Pause size={16} /> : <Play size={16} />}
-          {isRunning ? 'Pause' : 'Start'}
-        </button>
-
-        {/* Spacer so reset button doesn't visually pull the main button left */}
-        <div className="w-[42px]" />
-      </div>
-
-      {/* Auto-advance */}
-      <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-stone-500 mb-6">
-        <input
-          type="checkbox"
-          checked={autoAdvance}
-          onChange={toggleAutoAdvance}
-          className="accent-stone-600"
-        />
-        Auto-advance to next phase
-      </label>
-
-      {/* Duration options */}
-      <div className="w-full max-w-xs space-y-3 mb-10">
-        <div className="flex items-center gap-3">
-          <span className="w-12 text-xs text-stone-400 shrink-0 text-right">Focus</span>
-          <div className="flex gap-1.5">
-            {FOCUS_OPTIONS.map(m => (
+          {/* Phase tabs */}
+          <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg mb-10 self-stretch justify-center">
+            {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
               <button
-                key={m}
-                onClick={() => setFocusMins(m)}
+                key={p}
+                onClick={() => setPhase(p)}
                 className={cn(
-                  'px-3 py-1 text-sm rounded-md transition-colors',
-                  focusMins === m
-                    ? 'bg-stone-800 text-white font-medium'
-                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                  'px-4 py-1.5 text-sm rounded-md transition-colors',
+                  phase === p
+                    ? 'bg-white text-stone-800 shadow-sm font-medium'
+                    : 'text-stone-500 hover:text-stone-700'
                 )}
               >
-                {m}
+                {PHASE_LABELS[p]}
               </button>
             ))}
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <span className="w-12 text-xs text-stone-400 shrink-0 text-right">Break</span>
-          <div className="flex gap-1.5">
-            {BREAK_OPTIONS.map(m => (
-              <button
-                key={m}
-                onClick={() => setBreakMins(m)}
-                className={cn(
-                  'px-3 py-1 text-sm rounded-md transition-colors',
-                  breakMins === m
-                    ? 'bg-stone-800 text-white font-medium'
-                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
-                )}
+          {/* Progress ring with time overlay */}
+          <div className="relative flex items-center justify-center mb-8">
+            <ProgressRing phase={phase} timeLeft={timeLeft} totalSecs={totalSecs} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span
+                className="text-5xl lg:text-6xl font-semibold tabular-nums tracking-tight"
+                style={{ color }}
               >
-                {m}
-              </button>
-            ))}
+                {formatTime(timeLeft)}
+              </span>
+              <span className="text-xs text-stone-400 mt-1">{PHASE_LABELS[phase]}</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-4 mb-5">
+            <button
+              onClick={reset}
+              title="Reset"
+              className="p-2.5 text-stone-400 hover:text-stone-600 rounded-full hover:bg-stone-100 transition-colors"
+            >
+              <RotateCcw size={18} />
+            </button>
+            <button
+              onClick={isRunning ? pause : start}
+              className="flex items-center gap-2 px-8 py-3 rounded-full text-white font-medium text-sm shadow-sm transition-all hover:opacity-90 active:scale-95"
+              style={{ backgroundColor: color }}
+            >
+              {isRunning ? <Pause size={16} /> : <Play size={16} />}
+              {isRunning ? 'Pause' : 'Start'}
+            </button>
+            <div className="w-[42px]" />
+          </div>
+
+          {/* Auto-advance */}
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-stone-500 mb-6">
+            <input
+              type="checkbox"
+              checked={autoAdvance}
+              onChange={toggleAutoAdvance}
+              className="accent-stone-600"
+            />
+            Auto-advance to next phase
+          </label>
+
+          {/* Duration options */}
+          <div className="w-full space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="w-12 text-xs text-stone-400 shrink-0 text-right">Focus</span>
+              <div className="flex gap-1.5">
+                {FOCUS_OPTIONS.map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setFocusMins(m)}
+                    className={cn(
+                      'px-3 py-1 text-sm rounded-md transition-colors',
+                      focusMins === m
+                        ? 'bg-stone-800 text-white font-medium'
+                        : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="w-12 text-xs text-stone-400 shrink-0 text-right">Break</span>
+              <div className="flex gap-1.5">
+                {BREAK_OPTIONS.map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setBreakMins(m)}
+                    className={cn(
+                      'px-3 py-1 text-sm rounded-md transition-colors',
+                      breakMins === m
+                        ? 'bg-stone-800 text-white font-medium'
+                        : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* ── Dividers ──────────────────────────────────────────────────────── */}
+        {/* Horizontal on small screens, vertical on large */}
+        <div className="w-full max-w-sm h-px bg-stone-200 my-10 lg:hidden" />
+        <div className="hidden lg:block w-px self-stretch bg-stone-200 shrink-0" />
+
+        {/* ── Music column ─────────────────────────────────────────────────── */}
+        <div className="w-full max-w-md lg:flex-1 lg:max-w-xl lg:flex lg:flex-col">
+          <MusicSection />
+        </div>
+
       </div>
-
-      <div className="w-full max-w-md border-t border-stone-100 mb-8" />
-
-      <MusicSection />
+      </div>
     </div>
   );
 }

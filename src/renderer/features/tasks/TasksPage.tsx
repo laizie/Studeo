@@ -75,7 +75,7 @@ export default function TasksPage() {
   const remainingCount = allTasks.filter(t => t.status !== 'completed').length;
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
