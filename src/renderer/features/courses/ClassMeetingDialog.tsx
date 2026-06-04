@@ -22,7 +22,8 @@ const DAYS = [
 
 const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent';
+  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
+  'dark:bg-stone-900 dark:border-stone-600 dark:text-stone-100 dark:focus:ring-stone-500';
 
 export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose }: Props) {
   const isEditing = !!meeting;
@@ -82,19 +83,19 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute inset-0 bg-black/30" />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      <div className="relative bg-white dark:bg-stone-800 rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-stone-800">
+          <h2 className="text-base font-semibold text-stone-800 dark:text-stone-100">
             {isEditing ? 'Edit class time' : 'Add class time'}
           </h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
+          <button onClick={onClose} className="text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Day</label>
+            <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Day</label>
             <select
               ref={dayRef}
               value={dayOfWeek}
@@ -109,7 +110,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Start</label>
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Start</label>
               <input
                 type="time"
                 value={startTime}
@@ -119,7 +120,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">End</label>
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">End</label>
               <input
                 type="time"
                 value={endTime}
@@ -138,7 +139,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 hover:text-stone-800 transition-colors"
+              className="px-4 py-2 text-sm text-stone-600 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 transition-colors"
             >
               Cancel
             </button>

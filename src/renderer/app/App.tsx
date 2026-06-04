@@ -7,6 +7,7 @@ import ThisWeekPage from '../features/thisweek/ThisWeekPage';
 import TasksPage from '../features/tasks/TasksPage';
 import CalendarPage from '../features/calendar/CalendarPage';
 import StudyPage from '../features/study/StudyPage';
+import SettingsPage from '../features/settings/SettingsPage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="study" element={<StudyPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </HashRouter>

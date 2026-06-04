@@ -29,7 +29,7 @@ export default function CoursesPage() {
       {/* Page header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800">Courses</h1>
+          <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100">Courses</h1>
           <p className="mt-0.5 text-sm text-stone-500">
             {isLoading
               ? 'Loading…'
@@ -70,7 +70,7 @@ export default function CoursesPage() {
           <p className="text-stone-400 text-sm">No courses yet.</p>
           <button
             onClick={() => setIsDialogOpen(true)}
-            className="mt-3 text-sm text-stone-500 underline hover:text-stone-700 transition-colors"
+            className="mt-3 text-sm text-stone-500 dark:text-stone-400 underline hover:text-stone-700 transition-colors"
           >
             Add your first course
           </button>

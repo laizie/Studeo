@@ -75,7 +75,7 @@ export default function CourseDetailPage() {
         <div className="h-px bg-stone-100 mt-6" />
         <div className="space-y-2 mt-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 rounded-lg" />
+            <div key={i} className="h-10 bg-stone-100 dark:bg-stone-800 rounded-lg" />
           ))}
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function CourseDetailPage() {
     return (
       <div className="p-8">
         <p className="text-sm text-stone-500">Course not found.</p>
-        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-400 underline hover:text-stone-600">
+        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-400 dark:text-stone-500 underline hover:text-stone-600">
           ← Back to Courses
         </Link>
       </div>
@@ -100,7 +100,7 @@ export default function CourseDetailPage() {
       {/* Back link */}
       <Link
         to="/courses"
-        className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-stone-500 hover:text-stone-600 transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         Courses
@@ -114,7 +114,7 @@ export default function CourseDetailPage() {
         />
         <div className="min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold text-stone-800 leading-tight">
+            <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100 leading-tight">
               {course.name}
             </h1>
             <span
@@ -128,7 +128,7 @@ export default function CourseDetailPage() {
             </span>
           </div>
           {course.building && (
-            <p className="mt-1 text-sm text-stone-400">{course.building}</p>
+            <p className="mt-1 text-sm text-stone-400 dark:text-stone-500">{course.building}</p>
           )}
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function CourseDetailPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 rounded-lg w-fit">
+          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg w-fit">
             {DUE_FILTERS.map(f => (
               <button
                 key={f.value}
@@ -157,8 +157,8 @@ export default function CourseDetailPage() {
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
-                    ? 'bg-white text-stone-800 shadow-sm font-medium'
-                    : 'text-stone-500 hover:text-stone-700'
+                    ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 shadow-sm font-medium'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
                 )}
               >
                 {f.label}
@@ -176,7 +176,7 @@ export default function CourseDetailPage() {
               {allAssignments.length === 0 && (
                 <button
                   onClick={openAdd}
-                  className="mt-3 text-sm text-stone-500 underline hover:text-stone-700 transition-colors"
+                  className="mt-3 text-sm text-stone-500 dark:text-stone-400 underline hover:text-stone-700 transition-colors"
                 >
                   Add first assignment
                 </button>
@@ -205,15 +205,15 @@ export default function CourseDetailPage() {
           </div>
 
           {(!meetings || meetings.length === 0) ? (
-            <p className="text-sm text-stone-400 py-4">No class times yet.</p>
+            <p className="text-sm text-stone-400 dark:text-stone-500 py-4">No class times yet.</p>
           ) : (
             <div className="-mx-3">
               {meetings.map(m => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-stone-800 rounded-lg transition-colors"
                 >
-                  <span className="w-8 text-xs font-semibold text-stone-500 shrink-0">
+                  <span className="w-8 text-xs font-semibold text-stone-500 dark:text-stone-400 shrink-0">
                     {DAY_NAMES[m.day_of_week]}
                   </span>
                   <span className="flex-1 text-sm text-stone-700">
@@ -222,7 +222,7 @@ export default function CourseDetailPage() {
                   <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
-                      className="p-1 text-stone-400 hover:text-stone-600 rounded transition-colors"
+                      className="p-1 text-stone-400 dark:text-stone-500 hover:text-stone-600 rounded transition-colors"
                       title="Edit"
                     >
                       <Pencil size={13} />
@@ -232,7 +232,7 @@ export default function CourseDetailPage() {
                         if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
                       }}
                       disabled={deleteMeeting.isPending}
-                      className="p-1 text-stone-400 hover:text-red-500 rounded transition-colors disabled:opacity-50"
+                      className="p-1 text-stone-400 dark:text-stone-500 hover:text-red-500 rounded transition-colors disabled:opacity-50"
                       title="Delete"
                     >
                       <Trash2 size={13} />

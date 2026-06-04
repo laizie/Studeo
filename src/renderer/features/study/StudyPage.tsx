@@ -42,7 +42,7 @@ function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: 
     >
       {/* Track */}
       <circle cx={100} cy={100} r={RADIUS}
-        fill="none" stroke="#e7e5e4" strokeWidth={7}
+        fill="none" stroke="currentColor" strokeWidth={7} className="text-stone-200 dark:text-stone-700"
       />
       {/* Countdown arc */}
       <circle cx={100} cy={100} r={RADIUS}
@@ -137,7 +137,8 @@ function MusicSection() {
           'w-full px-3 py-2 text-sm border rounded-lg mb-3 shrink-0',
           'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent',
           'placeholder:text-stone-300',
-          isInvalid ? 'border-red-300' : 'border-stone-200'
+          isInvalid ? 'border-red-300' : 'border-stone-200 dark:border-stone-700',
+          'dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-600'
         )}
       />
 
@@ -197,7 +198,7 @@ export default function StudyPage() {
   return (
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold text-stone-800 mb-8">Study</h1>
+      <h1 className="text-2xl font-semibold text-stone-800 dark:text-stone-100 mb-8">Study</h1>
 
       <div className="flex flex-col lg:flex-row lg:gap-16 items-center lg:items-stretch">
 
@@ -205,7 +206,7 @@ export default function StudyPage() {
         <div className="flex flex-col items-center w-full max-w-sm shrink-0">
 
           {/* Phase tabs */}
-          <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg mb-10 self-stretch justify-center">
+          <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-stone-800 rounded-lg mb-10 self-stretch justify-center">
             {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
               <button
                 key={p}
@@ -213,8 +214,8 @@ export default function StudyPage() {
                 className={cn(
                   'px-4 py-1.5 text-sm rounded-md transition-colors',
                   phase === p
-                    ? 'bg-white text-stone-800 shadow-sm font-medium'
-                    : 'text-stone-500 hover:text-stone-700'
+                    ? 'bg-white dark:bg-stone-700 text-stone-800 dark:text-stone-100 shadow-sm font-medium'
+                    : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
                 )}
               >
                 {PHASE_LABELS[p]}
