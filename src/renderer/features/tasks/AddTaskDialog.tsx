@@ -1,0 +1,128 @@
+import { useState, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
+import type { Task } from '../../../shared/types';
+import { useCreateTask, useUpdateTask } from '../../lib/queries/useTasks';
+
+interface Props {
+  task?: Task;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const INPUT_CLASS =
+  'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
+  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
+  'placeholder:text-stone-400';
+
+export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
+  const isEditing = !!task;
+
+  const [name, setName]       = useState('');
+  const [dueDate, setDueDate] = useState('');
+
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (task) {
+      setName(task.name);
+      setDueDate(task.due_date.slice(0, 10));
+    } else {
+      setName('');
+      setDueDate('');
+    }
+    setTimeout(() => nameRef.current?.focus(), 50);
+  }, [isOpen, task]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !dueDate) return;
+
+    if (isEditing) {
+      await updateTask.mutateAsync({ id: task.id, input: { name: name.trim(), dueDate } });
+    } else {
+      await createTask.mutateAsync({ name: name.trim(), dueDate });
+    }
+    onClose();
+  }
+
+  const isPending = createTask.isPending || updateTask.isPending;
+  const isError   = createTask.isError   || updateTask.isError;
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-semibold text-stone-800">
+            {isEditing ? 'Edit task' : 'New task'}
+          </h2>
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-600 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Name</label>
+            <input
+              ref={nameRef}
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Read chapter 5"
+              className={INPUT_CLASS}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Due date</label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              className={INPUT_CLASS}
+              required
+            />
+          </div>
+
+          {isError && (
+            <p className="text-sm text-red-600">Something went wrong — please try again.</p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-stone-600 hover:text-stone-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!name.trim() || !dueDate || isPending}
+              className="px-4 py-2 text-sm bg-stone-800 text-white rounded-lg hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add task'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
