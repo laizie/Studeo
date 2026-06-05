@@ -7,7 +7,7 @@ import { useTasks } from '../../lib/queries/useTasks';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useTerms } from '../../lib/queries/useTerms';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
-import type { Assignment, Course, ClassMeeting } from '../../../shared/types';
+import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import CreateCourseDialog from '../courses/CreateCourseDialog';
@@ -113,10 +113,35 @@ function AssignmentItem({ assignment, course }: {
         </span>
       )}
       <span className={cn('text-xs font-medium shrink-0 w-[72px] text-right', {
-        'text-red-500':   deadline.urgency === 'overdue',
-        'text-amber-500': deadline.urgency === 'today',
-        'text-amber-400': deadline.urgency === 'soon',
-        'text-stone-400': deadline.urgency === 'upcoming',
+        'text-red-500':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
+        'text-orange-500': deadline.urgency === 'tomorrow',
+        'text-yellow-500': deadline.urgency === 'soon',
+        'text-green-400':  deadline.urgency === 'week',
+        'text-green-500':  deadline.urgency === 'later',
+        'text-green-700':  deadline.urgency === 'future',
+      })}>
+        {deadline.label}
+      </span>
+    </Link>
+  );
+}
+
+function TaskItem({ task }: { task: Task }) {
+  const deadline = computeDeadlineLabel(task.due_date);
+  return (
+    <Link
+      to="/tasks"
+      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors"
+    >
+      <div className="w-0.5 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
+      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{task.name}</span>
+      <span className={cn('text-xs font-medium shrink-0 w-[72px] text-right', {
+        'text-red-500':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
+        'text-orange-500': deadline.urgency === 'tomorrow',
+        'text-yellow-500': deadline.urgency === 'soon',
+        'text-green-400':  deadline.urgency === 'week',
+        'text-green-500':  deadline.urgency === 'later',
+        'text-green-700':  deadline.urgency === 'future',
       })}>
         {deadline.label}
       </span>
@@ -128,7 +153,7 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
   return (
     <Link
       to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#664433] transition-colors"
     >
       <div
         className="w-2 h-2 rounded-full shrink-0"
@@ -222,8 +247,15 @@ export default function DashboardPage() {
     [allMeetings, todayDow],
   );
 
+  const pendingTasks = useMemo(() =>
+    allTasks
+      .filter(t => t.status !== 'completed')
+      .sort((a, b) => a.due_date.localeCompare(b.due_date)),
+    [allTasks],
+  );
+
   const completedCount  = allAssignments.filter(a => a.status === 'completed').length;
-  const tasksRemaining  = allTasks.filter(t => t.status !== 'completed').length;
+  const tasksRemaining  = pendingTasks.length;
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -318,14 +350,16 @@ export default function DashboardPage() {
               {overdue.length > 0 && (
                 <div>
                   <SectionLabel title="Overdue" count={overdue.length} urgent />
-                  <div className="-mx-3">
-                    {overdue.map(a => (
-                      <AssignmentItem
-                        key={a.id}
-                        assignment={a}
-                        course={courseMap.get(a.course_id)}
-                      />
-                    ))}
+                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                      {overdue.map(a => (
+                        <AssignmentItem
+                          key={a.id}
+                          assignment={a}
+                          course={courseMap.get(a.course_id)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -333,20 +367,38 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Due this week" count={dueThisWeek.length} />
                 {dueThisWeek.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-300">
+                  <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">
                     {allAssignments.length === 0
                       ? 'Add assignments to a course to see them here.'
                       : 'Nothing due this week — enjoy the break!'}
                   </p>
                 ) : (
-                  <div className="-mx-3">
-                    {dueThisWeek.map(a => (
-                      <AssignmentItem
-                        key={a.id}
-                        assignment={a}
-                        course={courseMap.get(a.course_id)}
-                      />
-                    ))}
+                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                      {dueThisWeek.map(a => (
+                        <AssignmentItem
+                          key={a.id}
+                          assignment={a}
+                          course={courseMap.get(a.course_id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tasks */}
+              <div>
+                <SectionLabel title="Tasks" count={pendingTasks.length} />
+                {pendingTasks.length === 0 ? (
+                  <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">No pending tasks.</p>
+                ) : (
+                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                      {pendingTasks.map(t => (
+                        <TaskItem key={t.id} task={t} />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -359,48 +411,52 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Today's classes" />
                 {todayClasses.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-300">No classes today.</p>
+                  <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">No classes today.</p>
                 ) : (
-                  <div className="-mx-3">
-                    {todayClasses.map(m => (
-                      <ClassItem
-                        key={m.id}
-                        meeting={m}
-                        course={courseMap.get(m.course_id)}
-                      />
-                    ))}
+                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                      {todayClasses.map(m => (
+                        <ClassItem
+                          key={m.id}
+                          meeting={m}
+                          course={courseMap.get(m.course_id)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
 
               <div>
                 <SectionLabel title="Courses" />
-                <div className="-mx-3">
-                  {allCourses.map(c => {
-                    const ca = allAssignments.filter(a => a.course_id === c.id);
-                    const done  = ca.filter(a => a.status === 'completed').length;
-                    const total = ca.length;
-                    return (
-                      <Link
-                        key={c.id}
-                        to={`/courses/${c.id}`}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors group"
-                      >
-                        <div
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: c.color }}
-                        />
-                        <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate group-hover:text-stone-900 dark:group-hover:text-white">
-                          {c.name}
-                        </span>
-                        {total > 0 && (
-                          <span className="text-xs text-stone-400 dark:text-[#e0b870] shrink-0 tabular-nums">
-                            {done}/{total}
+                <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+                  <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                    {allCourses.map(c => {
+                      const ca = allAssignments.filter(a => a.course_id === c.id);
+                      const done  = ca.filter(a => a.status === 'completed').length;
+                      const total = ca.length;
+                      return (
+                        <Link
+                          key={c.id}
+                          to={`/courses/${c.id}`}
+                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 dark:hover:bg-[#664433] transition-colors group"
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: c.color }}
+                          />
+                          <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate group-hover:text-stone-900 dark:group-hover:text-white">
+                            {c.name}
                           </span>
-                        )}
-                      </Link>
-                    );
-                  })}
+                          {total > 0 && (
+                            <span className="text-xs text-stone-400 dark:text-[#e0b870] shrink-0 tabular-nums">
+                              {done}/{total}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

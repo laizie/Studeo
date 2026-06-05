@@ -22,9 +22,12 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 
 const URGENCY_CLASS: Record<string, string> = {
   overdue:  'text-red-500',
-  today:    'text-amber-500',
-  soon:     'text-amber-400',
-  upcoming: 'text-stone-400',
+  today:    'text-red-500',
+  tomorrow: 'text-orange-500',
+  soon:     'text-yellow-500',
+  week:     'text-green-400',
+  later:    'text-green-500',
+  future:   'text-green-700',
 };
 
 export default function TaskRow({ task, onEdit }: Props) {

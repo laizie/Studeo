@@ -1,11 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
-import type { Assignment } from '../../../shared/types';
+import { useTasks } from '../../lib/queries/useTasks';
+import type { Assignment, Task } from '../../../shared/types';
 import { parseDateLocal } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import AssignmentRow from '../courses/AssignmentRow';
+import TaskRow from '../tasks/TaskRow';
 import AddAssignmentDialog from '../courses/AddAssignmentDialog';
+import AddTaskDialog from '../tasks/AddTaskDialog';
 import { usePageFiltersStore, type ThisWeekWindow } from '../../store/usePageFiltersStore';
 
 // ── Window types + bounds ─────────────────────────────────────────────────────
@@ -71,17 +74,31 @@ const WINDOW_TABS: { label: string; value: Window }[] = [
   { label: 'This month', value: 'month'      },
 ];
 
+// ── Unified due-item type ─────────────────────────────────────────────────────
+
+type DueItem =
+  | { kind: 'assignment'; data: Assignment }
+  | { kind: 'task';       data: Task };
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ThisWeekPage() {
   const { data: courses } = useCourses();
-  const { data: assignments, isLoading } = useAssignments();
+  const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
+  const { data: tasks,       isLoading: tasksLoading       } = useTasks();
 
-  const activeWindow    = usePageFiltersStore(s => s.thisWeekWindow);
-  const setActiveWindow = usePageFiltersStore(s => s.setThisWeekWindow);
+  const activeWindow        = usePageFiltersStore(s => s.thisWeekWindow);
+  const setActiveWindow     = usePageFiltersStore(s => s.setThisWeekWindow);
+  const showTasks           = usePageFiltersStore(s => s.thisWeekShowTasks);
+  const setShowTasks        = usePageFiltersStore(s => s.setThisWeekShowTasks);
+
   const [showCompleted, setShowCompleted] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | undefined>();
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  const isLoading = assignmentsLoading || (showTasks && tasksLoading);
 
   const courseMap = useMemo(
     () => new Map((courses ?? []).map(c => [c.id, c])),
@@ -90,34 +107,54 @@ export default function ThisWeekPage() {
 
   const windowConfig = useMemo(() => getWindowConfig(activeWindow), [activeWindow]);
 
-  const relevant = useMemo(() => {
-    return (assignments ?? [])
-      .filter(a => {
-        const due = parseDateLocal(a.due_date);
-        if (due > windowConfig.end) return false;
-        if (windowConfig.start && due < windowConfig.start) return false;
-        if (!showCompleted && a.status === 'completed') return false;
-        return true;
-      })
-      .sort((a, b) => a.due_date.localeCompare(b.due_date));
-  }, [assignments, windowConfig, showCompleted]);
+  const relevant = useMemo((): DueItem[] => {
+    const items: DueItem[] = [];
+
+    for (const a of assignments ?? []) {
+      const due = parseDateLocal(a.due_date);
+      if (due > windowConfig.end) continue;
+      if (windowConfig.start && due < windowConfig.start) continue;
+      if (!showCompleted && a.status === 'completed') continue;
+      items.push({ kind: 'assignment', data: a });
+    }
+
+    if (showTasks) {
+      for (const t of tasks ?? []) {
+        const due = parseDateLocal(t.due_date);
+        if (due > windowConfig.end) continue;
+        if (windowConfig.start && due < windowConfig.start) continue;
+        if (!showCompleted && t.status === 'completed') continue;
+        items.push({ kind: 'task', data: t });
+      }
+    }
+
+    return items.sort((a, b) => a.data.due_date.localeCompare(b.data.due_date));
+  }, [assignments, tasks, windowConfig, showCompleted, showTasks]);
 
   // Group by display-day label so we can render dividers.
   const grouped = useMemo(() => {
-    const map = new Map<string, Assignment[]>();
-    for (const a of relevant) {
-      const label = dayLabel(parseDateLocal(a.due_date));
-      if (!map.has(label)) map.set(label, []);
-      const bucket = map.get(label);
-      if (bucket) bucket.push(a);
+    const map = new Map<string, DueItem[]>();
+    for (const item of relevant) {
+      const label = dayLabel(parseDateLocal(item.data.due_date));
+      const bucket = map.get(label) ?? [];
+      if (!map.has(label)) map.set(label, bucket);
+      bucket.push(item);
     }
     return map;
   }, [relevant]);
 
-  function openEdit(a: Assignment) {
+  function openEditAssignment(a: Assignment) {
     setEditingAssignment(a);
-    setDialogOpen(true);
+    setAssignmentDialogOpen(true);
   }
+
+  function openEditTask(t: Task) {
+    setEditingTask(t);
+    setTaskDialogOpen(true);
+  }
+
+  const completedCount  = relevant.filter(i => i.data.status === 'completed').length;
+  const remainingCount  = relevant.filter(i => i.data.status !== 'completed').length;
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -132,19 +169,38 @@ export default function ThisWeekPage() {
             {windowConfig.subtitle}
           </p>
         </div>
-        <label className="flex items-center gap-2 mt-1 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showCompleted}
-            onChange={e => setShowCompleted(e.target.checked)}
-            className="accent-stone-600"
-          />
-          <span className="text-sm text-stone-500">Show completed</span>
-        </label>
+        <div className="flex items-center gap-3 mt-1">
+          {/* Tasks toggle */}
+          <button
+            onClick={() => setShowTasks(!showTasks)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] bg-stone-50 dark:bg-[#332211] text-stone-600 dark:text-[#c4a882] hover:bg-stone-100 dark:hover:bg-[#442918] transition-colors"
+          >
+            <span className={cn(
+              'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
+              showTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-[#553311]'
+            )}>
+              <span className={cn(
+                'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                showTasks ? 'translate-x-3.5' : 'translate-x-0.5'
+              )} />
+            </span>
+            Tasks
+          </button>
+          {/* Show completed */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={e => setShowCompleted(e.target.checked)}
+              className="accent-stone-600"
+            />
+            <span className="text-sm text-stone-500">Show completed</span>
+          </label>
+        </div>
       </div>
 
       {/* Window tab switcher */}
-      <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg w-fit mb-6">
+      <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg w-fit mb-6">
         {WINDOW_TABS.map(t => (
           <button
             key={t.value}
@@ -153,7 +209,7 @@ export default function ThisWeekPage() {
               'px-3 py-1.5 text-sm rounded-md transition-colors',
               activeWindow === t.value
                 ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
+                : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
             )}
           >
             {t.label}
@@ -201,14 +257,22 @@ export default function ThisWeekPage() {
                 {label}
               </div>
               <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
-                {items.map(a => (
-                  <AssignmentRow
-                    key={a.id}
-                    assignment={a}
-                    onEdit={openEdit}
-                    course={courseMap.get(a.course_id)}
-                  />
-                ))}
+                {items.map(item =>
+                  item.kind === 'assignment' ? (
+                    <AssignmentRow
+                      key={`a-${item.data.id}`}
+                      assignment={item.data}
+                      onEdit={openEditAssignment}
+                      course={courseMap.get(item.data.course_id)}
+                    />
+                  ) : (
+                    <TaskRow
+                      key={`t-${item.data.id}`}
+                      task={item.data}
+                      onEdit={openEditTask}
+                    />
+                  )
+                )}
               </div>
             </div>
           ))}
@@ -218,9 +282,9 @@ export default function ThisWeekPage() {
       {/* Stats footer */}
       {!isLoading && relevant.length > 0 && (
         <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] flex gap-4 text-xs text-stone-400 dark:text-[#e0b870]">
-          <span>{relevant.filter(a => a.status === 'completed').length} completed</span>
-          <span>{relevant.filter(a => a.status !== 'completed').length} remaining</span>
-          {!showCompleted && assignments && (
+          <span>{completedCount} completed</span>
+          <span>{remainingCount} remaining</span>
+          {!showCompleted && (
             <button
               onClick={() => setShowCompleted(true)}
               className="underline hover:text-stone-600 transition-colors"
@@ -231,12 +295,16 @@ export default function ThisWeekPage() {
         </div>
       )}
 
-      {/* Edit dialog — no "add new" from this view; use Quick Add or go to a course */}
       <AddAssignmentDialog
         courseId={editingAssignment?.course_id ?? ''}
         assignment={editingAssignment}
-        isOpen={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        isOpen={assignmentDialogOpen}
+        onClose={() => setAssignmentDialogOpen(false)}
+      />
+      <AddTaskDialog
+        task={editingTask}
+        isOpen={taskDialogOpen}
+        onClose={() => setTaskDialogOpen(false)}
       />
     </div>
   );

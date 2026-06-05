@@ -405,7 +405,7 @@ export default function StudyPage() {
                       'px-3 py-1.5 text-xs rounded-lg font-medium transition-colors',
                       techniqueId === t.id
                         ? 'bg-stone-800 dark:bg-[#664433] text-white dark:text-[#f0e0cc]'
-                        : 'bg-stone-100 dark:bg-[#442918] text-stone-500 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                        : 'bg-stone-100 dark:bg-[#442918] border border-stone-300 dark:border-[#553311] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#553311]'
                     )}
                   >
                     {t.label}
@@ -420,7 +420,7 @@ export default function StudyPage() {
             </div>
 
             {/* Phase tabs */}
-            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg mb-8 self-stretch justify-center">
+            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg mb-8 self-stretch justify-center">
               {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
                 <button
                   key={p}
@@ -429,7 +429,7 @@ export default function StudyPage() {
                     'px-4 py-1.5 text-sm rounded-md transition-colors',
                     phase === p
                       ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                      : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
+                      : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
                   )}
                 >
                   {PHASE_LABELS[p]}
@@ -498,7 +498,7 @@ export default function StudyPage() {
                           'px-3 py-1 text-sm rounded-md transition-colors',
                           focusMins === m
                             ? 'bg-stone-800 dark:bg-[#664433] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#442918] text-stone-500 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                            : 'bg-stone-100 dark:bg-[#442918] border border-stone-300 dark:border-[#553311] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#553311]'
                         )}
                       >
                         {m}
@@ -517,7 +517,7 @@ export default function StudyPage() {
                           'px-3 py-1 text-sm rounded-md transition-colors',
                           breakMins === m
                             ? 'bg-stone-800 dark:bg-[#664433] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#442918] text-stone-500 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                            : 'bg-stone-100 dark:bg-[#442918] border border-stone-300 dark:border-[#553311] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#553311]'
                         )}
                       >
                         {m}
