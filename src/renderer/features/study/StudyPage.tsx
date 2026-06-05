@@ -5,6 +5,10 @@ import { useStudyListStore } from '../../store/useStudyListStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useUpdateTask } from '../../lib/queries/useTasks';
 import StudyPickerDialog from './StudyPickerDialog';
+import AppleMusicStudyPanel from '../applemusic/AppleMusicStudyPanel';
+import SpotifyStudyPanel from '../spotify/SpotifyStudyPanel';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
 // ── Study technique presets ───────────────────────────────────────────────────
@@ -95,115 +99,6 @@ function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: 
         style={{ transition: 'stroke-dashoffset 0.6s linear, stroke 0.3s ease' }}
       />
     </svg>
-  );
-}
-
-// ── Music section ─────────────────────────────────────────────────────────────
-
-type MusicProvider = 'spotify' | 'apple_music';
-
-interface EmbedInfo {
-  embedUrl: string;
-  provider: MusicProvider;
-  height: number;
-  allow: string;
-}
-
-function toEmbedInfo(url: string): EmbedInfo | null {
-  const spotifyMatch = url.match(/open\.spotify\.com\/(playlist|track|album|artist)\/([a-zA-Z0-9]+)/);
-  if (spotifyMatch) {
-    return {
-      embedUrl: `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}?utm_source=generator`,
-      provider: 'spotify',
-      height:   152,
-      allow:    'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',
-    };
-  }
-
-  const appleMatch = url.match(/music\.apple\.com\/(.*)/);
-  if (appleMatch) {
-    return {
-      embedUrl: `https://embed.music.apple.com/${appleMatch[1]}`,
-      provider: 'apple_music',
-      height:   175,
-      allow:    'autoplay *; encrypted-media *; fullscreen *',
-    };
-  }
-
-  return null;
-}
-
-const PROVIDER_LABELS: Record<MusicProvider, string> = {
-  spotify:     'Open in Spotify',
-  apple_music: 'Open in Apple Music',
-};
-
-function MusicSection() {
-  const [musicUrl, setMusicUrl] = useState(
-    () => localStorage.getItem('classtrack:musicUrl') ?? ''
-  );
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setMusicUrl(val);
-    localStorage.setItem('classtrack:musicUrl', val);
-  }
-
-  const embed     = musicUrl ? toEmbedInfo(musicUrl) : null;
-  const isInvalid = musicUrl.length > 0 && !embed;
-
-  return (
-    <div className="w-full max-w-md lg:flex-1 lg:flex lg:flex-col">
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide">
-          Music
-        </h2>
-        {embed && (
-          <a
-            href={musicUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-          >
-            {PROVIDER_LABELS[embed.provider]} ↗
-          </a>
-        )}
-      </div>
-
-      <input
-        type="text"
-        value={musicUrl}
-        onChange={handleChange}
-        placeholder="Paste a Spotify or Apple Music URL…"
-        className={cn(
-          'w-full px-3 py-2 text-sm border rounded-lg mb-3 shrink-0',
-          'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent',
-          'placeholder:text-stone-300',
-          isInvalid ? 'border-red-300' : 'border-stone-200 dark:border-[#442918]',
-          'dark:bg-[#332211] dark:text-[#f0e0cc] dark:placeholder:text-[#cc9a58]',
-        )}
-      />
-
-      {isInvalid && (
-        <p className="text-xs text-red-400 -mt-2 mb-3 shrink-0">
-          Paste a Spotify or Apple Music URL (playlist, album, or track).
-        </p>
-      )}
-
-      {embed && (
-        <div className="flex-1 min-h-[175px] min-w-0">
-          <iframe
-            src={embed.embedUrl}
-            width="100%"
-            height="100%"
-            allow={embed.allow}
-            loading="lazy"
-            className="rounded-xl border-0 block w-full h-full"
-            title="Music Player"
-          />
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -339,6 +234,32 @@ function FocusListPanel() {
       <StudyPickerDialog isOpen={pickerOpen} onClose={() => setPickerOpen(false)} />
     </>
   );
+}
+
+function MusicStudyColumn() {
+  const { defaultMusicService } = useSettingsStore();
+
+  if (!defaultMusicService) {
+    return (
+      <div className="w-full">
+        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+          Music
+        </h2>
+        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#442918] gap-3 text-center">
+          <p className="text-sm text-stone-600 dark:text-[#d4b896] font-medium">No music service selected</p>
+          <p className="text-xs text-stone-400 dark:text-[#c4a882]">Go to Settings to choose Spotify or Apple Music</p>
+          <Link
+            to="/settings"
+            className="px-4 py-2 rounded-lg bg-[#e2a53b] text-[#1e1208] text-sm font-medium hover:bg-[#d49530] transition-colors"
+          >
+            Open Settings
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return defaultMusicService === 'spotify' ? <SpotifyStudyPanel /> : <AppleMusicStudyPanel />;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -535,7 +456,7 @@ export default function StudyPage() {
 
           {/* ── Music column ───────────────────────────────────────────────────── */}
           <div className="w-full max-w-md lg:flex-1 lg:max-w-xl lg:flex lg:flex-col">
-            <MusicSection />
+            <MusicStudyColumn />
           </div>
 
         </div>

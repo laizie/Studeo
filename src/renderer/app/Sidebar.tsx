@@ -1,15 +1,12 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  BookOpen,
-  CalendarDays,
-  CheckSquare,
-  Calendar,
-  Timer,
-  Settings,
-  Plus,
+  LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
+  Calendar, Timer, Settings, Plus, Music,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
+import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -28,6 +25,28 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
   );
 
+function MusicSection() {
+  const { defaultMusicService } = useSettingsStore();
+
+  if (!defaultMusicService) {
+    return (
+      <div className="border-t border-[#3d2b1f] dark:border-[#1e140c] px-3 py-2.5">
+        <Link
+          to="/settings"
+          className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+        >
+          <Music size={13} className="shrink-0" />
+          <span className="text-xs">Set up music in Settings</span>
+        </Link>
+      </div>
+    );
+  }
+
+  return defaultMusicService === 'spotify'
+    ? <SpotifyMiniPlayer />
+    : <AppleMusicMiniPlayer />;
+}
+
 interface Props {
   onOpenQuickAdd: () => void;
 }
@@ -35,11 +54,8 @@ interface Props {
 export default function Sidebar({ onOpenQuickAdd }: Props) {
   return (
     <nav className="w-56 h-full flex flex-col bg-[#2c1f14] dark:bg-[#1c1008] shrink-0">
-      {/* App name + quick add */}
       <div className="px-4 py-5 border-b border-[#3d2b1f] dark:border-[#1e140c] flex items-center justify-between">
-        <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">
-          ClassTrack
-        </span>
+        <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">ClassTrack</span>
         <button
           onClick={onOpenQuickAdd}
           title="Quick add (⌘N)"
@@ -49,7 +65,6 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
         </button>
       </div>
 
-      {/* Main navigation */}
       <div className="flex-1 px-2 py-3 space-y-0.5">
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={navLinkClass}>
@@ -59,7 +74,8 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
         ))}
       </div>
 
-      {/* Bottom: settings */}
+      <MusicSection />
+
       <div className="px-2 pb-3 border-t border-[#3d2b1f] dark:border-[#1e140c] pt-2">
         <NavLink to="/settings" className={navLinkClass}>
           <Settings size={15} className="shrink-0" />

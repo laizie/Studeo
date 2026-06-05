@@ -6,6 +6,7 @@
 // Security rule: never expose ipcRenderer itself — only wrap specific channels.
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcRendererEvent } from 'electron';
 import { IPC } from './shared/types';
 import type {
   WindowApi,
@@ -58,6 +59,40 @@ const api: WindowApi = {
     create: (input: CreateTermInput)        => ipcRenderer.invoke(IPC.TERMS.CREATE, input),
     update: (id, input: UpdateTermInput)    => ipcRenderer.invoke(IPC.TERMS.UPDATE, id, input),
     delete: (id)                            => ipcRenderer.invoke(IPC.TERMS.DELETE, id),
+  },
+
+  appleMusic: {
+    status:       ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.STATUS),
+    playback:     ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYBACK),
+    play:         ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY),
+    pause:        ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PAUSE),
+    next:         ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.NEXT),
+    previous:     ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PREVIOUS),
+    playlists:    ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYLISTS),
+    playPlaylist: (id: string) => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY_PLAYLIST, id),
+  },
+
+  spotify: {
+    status:          ()                  => ipcRenderer.invoke(IPC.SPOTIFY.STATUS),
+    setClientId:     (clientId: string)  => ipcRenderer.invoke(IPC.SPOTIFY.SET_CLIENT_ID, clientId),
+    connect:         (clientId: string)  => ipcRenderer.invoke(IPC.SPOTIFY.CONNECT, clientId),
+    disconnect:      ()                  => ipcRenderer.invoke(IPC.SPOTIFY.DISCONNECT),
+    playback:        ()                  => ipcRenderer.invoke(IPC.SPOTIFY.PLAYBACK),
+    play:            (contextUri?: string) => ipcRenderer.invoke(IPC.SPOTIFY.PLAY, contextUri),
+    pause:           ()                  => ipcRenderer.invoke(IPC.SPOTIFY.PAUSE),
+    next:            ()                  => ipcRenderer.invoke(IPC.SPOTIFY.NEXT),
+    previous:        ()                  => ipcRenderer.invoke(IPC.SPOTIFY.PREVIOUS),
+    volume:          (percent: number)   => ipcRenderer.invoke(IPC.SPOTIFY.VOLUME, percent),
+    userPlaylists:   ()                  => ipcRenderer.invoke(IPC.SPOTIFY.USER_PLAYLISTS),
+    searchPlaylists: (query: string)     => ipcRenderer.invoke(IPC.SPOTIFY.SEARCH_PLAYLISTS, query),
+
+    // Registers a one-shot listener for the auth-callback event that main sends
+    // after processing the OAuth redirect. Returns a cleanup function.
+    onAuthCallback: (cb: (success: boolean) => void) => {
+      const listener = (_e: IpcRendererEvent, data: { success: boolean }) => cb(data.success);
+      ipcRenderer.on('spotify:auth-callback', listener);
+      return () => ipcRenderer.removeListener('spotify:auth-callback', listener);
+    },
   },
 };
 
