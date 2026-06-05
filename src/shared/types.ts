@@ -152,6 +152,59 @@ export interface UpdateTermInput {
   endDate?: string | null;
 }
 
+// ─── Spotify types ────────────────────────────────────────────────────────────
+
+export interface SpotifyTrack {
+  id: string;
+  name: string;
+  artists: string[];
+  albumName: string;
+  albumArt: string | null;
+  durationMs: number;
+  uri: string;
+}
+
+export interface SpotifyPlaybackState {
+  isPlaying: boolean;
+  track: SpotifyTrack | null;
+  progressMs: number;
+  volumePercent: number;
+  deviceName: string | null;
+}
+
+export interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  trackCount: number;
+  uri: string;
+}
+
+export type SpotifyConnectionStatus =
+  | { connected: false; clientIdConfigured: boolean }
+  | { connected: true; displayName: string; email: string };
+
+// ─── Apple Music types ────────────────────────────────────────────────────────
+
+export interface AppleMusicTrack {
+  id: string;
+  name: string;
+  artistName: string;
+  albumName: string;
+  artworkUrl: string | null;
+  durationMs: number;
+}
+
+export interface AppleMusicPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  artworkUrl: string | null;
+  trackCount: number;
+  isLibrary: boolean;
+}
+
 // ─── IPC channel names ────────────────────────────────────────────────────────
 // Defined once as constants so main/preload/renderer all use the exact same
 // string — a typo anywhere would be a compile error instead of a silent bug.
@@ -187,6 +240,30 @@ export const IPC = {
     CREATE: 'terms:create',
     UPDATE: 'terms:update',
     DELETE: 'terms:delete',
+  },
+  APPLE_MUSIC: {
+    STATUS:        'apple_music:status',
+    PLAYBACK:      'apple_music:playback',
+    PLAY:          'apple_music:play',
+    PAUSE:         'apple_music:pause',
+    NEXT:          'apple_music:next',
+    PREVIOUS:      'apple_music:previous',
+    PLAYLISTS:     'apple_music:playlists',
+    PLAY_PLAYLIST: 'apple_music:play-playlist',
+  },
+  SPOTIFY: {
+    STATUS:           'spotify:status',
+    SET_CLIENT_ID:    'spotify:set-client-id',
+    CONNECT:          'spotify:connect',
+    DISCONNECT:       'spotify:disconnect',
+    PLAYBACK:         'spotify:playback',
+    PLAY:             'spotify:play',
+    PAUSE:            'spotify:pause',
+    NEXT:             'spotify:next',
+    PREVIOUS:         'spotify:previous',
+    VOLUME:           'spotify:volume',
+    USER_PLAYLISTS:   'spotify:user-playlists',
+    SEARCH_PLAYLISTS: 'spotify:search-playlists',
   },
 } as const;
 
@@ -225,5 +302,30 @@ export interface WindowApi {
     create(input: CreateTermInput): Promise<Term>;
     update(id: string, input: UpdateTermInput): Promise<Term>;
     delete(id: string): Promise<void>;
+  };
+  appleMusic: {
+    status():                   Promise<{ running: boolean; authorized: boolean }>;
+    playback():                 Promise<{ isPlaying: boolean; progressMs: number; track: AppleMusicTrack | null } | null>;
+    play():                     Promise<{ ok: boolean; error?: string }>;
+    pause():                    Promise<{ ok: boolean; error?: string }>;
+    next():                     Promise<{ ok: boolean; error?: string }>;
+    previous():                 Promise<{ ok: boolean; error?: string }>;
+    playlists():                Promise<AppleMusicPlaylist[]>;
+    playPlaylist(id: string):   Promise<{ ok: boolean; error?: string }>;
+  };
+  spotify: {
+    status(): Promise<SpotifyConnectionStatus>;
+    setClientId(clientId: string): Promise<{ ok: boolean }>;
+    connect(clientId: string): Promise<{ ok: boolean }>;
+    disconnect(): Promise<{ ok: boolean }>;
+    playback(): Promise<SpotifyPlaybackState | null>;
+    play(contextUri?: string): Promise<{ ok: boolean; error?: string }>;
+    pause(): Promise<{ ok: boolean; error?: string }>;
+    next(): Promise<{ ok: boolean; error?: string }>;
+    previous(): Promise<{ ok: boolean; error?: string }>;
+    volume(percent: number): Promise<{ ok: boolean; error?: string }>;
+    userPlaylists(): Promise<SpotifyPlaylist[]>;
+    searchPlaylists(query: string): Promise<SpotifyPlaylist[]>;
+    onAuthCallback(cb: (success: boolean) => void): () => void;
   };
 }

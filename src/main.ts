@@ -7,20 +7,22 @@ import { registerAssignmentHandlers } from './main/ipc/registerAssignmentHandler
 import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
 import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
+import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
+import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
+import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
 
 if (started) {
   app.quit();
 }
 
-// Register all IPC handlers before the window opens so they're ready to respond
-// to the renderer the moment it loads. Handlers are cheap to register — they just
-// add listeners, they don't do any DB work yet.
 function registerIpcHandlers(): void {
   registerCourseHandlers();
   registerAssignmentHandlers();
   registerTaskHandlers();
   registerClassMeetingHandlers();
   registerTermHandlers();
+  registerSpotifyHandlers();
+  registerAppleMusicHandlers();
 }
 
 const createWindow = () => {
@@ -48,18 +50,18 @@ const createWindow = () => {
 };
 
 app.on('ready', () => {
-  // Required on Windows so toasts appear under the app name in the Action Center.
-  // On macOS this is a no-op (macOS uses the CFBundleName from the plist instead).
   app.setAppUserModelId(app.getName());
 
-  // Auto-approve the Notification permission request that the renderer fires on
-  // StudyPage mount. Without this handler, Electron's default is to grant it
-  // anyway in most versions, but being explicit guarantees it on every platform.
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === 'notifications');
   });
 
-  // DB must be open before any IPC handler can touch it, so init first.
+  // Wire up the Spotify localhost callback → renderer notification.
+  // The localhost server in spotifyAuth.ts calls this when the user returns
+  // from Spotify's auth page; we forward the result to the renderer so
+  // useSpotifyAuthListener can invalidate the status query immediately.
+  setAuthCompletionHandler(notifyAuthCallback);
+
   initDb();
   registerIpcHandlers();
   createWindow();

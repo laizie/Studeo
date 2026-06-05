@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Moon, Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus } from 'lucide-react';
-import { useSettingsStore } from '../../store/useSettingsStore';
+import { Moon, Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check } from 'lucide-react';
+import { useSettingsStore, type MusicService } from '../../store/useSettingsStore';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS } from '../../store/useTimerStore';
 import { useTerms, useCreateTerm, useDeleteTerm } from '../../lib/queries/useTerms';
+import { useSpotifyStatus } from '../../lib/queries/useSpotify';
+import { useAppleMusicStatus } from '../../lib/queries/useAppleMusic';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
@@ -111,6 +114,115 @@ function TipCard({ icon, title, children }: {
         <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{title}</p>
         <p className="text-xs text-stone-500 dark:text-[#e0b870] mt-1 leading-relaxed">{children}</p>
       </div>
+    </div>
+  );
+}
+
+// ── Music settings ────────────────────────────────────────────────────────────
+
+function MusicServiceCard({
+  service, label, accentColor, statusLine,
+  isDefault, onSetDefault,
+  action,
+}: {
+  service:     MusicService;
+  label:       string;
+  accentColor: string;
+  statusLine:  string;
+  isDefault:   boolean;
+  onSetDefault: () => void;
+  action?:     React.ReactNode;
+}) {
+  return (
+    <div className={cn(
+      'flex items-center justify-between px-5 py-4 transition-colors',
+    )}>
+      <div className="flex items-center gap-3">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${accentColor}22` }}
+        >
+          <Music size={14} style={{ color: accentColor }} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{label}</p>
+          <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">{statusLine}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-4">
+        {action}
+        <button
+          onClick={onSetDefault}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+            isDefault
+              ? 'bg-[#e2a53b] text-[#1e1208]'
+              : 'border border-stone-200 dark:border-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#442918]'
+          )}
+        >
+          {isDefault && <Check size={11} />}
+          {isDefault ? 'Default' : 'Set as default'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MusicSection() {
+  const { defaultMusicService, setDefaultMusicService } = useSettingsStore();
+  const { data: spotifyStatus } = useSpotifyStatus();
+  const { data: amStatus }      = useAppleMusicStatus();
+  const qc = useQueryClient();
+
+  const disconnectSpotify = useMutation({
+    mutationFn: () => window.api.spotify.disconnect(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['spotify'] });
+      if (defaultMusicService === 'spotify') setDefaultMusicService(null);
+    },
+  });
+
+  const spotifyStatusLine = spotifyStatus?.connected
+    ? `Connected as ${spotifyStatus.displayName}`
+    : 'Not connected — click Connect Spotify in the sidebar';
+
+  const amStatusLine = amStatus?.running
+    ? 'Music app is open and ready'
+    : 'Open the Music app to enable controls';
+
+  return (
+    <div className="mb-8">
+      <SectionHeading>Music</SectionHeading>
+      <p className="text-xs text-stone-400 dark:text-[#c4a882] mb-3 -mt-1">
+        Choose which service shows in the sidebar and Study page. You can connect both and switch here anytime.
+      </p>
+      <SettingsCard>
+        <MusicServiceCard
+          service="spotify"
+          label="Spotify"
+          accentColor="#1DB954"
+          statusLine={spotifyStatusLine}
+          isDefault={defaultMusicService === 'spotify'}
+          onSetDefault={() => setDefaultMusicService('spotify')}
+          action={spotifyStatus?.connected ? (
+            <button
+              onClick={() => disconnectSpotify.mutate()}
+              disabled={disconnectSpotify.isPending}
+              className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-[#442918] text-stone-500 dark:text-[#c4a882] hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
+            >
+              Disconnect
+            </button>
+          ) : undefined}
+        />
+        <MusicServiceCard
+          service="apple_music"
+          label="Apple Music"
+          accentColor="#fc3c44"
+          statusLine={amStatusLine}
+          isDefault={defaultMusicService === 'apple_music'}
+          onSetDefault={() => setDefaultMusicService('apple_music')}
+        />
+      </SettingsCard>
     </div>
   );
 }
@@ -266,6 +378,9 @@ export default function SettingsPage() {
           </form>
         </SettingsCard>
       </div>
+
+      {/* ── Music ─────────────────────────────────────────────────────────── */}
+      <MusicSection />
 
       {/* ── How to use ────────────────────────────────────────────────────── */}
       <div>
