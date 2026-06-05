@@ -24,9 +24,9 @@ function registerIpcHandlers(): void {
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1280,
-    height: 800,
+    height: 960,
     minWidth: 900,
-    minHeight: 600,
+    minHeight: 720,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
