@@ -53,13 +53,18 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
         <div className="mt-4">
           {total > 0 ? (
             <>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-stone-400 dark:text-[#e0b870]">{completed} / {total} done</span>
-                <span className="text-xs text-stone-400 dark:text-[#e0b870]">{pct}%</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-stone-500 dark:text-[#e0b870]">{completed} / {total} done</span>
+                <span
+                  className="text-xs font-semibold tabular-nums"
+                  style={{ color: course.color }}
+                >
+                  {pct}%
+                </span>
               </div>
-              <div className="w-full h-1.5 bg-stone-100 dark:bg-[#664433] rounded-full overflow-hidden">
+              <div className="w-full h-2.5 bg-stone-200 dark:bg-[#443322] rounded-full">
                 <div
-                  className="h-full rounded-full transition-all duration-300"
+                  className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, backgroundColor: course.color }}
                 />
               </div>

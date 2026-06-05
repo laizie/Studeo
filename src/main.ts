@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { initDb } from './main/db/connection';
@@ -48,6 +48,17 @@ const createWindow = () => {
 };
 
 app.on('ready', () => {
+  // Required on Windows so toasts appear under the app name in the Action Center.
+  // On macOS this is a no-op (macOS uses the CFBundleName from the plist instead).
+  app.setAppUserModelId(app.getName());
+
+  // Auto-approve the Notification permission request that the renderer fires on
+  // StudyPage mount. Without this handler, Electron's default is to grant it
+  // anyway in most versions, but being explicit guarantees it on every platform.
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(permission === 'notifications');
+  });
+
   // DB must be open before any IPC handler can touch it, so init first.
   initDb();
   registerIpcHandlers();
