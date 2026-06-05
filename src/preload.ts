@@ -18,6 +18,8 @@ import type {
   UpdateTaskInput,
   CreateClassMeetingInput,
   UpdateClassMeetingInput,
+  CreateTermInput,
+  UpdateTermInput,
 } from './shared/types';
 
 const api: WindowApi = {
@@ -49,6 +51,13 @@ const api: WindowApi = {
     create: (input: CreateClassMeetingInput)             => ipcRenderer.invoke(IPC.CLASS_MEETINGS.CREATE, input),
     update: (id, input: UpdateClassMeetingInput)         => ipcRenderer.invoke(IPC.CLASS_MEETINGS.UPDATE, id, input),
     delete: (id)                                         => ipcRenderer.invoke(IPC.CLASS_MEETINGS.DELETE, id),
+  },
+
+  terms: {
+    list:   ()                              => ipcRenderer.invoke(IPC.TERMS.LIST),
+    create: (input: CreateTermInput)        => ipcRenderer.invoke(IPC.TERMS.CREATE, input),
+    update: (id, input: UpdateTermInput)    => ipcRenderer.invoke(IPC.TERMS.UPDATE, id, input),
+    delete: (id)                            => ipcRenderer.invoke(IPC.TERMS.DELETE, id),
   },
 };
 

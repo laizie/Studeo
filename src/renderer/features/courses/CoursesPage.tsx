@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
+import { useTerms } from '../../lib/queries/useTerms';
+import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import CourseCard from './CourseCard';
 import CreateCourseDialog from './CreateCourseDialog';
 
@@ -9,10 +11,29 @@ export default function CoursesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: courses, isLoading, isError } = useCourses();
   const { data: assignments } = useAssignments();
+  const { data: terms = [] } = useTerms();
+
+  const termFilter    = usePageFiltersStore(s => s.termFilter);
+  const setTermFilter = usePageFiltersStore(s => s.setTermFilter);
+
+  // Auto-select the term whose date range contains today, once terms load
+  useEffect(() => {
+    if (termFilter !== null || terms.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const current = terms.find(t =>
+      t.start_date && t.end_date && t.start_date <= today && today <= t.end_date
+    );
+    if (current) setTermFilter(current.id);
+  }, [terms, termFilter, setTermFilter]);
+
+  const filtered = useMemo(() =>
+    (courses ?? []).filter(c => termFilter === null || c.term_id === termFilter),
+    [courses, termFilter],
+  );
 
   const statsByCourse = useMemo(() => {
     const map = new Map<string, { total: number; completed: number }>();
-    for (const c of courses ?? []) map.set(c.id, { total: 0, completed: 0 });
+    for (const c of filtered) map.set(c.id, { total: 0, completed: 0 });
     for (const a of assignments ?? []) {
       const s = map.get(a.course_id);
       if (!s) continue;
@@ -20,14 +41,14 @@ export default function CoursesPage() {
       if (a.status === 'completed') s.completed += 1;
     }
     return map;
-  }, [courses, assignments]);
+  }, [filtered, assignments]);
 
-  const count = courses?.length ?? 0;
+  const count = filtered.length;
 
   return (
     <div className="p-8">
       {/* Page header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Courses</h1>
           <p className="mt-0.5 text-sm text-stone-500">
@@ -47,6 +68,22 @@ export default function CoursesPage() {
           Add course
         </button>
       </div>
+
+      {/* Semester filter — only shown when terms exist */}
+      {terms.length > 0 && (
+        <div className="mb-6">
+          <select
+            value={termFilter ?? ''}
+            onChange={e => setTermFilter(e.target.value || null)}
+            className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] bg-white dark:bg-[#553311] text-stone-700 dark:text-[#e8d5c0] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+          >
+            {terms.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+            <option value="">All semesters</option>
+          </select>
+        </div>
+      )}
 
       {/* Loading skeleton */}
       {isLoading && (
@@ -80,7 +117,7 @@ export default function CoursesPage() {
       {/* Course list */}
       {!isLoading && count > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {(courses ?? []).map(course => {
+          {filtered.map(course => {
             const stats = statsByCourse.get(course.id) ?? { total: 0, completed: 0 };
             return (
               <CourseCard

@@ -6,6 +6,7 @@ import { registerCourseHandlers } from './main/ipc/registerCourseHandlers';
 import { registerAssignmentHandlers } from './main/ipc/registerAssignmentHandlers';
 import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
 import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
+import { registerTermHandlers } from './main/ipc/registerTermHandlers';
 
 if (started) {
   app.quit();
@@ -19,6 +20,7 @@ function registerIpcHandlers(): void {
   registerAssignmentHandlers();
   registerTaskHandlers();
   registerClassMeetingHandlers();
+  registerTermHandlers();
 }
 
 const createWindow = () => {
