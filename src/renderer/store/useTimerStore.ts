@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
-export type Phase = 'focus' | 'short_break' | 'long_break';
+export type Phase = 'focus' | 'short_break';
 
-export const FOCUS_OPTIONS  = [25, 30, 50, 60] as const;
-export const BREAK_OPTIONS  = [5, 10, 15, 20]  as const;
+export const FOCUS_OPTIONS  = [25, 30, 50, 60, 75, 90]    as const;
+export const BREAK_OPTIONS  = [5, 10, 15, 20, 25, 30]     as const;
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 let audioCtx: AudioContext | null = null;
@@ -114,6 +114,6 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     localStorage.setItem('classtrack:breakMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
-    set({ breakSecs: secs, ...(phase !== 'focus' ? { timeLeft: secs, isRunning: false } : {}) });
+    set({ breakSecs: secs, ...(phase === 'short_break' ? { timeLeft: secs, isRunning: false } : {}) });
   },
 }));

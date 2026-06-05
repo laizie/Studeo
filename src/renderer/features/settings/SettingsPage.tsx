@@ -1,4 +1,4 @@
-import { Moon, Sun, Keyboard, BookOpen, Timer, Layers } from 'lucide-react';
+import { Moon, Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS } from '../../store/useTimerStore';
 import { cn } from '../../lib/utils';
@@ -195,6 +195,19 @@ export default function SettingsPage() {
             Head to Study, pick a focus length, and start. Paste a Spotify or Apple Music
             playlist URL to have music alongside your timer. When a session ends you'll get
             a desktop notification — make sure to allow notifications when prompted.
+          </TipCard>
+          <TipCard icon={<Brain size={16} />} title="Try different study techniques">
+            The Technique selector on the Study page offers three research-backed methods:
+            <strong> Pomodoro</strong> (25/5 — great for everyday tasks),
+            <strong> 52/17</strong> (longer deep focus — ideal for complex problems), and
+            <strong> Deep Work</strong> (90/20 — full ultradian rhythm blocks for serious study).
+            Switch to <strong>Custom</strong> to set your own durations.
+          </TipCard>
+          <TipCard icon={<ListTodo size={16} />} title="Build a Focus List for your session">
+            On the Study page, click <strong>Add</strong> next to "Today's Focus List" to pick
+            assignments and tasks you want to tackle that session. Check them off as you go —
+            checking an item marks it complete across the whole app, so your progress stays
+            in sync everywhere.
           </TipCard>
         </SettingsCard>
       </div>
