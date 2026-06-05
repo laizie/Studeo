@@ -98,6 +98,8 @@ function extractDate(line: string, fallbackYear: number): Extracted {
 function cleanName(raw: string): string {
   return raw
     .replace(/\bdue(?:\s+date)?\b/gi, '')   // remove leftover "due" / "due date"
+    .replace(/\(\s*\)/g, '')               // remove empty parens left after date extraction
+    .replace(/\[\s*\]/g, '')               // remove empty brackets
     .replace(/^[\s\-–—:•·*#()[\]]+/, '')  // strip leading punctuation
     .replace(/[\s\-–—:•·*#()[\]]+$/, '')  // strip trailing punctuation
     .replace(/\s+/g, ' ')
@@ -128,6 +130,7 @@ export function parseSyllabus(text: string, fallbackYear = new Date().getFullYea
     // Skip lines that are clearly just section headers or page numbers
     if (line.length < 3)             continue;
     if (/^[\d\s\-–—]+$/.test(line)) continue; // pure numbers / dashes
+    if (/^p(?:age)?\.?\s*\d+$/i.test(line)) continue; // "Page 2", "p. 3"
 
     const { dueDate, remaining } = extractDate(line, fallbackYear);
     const name = cleanName(remaining || line);
