@@ -21,6 +21,10 @@ interface PageFiltersState {
   setCalendarMode:      (m: CalendarMode) => void;
   calendarView:         CalendarView;
   setCalendarView:      (v: CalendarView) => void;
+
+  // Semester filter (null = all terms)
+  termFilter:           string | null;
+  setTermFilter:        (id: string | null) => void;
 }
 
 export const usePageFiltersStore = create<PageFiltersState>()((set) => ({
@@ -36,4 +40,7 @@ export const usePageFiltersStore = create<PageFiltersState>()((set) => ({
   setCalendarMode:       (calendarMode)        => set({ calendarMode }),
   calendarView:          'month',
   setCalendarView:       (calendarView)        => set({ calendarView }),
+
+  termFilter:            null,
+  setTermFilter:         (termFilter)          => set({ termFilter }),
 }));

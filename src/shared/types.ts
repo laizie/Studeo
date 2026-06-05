@@ -140,6 +140,18 @@ export interface UpdateClassMeetingInput {
   location?: string | null;
 }
 
+export interface CreateTermInput {
+  name: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UpdateTermInput {
+  name?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
 // ─── IPC channel names ────────────────────────────────────────────────────────
 // Defined once as constants so main/preload/renderer all use the exact same
 // string — a typo anywhere would be a compile error instead of a silent bug.
@@ -169,6 +181,12 @@ export const IPC = {
     CREATE: 'class_meetings:create',
     UPDATE: 'class_meetings:update',
     DELETE: 'class_meetings:delete',
+  },
+  TERMS: {
+    LIST:   'terms:list',
+    CREATE: 'terms:create',
+    UPDATE: 'terms:update',
+    DELETE: 'terms:delete',
   },
 } as const;
 
@@ -200,6 +218,12 @@ export interface WindowApi {
     list(filters?: { courseId?: string }): Promise<ClassMeeting[]>;
     create(input: CreateClassMeetingInput): Promise<ClassMeeting>;
     update(id: string, input: UpdateClassMeetingInput): Promise<ClassMeeting>;
+    delete(id: string): Promise<void>;
+  };
+  terms: {
+    list(): Promise<Term[]>;
+    create(input: CreateTermInput): Promise<Term>;
+    update(id: string, input: UpdateTermInput): Promise<Term>;
     delete(id: string): Promise<void>;
   };
 }

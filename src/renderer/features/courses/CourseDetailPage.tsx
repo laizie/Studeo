@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Rows3 } from 'lucide-react';
-import { useCourse } from '../../lib/queries/useCourses';
+import { useCourse, useUpdateCourse } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useClassMeetings, useDeleteClassMeeting } from '../../lib/queries/useClassMeetings';
+import { useTerms } from '../../lib/queries/useTerms';
 import type { Assignment, ClassMeeting } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
@@ -49,8 +50,10 @@ export default function CourseDetailPage() {
   const { data: assignments, isLoading: assignmentsLoading } = useAssignments(
     id ? { courseId: id } : {}
   );
-  const { data: meetings } = useClassMeetings(id ? { courseId: id } : {});
-  const deleteMeeting = useDeleteClassMeeting();
+  const { data: meetings }    = useClassMeetings(id ? { courseId: id } : {});
+  const { data: terms = [] }  = useTerms();
+  const deleteMeeting  = useDeleteClassMeeting();
+  const updateCourse   = useUpdateCourse();
 
   const isLoading  = courseLoading || assignmentsLoading;
   const allAssignments = assignments ?? [];
@@ -129,6 +132,25 @@ export default function CourseDetailPage() {
           </div>
           {course.building && (
             <p className="mt-1 text-sm text-stone-400 dark:text-[#e0b870]">{course.building}</p>
+          )}
+          {/* Semester selector — only shown when at least one term exists */}
+          {terms.length > 0 && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs text-stone-400 dark:text-[#c4a882]">Semester:</span>
+              <select
+                value={course.term_id ?? ''}
+                onChange={e => updateCourse.mutate({
+                  id: course.id,
+                  input: { termId: e.target.value || null },
+                })}
+                className="text-xs px-2 py-1 rounded-md border border-stone-200 dark:border-[#442918] bg-transparent dark:bg-[#332211] text-stone-600 dark:text-[#d4b896] focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+              >
+                <option value="">— None —</option>
+                {terms.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
       </div>

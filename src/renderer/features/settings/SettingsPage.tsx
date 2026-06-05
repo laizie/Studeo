@@ -1,6 +1,8 @@
-import { Moon, Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain } from 'lucide-react';
+import { useState } from 'react';
+import { Moon, Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS } from '../../store/useTimerStore';
+import { useTerms, useCreateTerm, useDeleteTerm } from '../../lib/queries/useTerms';
 import { cn } from '../../lib/utils';
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
@@ -122,6 +124,27 @@ export default function SettingsPage() {
   const focusMins = focusSecs / 60;
   const breakMins = breakSecs / 60;
 
+  const { data: terms = [] } = useTerms();
+  const createTerm = useCreateTerm();
+  const deleteTerm = useDeleteTerm();
+
+  const [newTermName,  setNewTermName]  = useState('');
+  const [newTermStart, setNewTermStart] = useState('');
+  const [newTermEnd,   setNewTermEnd]   = useState('');
+
+  async function handleAddTerm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTermName.trim()) return;
+    await createTerm.mutateAsync({
+      name:      newTermName.trim(),
+      startDate: newTermStart || undefined,
+      endDate:   newTermEnd   || undefined,
+    });
+    setNewTermName('');
+    setNewTermStart('');
+    setNewTermEnd('');
+  }
+
   return (
     <div className="p-8 max-w-2xl">
       <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-1">Settings</h1>
@@ -172,6 +195,78 @@ export default function SettingsPage() {
         </SettingsCard>
       </div>
 
+      {/* ── Semesters ─────────────────────────────────────────────────────── */}
+      <div className="mb-8">
+        <SectionHeading>Semesters</SectionHeading>
+        <SettingsCard>
+          {/* Existing terms */}
+          {terms.length === 0 && (
+            <div className="px-5 py-4 text-sm text-stone-400 dark:text-[#c4a882]">
+              No semesters yet. Add one below.
+            </div>
+          )}
+          {terms.map(t => (
+            <div key={t.id} className="flex items-center justify-between px-5 py-3">
+              <div>
+                <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{t.name}</p>
+                {(t.start_date || t.end_date) && (
+                  <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">
+                    {t.start_date ?? '?'} → {t.end_date ?? '?'}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => deleteTerm.mutate(t.id)}
+                className="ml-4 p-1.5 text-stone-300 dark:text-[#775544] hover:text-red-400 transition-colors rounded"
+                title="Delete semester"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+
+          {/* Add term form */}
+          <form onSubmit={handleAddTerm} className="px-5 py-4 border-t border-[#e8ddd0] dark:border-[#442918]">
+            <p className="text-xs font-semibold text-stone-400 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+              Add semester
+            </p>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={newTermName}
+                onChange={e => setNewTermName(e.target.value)}
+                placeholder="e.g. Fall 2026"
+                className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] rounded-lg bg-transparent dark:bg-[#332211] text-stone-700 dark:text-[#f0e0cc] placeholder:text-stone-300 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={newTermStart}
+                  onChange={e => setNewTermStart(e.target.value)}
+                  title="Start date (optional)"
+                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] rounded-lg bg-transparent dark:bg-[#332211] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                />
+                <input
+                  type="date"
+                  value={newTermEnd}
+                  onChange={e => setNewTermEnd(e.target.value)}
+                  title="End date (optional)"
+                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] rounded-lg bg-transparent dark:bg-[#332211] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!newTermName.trim() || createTerm.isPending}
+                className="flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus size={13} />
+                Add semester
+              </button>
+            </div>
+          </form>
+        </SettingsCard>
+      </div>
+
       {/* ── How to use ────────────────────────────────────────────────────── */}
       <div>
         <SectionHeading>How to use ClassTrack efficiently</SectionHeading>
@@ -202,6 +297,11 @@ export default function SettingsPage() {
             <strong> 52/17</strong> (longer deep focus — ideal for complex problems), and
             <strong> Deep Work</strong> (90/20 — full ultradian rhythm blocks for serious study).
             Switch to <strong>Custom</strong> to set your own durations.
+          </TipCard>
+          <TipCard icon={<GraduationCap size={16} />} title="Organise courses by semester">
+            Create semesters in the <strong>Semesters</strong> section above, then assign each course to one when creating it.
+            The Dashboard and Courses pages will auto-select the current semester (matched by date) and only show relevant courses.
+            Switch to <strong>All</strong> any time to see every course across all semesters.
           </TipCard>
           <TipCard icon={<ListTodo size={16} />} title="Build a Focus List for your session">
             On the Study page, click <strong>Add</strong> next to "Today's Focus List" to pick

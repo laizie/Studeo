@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
+import { useTerms } from '../../lib/queries/useTerms';
+import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import type { Assignment, Course, ClassMeeting } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
@@ -149,12 +151,33 @@ export default function DashboardPage() {
   const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
   const { data: tasks  } = useTasks();
   const { data: meetings } = useClassMeetings();
+  const { data: terms = [] } = useTerms();
+
+  const termFilter    = usePageFiltersStore(s => s.termFilter);
+  const setTermFilter = usePageFiltersStore(s => s.setTermFilter);
+
+  // Auto-select the term whose date range contains today, once terms load
+  useEffect(() => {
+    if (termFilter !== null || terms.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const current = terms.find(t =>
+      t.start_date && t.end_date && t.start_date <= today && today <= t.end_date
+    );
+    if (current) setTermFilter(current.id);
+  }, [terms, termFilter, setTermFilter]);
 
   const isLoading = coursesLoading || assignmentsLoading;
 
+  const allCourses = useMemo(() =>
+    (courses ?? []).filter(c => termFilter === null || c.term_id === termFilter),
+    [courses, termFilter],
+  );
+
+  const courseIds = useMemo(() => new Set(allCourses.map(c => c.id)), [allCourses]);
+
   const courseMap = useMemo(
-    () => new Map((courses ?? []).map(c => [c.id, c])),
-    [courses],
+    () => new Map(allCourses.map(c => [c.id, c])),
+    [allCourses],
   );
 
   const todayMidnight = useMemo(() => {
@@ -165,10 +188,15 @@ export default function DashboardPage() {
   const weekEnd    = useMemo(() => getWeekEnd(), []);
   const todayDow   = new Date().getDay();
 
-  const allCourses     = courses     ?? [];
-  const allAssignments = assignments ?? [];
-  const allTasks       = tasks       ?? [];
-  const allMeetings    = meetings    ?? [];
+  const allAssignments = useMemo(() =>
+    (assignments ?? []).filter(a => courseIds.has(a.course_id)),
+    [assignments, courseIds],
+  );
+  const allTasks    = tasks    ?? [];
+  const allMeetings = useMemo(() =>
+    (meetings ?? []).filter(m => courseIds.has(m.course_id)),
+    [meetings, courseIds],
+  );
 
   const overdue = useMemo(() =>
     allAssignments
@@ -221,7 +249,7 @@ export default function DashboardPage() {
     <div className="p-8">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">{greetingText()}</h1>
           <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">{todayLabel()}</p>
@@ -234,6 +262,22 @@ export default function DashboardPage() {
           Add course
         </button>
       </div>
+
+      {/* Semester filter */}
+      {terms.length > 0 && (
+        <div className="mb-8">
+          <select
+            value={termFilter ?? ''}
+            onChange={e => setTermFilter(e.target.value || null)}
+            className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] bg-white dark:bg-[#553311] text-stone-700 dark:text-[#e8d5c0] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+          >
+            {terms.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+            <option value="">All semesters</option>
+          </select>
+        </div>
+      )}
 
       {/* ── No courses empty state ───────────────────────────────────────────── */}
       {!hasCourses && (

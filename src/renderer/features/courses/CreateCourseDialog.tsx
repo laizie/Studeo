@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { COURSE_COLORS, DEFAULT_COURSE_COLOR } from '../../lib/colors';
 import { useCreateCourse } from '../../lib/queries/useCourses';
+import { useTerms } from '../../lib/queries/useTerms';
 
 interface Props {
   isOpen: boolean;
@@ -31,10 +32,12 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
   const [abbreviation, setAbbreviation] = useState('');
   // Track whether user has manually edited abbreviation so we stop auto-deriving
   const [abbreviationEdited, setAbbreviationEdited] = useState(false);
-  const [color, setColor] = useState(DEFAULT_COURSE_COLOR);
+  const [color, setColor]   = useState(DEFAULT_COURSE_COLOR);
   const [building, setBuilding] = useState('');
+  const [termId, setTermId] = useState('');
 
   const createCourse = useCreateCourse();
+  const { data: terms = [] } = useTerms();
   const nameRef = useRef<HTMLInputElement>(null);
 
   // Reset all fields when dialog opens so it's always fresh
@@ -45,6 +48,7 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
       setAbbreviationEdited(false);
       setColor(DEFAULT_COURSE_COLOR);
       setBuilding('');
+      setTermId('');
       // Small delay so the element is visible before we focus it
       setTimeout(() => nameRef.current?.focus(), 50);
     }
@@ -81,6 +85,7 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
       abbreviation: abbreviation.trim() || deriveAbbreviation(name),
       color,
       building: building.trim() || undefined,
+      termId: termId || undefined,
     });
 
     onClose();
@@ -178,6 +183,26 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
               className={INPUT_CLASS}
             />
           </div>
+
+          {/* Semester (optional — only shown when terms exist) */}
+          {terms.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-stone-700 dark:text-[#d4b896] mb-1">
+                Semester
+                <span className="ml-1 text-stone-400 font-normal">(optional)</span>
+              </label>
+              <select
+                value={termId}
+                onChange={(e) => setTermId(e.target.value)}
+                className={INPUT_CLASS}
+              >
+                <option value="">— No semester —</option>
+                {terms.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {createCourse.isError && (
             <p className="text-sm text-red-600">
