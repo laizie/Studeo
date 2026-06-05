@@ -9,8 +9,9 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
+import { useTasks } from '../../lib/queries/useTasks';
 import { parseDateLocal } from '../../../shared/deadlines';
-import type { Assignment, ClassMeeting, Course } from '../../../shared/types';
+import type { Assignment, ClassMeeting, Course, Task } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 
 // ── Localizer ────────────────────────────────────────────────────────────────
@@ -39,7 +40,15 @@ type MeetingEvent = {
   resource: { type: 'meeting'; meeting: ClassMeeting; course: Course | undefined };
 };
 
-type CalEvent = AssignmentEvent | MeetingEvent;
+type TaskEvent = {
+  title: string;
+  start: Date;
+  end: Date;
+  allDay: true;
+  resource: { type: 'task'; task: Task };
+};
+
+type CalEvent = AssignmentEvent | MeetingEvent | TaskEvent;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -95,11 +104,14 @@ export default function CalendarPage() {
   const { data: courses }     = useCourses();
   const { data: assignments }  = useAssignments();
   const { data: allMeetings }  = useClassMeetings();
+  const { data: tasks }        = useTasks();
 
-  const mode       = usePageFiltersStore(s => s.calendarMode);
-  const setMode    = usePageFiltersStore(s => s.setCalendarMode);
-  const calView    = usePageFiltersStore(s => s.calendarView) as View;
-  const setCalView = usePageFiltersStore(s => s.setCalendarView);
+  const mode                = usePageFiltersStore(s => s.calendarMode);
+  const setMode             = usePageFiltersStore(s => s.setCalendarMode);
+  const calView             = usePageFiltersStore(s => s.calendarView) as View;
+  const setCalView          = usePageFiltersStore(s => s.setCalendarView);
+  const calendarShowTasks   = usePageFiltersStore(s => s.calendarShowTasks);
+  const setCalendarShowTasks = usePageFiltersStore(s => s.setCalendarShowTasks);
   const [calDate, setCalDate] = useState(new Date());
 
   // Track the visible range so we only expand meetings for what's on screen.
@@ -135,7 +147,29 @@ export default function CalendarPage() {
     return expandMeetingsForRange(allMeetings, courseMap, visibleRange.start, visibleRange.end);
   }, [allMeetings, courseMap, visibleRange]);
 
-  const events: CalEvent[] = mode === 'assignments' ? assignmentEvents : lectureEvents;
+  const taskEvents = useMemo((): TaskEvent[] => {
+    if (!tasks) return [];
+    return tasks
+      .filter(t => t.due_date)
+      .map(t => {
+        const date = parseDateLocal(t.due_date);
+        return {
+          title: t.name,
+          start: date,
+          end:   date,
+          allDay: true as const,
+          resource: { type: 'task' as const, task: t },
+        };
+      });
+  }, [tasks]);
+
+  const events: CalEvent[] = useMemo(() => {
+    const base: CalEvent[] = mode === 'assignments' ? assignmentEvents : lectureEvents;
+    if (mode === 'assignments' && calendarShowTasks) {
+      return [...base, ...taskEvents];
+    }
+    return base;
+  }, [mode, assignmentEvents, lectureEvents, taskEvents, calendarShowTasks]);
 
   // ── Calendar callbacks ───────────────────────────────────────────────────────
 
@@ -155,11 +189,25 @@ export default function CalendarPage() {
       if (event.resource.type === 'assignment' && event.resource.course) {
         navigate(`/courses/${event.resource.course.id}`);
       }
+      // task events: no detail page, click does nothing
     },
     [navigate]
   );
 
   const eventPropGetter = useCallback((event: CalEvent) => {
+    if (event.resource.type === 'task') {
+      const done = event.resource.task.status === 'completed';
+      return {
+        style: {
+          backgroundColor: done ? '#d6d3d1' : '#7c6abf',
+          borderColor:     done ? '#a8a29e' : '#6b59b0',
+          color: 'white',
+          borderRadius: '4px',
+          opacity: done ? 0.65 : 1,
+          fontSize: '0.75rem',
+        },
+      };
+    }
     const color = event.resource.course?.color ?? '#6393e1';
     const isCompleted =
       event.resource.type === 'assignment' &&
@@ -183,25 +231,46 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between mb-5 shrink-0">
         <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Calendar</h1>
 
-        {/* Mode toggle */}
-        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg">
-          {(['assignments', 'lectures'] as Mode[]).map(m => (
+        <div className="flex items-center gap-3">
+          {/* Tasks toggle — only meaningful in Assignments mode */}
+          {mode === 'assignments' && (
             <button
-              key={m}
-              onClick={() => {
-                setMode(m);
-                setCalView(m === 'lectures' ? 'week' : 'month');
-              }}
-              className={cn(
-                'px-3 py-1 text-sm rounded-md transition-colors capitalize',
-                mode === m
-                  ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                  : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
-              )}
+              onClick={() => setCalendarShowTasks(!calendarShowTasks)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] bg-stone-50 dark:bg-[#332211] text-stone-600 dark:text-[#c4a882] hover:bg-stone-100 dark:hover:bg-[#442918] transition-colors"
             >
-              {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}
+              <span className={cn(
+                'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
+                calendarShowTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-[#553311]'
+              )}>
+                <span className={cn(
+                  'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                  calendarShowTasks ? 'translate-x-3.5' : 'translate-x-0.5'
+                )} />
+              </span>
+              Tasks
             </button>
-          ))}
+          )}
+
+          {/* Mode toggle */}
+          <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg">
+            {(['assignments', 'lectures'] as Mode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => {
+                  setMode(m);
+                  setCalView(m === 'lectures' ? 'week' : 'month');
+                }}
+                className={cn(
+                  'px-3 py-1 text-sm rounded-md transition-colors capitalize',
+                  mode === m
+                    ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                )}
+              >
+                {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

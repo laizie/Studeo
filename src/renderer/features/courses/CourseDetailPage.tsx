@@ -180,7 +180,7 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-[#553311] rounded-lg w-fit">
+          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg w-fit">
             {DUE_FILTERS.map(f => (
               <button
                 key={f.value}
@@ -189,7 +189,7 @@ export default function CourseDetailPage() {
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
                     ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                    : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
+                    : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
                 )}
               >
                 {f.label}

@@ -37,6 +37,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
 
   const q = search.toLowerCase();
 
+  // Both lists sorted by due date only
   const pendingAssignments = useMemo(() =>
     assignments
       .filter(a => a.status !== 'completed' && (!q || a.name.toLowerCase().includes(q)))
@@ -60,7 +61,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         id: a.id,
         type: 'assignment',
         name: a.name,
-        courseName: course?.abbreviation || course?.name,
+        courseName:  course?.abbreviation || course?.name,
         courseColor: course?.color,
       });
     }
@@ -153,8 +154,8 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
             ) : (
               <div className="space-y-0.5">
                 {pendingAssignments.map(a => {
-                  const course  = courseMap.get(a.course_id);
-                  const inList  = listIds.has(a.id);
+                  const course = courseMap.get(a.course_id);
+                  const inList = listIds.has(a.id);
                   return (
                     <button
                       key={a.id}
