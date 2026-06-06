@@ -218,7 +218,16 @@ export async function getUserPlaylists(): Promise<AppleMusicPlaylist[]> {
             on error
               -- no artwork available
             end try
-            set output to output & pId & "||" & pName & "||" & pCount & "||" & hasArt & "\\n"
+            -- Sortable last-played key from track 1's played date (YYYYMMDDHHMM integer)
+            set lastPlayed to "0"
+            try
+              if (count of tracks of p) > 0 then
+                set pd to played date of track 1 of p
+                set lastPlayed to ((year of pd) * 100000000 + (month of pd as integer) * 1000000 + (day of pd) * 10000 + (hours of pd) * 100 + (minutes of pd)) as string
+              end if
+            on error
+            end try
+            set output to output & pId & "||" & pName & "||" & pCount & "||" & hasArt & "||" & lastPlayed & "\\n"
           end if
         end try
       end repeat
@@ -232,7 +241,7 @@ export async function getUserPlaylists(): Promise<AppleMusicPlaylist[]> {
     .split('\n')
     .filter(Boolean)
     .map(line => {
-      const [id, name, trackCount, hasArt] = line.split('||');
+      const [id, name, trackCount, hasArt, lastPlayed] = line.split('||');
       const artworkUrl = hasArt === 'art'
         ? readArtworkFile(path.join(tmpDir, `classtrack_pl_${id}`))
         : null;
@@ -243,8 +252,11 @@ export async function getUserPlaylists(): Promise<AppleMusicPlaylist[]> {
         artworkUrl,
         trackCount:  parseInt(trackCount ?? '0') || 0,
         isLibrary:   true,
+        _lastPlayed: parseInt(lastPlayed ?? '0') || 0,
       };
-    });
+    })
+    .sort((a, b) => b._lastPlayed - a._lastPlayed)
+    .map(({ _lastPlayed: _lp, ...rest }) => rest);
 }
 
 export async function playPlaylist(id: string): Promise<void> {

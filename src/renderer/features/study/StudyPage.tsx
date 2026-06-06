@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2 } from 'lucide-react';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS, type Phase } from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
@@ -65,8 +65,8 @@ const PHASE_LABELS: Record<Phase, string> = {
 };
 
 const PHASE_COLORS: Record<Phase, string> = {
-  focus:       '#c35656',
-  short_break: '#32b562',
+  focus:       '#b85050',
+  short_break: '#528c66',
 };
 
 function formatTime(seconds: number): string {
@@ -77,7 +77,7 @@ function formatTime(seconds: number): string {
 
 // ── Progress ring ─────────────────────────────────────────────────────────────
 
-const RADIUS       = 88;
+const RADIUS        = 88;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: number; totalSecs: number }) {
@@ -86,10 +86,10 @@ function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: 
   const color    = PHASE_COLORS[phase];
 
   return (
-    <svg viewBox="0 0 200 200" className="-rotate-90 w-[200px] h-[200px] lg:w-[230px] lg:h-[230px]">
+    <svg viewBox="0 0 200 200" className="-rotate-90 w-[200px] h-[200px] lg:w-[220px] lg:h-[220px]">
       <circle cx={100} cy={100} r={RADIUS}
         fill="none" stroke="currentColor" strokeWidth={7}
-        className="text-stone-200 dark:text-[#bb8c50]"
+        className="text-stone-100 dark:text-[#2d1a08]"
       />
       <circle cx={100} cy={100} r={RADIUS}
         fill="none" stroke={color} strokeWidth={7}
@@ -124,142 +124,143 @@ function FocusListPanel() {
 
   return (
     <>
-      <div className="mt-10 pt-8 border-t border-stone-200 dark:border-[#442918]">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-semibold text-stone-700 dark:text-[#d4b896]">
-              Today's Focus List
-            </h2>
-            {items.length > 0 && (
-              <p className="text-xs text-stone-400 dark:text-[#e0b870] mt-0.5">
-                {doneCount} of {items.length} done
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {items.length > 0 && (
-              <button
-                onClick={clear}
-                className="text-xs text-stone-400 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
-              >
-                Clear all
-              </button>
-            )}
-            <button
-              onClick={() => setPickerOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
-            >
-              <Plus size={14} />
-              Add
-            </button>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm font-semibold text-stone-700 dark:text-[#d4b896]">
+            Today's Focus List
+          </h2>
+          {items.length > 0 && (
+            <p className="text-xs text-stone-400 dark:text-[#e0b870] mt-0.5">
+              {doneCount} of {items.length} done
+            </p>
+          )}
         </div>
-
-        {items.length === 0 ? (
-          <div
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button
+              onClick={clear}
+              className="text-xs text-stone-400 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
+            >
+              Clear all
+            </button>
+          )}
+          <button
             onClick={() => setPickerOpen(true)}
-            className="py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#442918] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
           >
-            <p className="text-sm text-stone-400 dark:text-[#cc9a58]">
-              No assignments or tasks added yet.
-            </p>
-            <p className="text-xs text-stone-300 dark:text-[#bb8c50] mt-1">
-              Click to pick what you're working on today
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden divide-y divide-[#e8ddd0] dark:divide-[#442918]">
-            {items.map(item => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 px-4 py-3 group hover:bg-stone-50 dark:hover:bg-[#664433] transition-colors"
-              >
-                {/* Done toggle */}
-                <button
-                  onClick={() => handleToggle(item.id, item.type, item.done)}
-                  className="shrink-0 hover:scale-110 transition-transform"
-                  title={item.done ? 'Mark incomplete' : 'Mark complete'}
-                >
-                  {item.done
-                    ? <CheckCircle2 size={17} className="text-green-500" />
-                    : <Circle size={17} className="text-stone-300" />
-                  }
-                </button>
-
-                {/* Name */}
-                <span className={cn(
-                  'flex-1 text-sm truncate',
-                  item.done
-                    ? 'line-through text-stone-400 dark:text-[#cc9a58]'
-                    : 'text-stone-800 dark:text-[#f0e0cc]'
-                )}>
-                  {item.name}
-                </span>
-
-                {/* Type icon */}
-                <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-stone-400 dark:text-[#c4a882]">
-                  {item.type === 'assignment'
-                    ? <BookOpen size={11} />
-                    : <ListTodo size={11} />
-                  }
-                </span>
-
-                {/* Course badge */}
-                {item.courseName && (
-                  <span
-                    className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
-                    style={{
-                      backgroundColor: `${item.courseColor}1a`,
-                      color: item.courseColor,
-                    }}
-                  >
-                    {item.courseName}
-                  </span>
-                )}
-
-                {/* Remove */}
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="shrink-0 opacity-0 group-hover:opacity-100 p-1 text-stone-300 dark:text-[#775544] hover:text-stone-500 dark:hover:text-[#c4a882] transition-all"
-                  title="Remove from focus list"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+            <Plus size={14} />
+            Add
+          </button>
+        </div>
       </div>
+
+      {items.length === 0 ? (
+        <div
+          onClick={() => setPickerOpen(true)}
+          className="py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] transition-colors"
+        >
+          <p className="text-sm text-stone-400 dark:text-[#cc9a58]">
+            No assignments or tasks added yet.
+          </p>
+          <p className="text-xs text-stone-300 dark:text-[#bb8c50] mt-1">
+            Click to pick what you're working on today
+          </p>
+        </div>
+      ) : (
+        <div className="bg-stone-50 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] rounded-xl overflow-hidden divide-y divide-stone-100 dark:divide-[#3d2b1f]">
+          {items.map(item => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 px-4 py-3 group hover:bg-white dark:hover:bg-[#3d2318] transition-colors"
+            >
+              <button
+                onClick={() => handleToggle(item.id, item.type, item.done)}
+                className="shrink-0 hover:scale-110 transition-transform"
+                title={item.done ? 'Mark incomplete' : 'Mark complete'}
+              >
+                {item.done
+                  ? <CheckCircle2 size={17} className="text-green-500" />
+                  : <Circle size={17} className="text-stone-300 dark:text-[#775544]" />
+                }
+              </button>
+
+              <span className={cn(
+                'flex-1 text-sm truncate',
+                item.done
+                  ? 'line-through text-stone-400 dark:text-[#cc9a58]'
+                  : 'text-stone-800 dark:text-[#f0e0cc]'
+              )}>
+                {item.name}
+              </span>
+
+              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-stone-400 dark:text-[#c4a882]">
+                {item.type === 'assignment'
+                  ? <BookOpen size={11} />
+                  : <ListTodo size={11} />
+                }
+              </span>
+
+              {item.courseName && (
+                <span
+                  className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
+                  style={{
+                    backgroundColor: `${item.courseColor}1a`,
+                    color: item.courseColor,
+                  }}
+                >
+                  {item.courseName}
+                </span>
+              )}
+
+              <button
+                onClick={() => removeItem(item.id)}
+                className="shrink-0 opacity-0 group-hover:opacity-100 p-1 text-stone-300 dark:text-[#775544] hover:text-stone-500 dark:hover:text-[#c4a882] transition-all"
+                title="Remove from focus list"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <StudyPickerDialog isOpen={pickerOpen} onClose={() => setPickerOpen(false)} />
     </>
   );
 }
 
+// ── Music study column ────────────────────────────────────────────────────────
+
 function MusicStudyColumn() {
   const { defaultMusicService } = useSettingsStore();
 
   if (!defaultMusicService) {
     return (
-      <div className="w-full">
-        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
-          Music
-        </h2>
-        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#442918] gap-3 text-center">
-          <p className="text-sm text-stone-600 dark:text-[#d4b896] font-medium">No music service selected</p>
-          <p className="text-xs text-stone-400 dark:text-[#c4a882]">Go to Settings to choose Spotify or Apple Music</p>
-          <Link
-            to="/settings"
-            className="px-4 py-2 rounded-lg bg-[#e2a53b] text-[#1e1208] text-sm font-medium hover:bg-[#d49530] transition-colors"
-          >
-            Open Settings
-          </Link>
+      <div className="flex flex-col items-center justify-center py-10 gap-3 text-center h-full">
+        <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-[#2d1a08] flex items-center justify-center">
+          <Music2 size={18} className="text-stone-400 dark:text-[#c4a882]" />
         </div>
+        <div>
+          <p className="text-sm font-medium text-stone-600 dark:text-[#d4b896]">No music service selected</p>
+          <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-1">
+            Choose Spotify or Apple Music in Settings
+          </p>
+        </div>
+        <Link
+          to="/settings"
+          className="mt-1 px-4 py-2 rounded-lg bg-[#e2a53b] text-[#1e1208] text-sm font-medium hover:bg-[#d49530] transition-colors"
+        >
+          Open Settings
+        </Link>
       </div>
     );
   }
 
-  return defaultMusicService === 'spotify' ? <SpotifyStudyPanel /> : <AppleMusicStudyPanel />;
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {defaultMusicService === 'spotify' ? <SpotifyStudyPanel /> : <AppleMusicStudyPanel />}
+    </div>
+  );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -305,16 +306,24 @@ export default function StudyPage() {
   return (
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-8">Study</h1>
+        <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-6">Study</h1>
 
-        <div className="flex flex-col lg:flex-row lg:gap-16 items-center lg:items-stretch">
+        <div className="flex flex-col lg:flex-row gap-5">
 
-          {/* ── Pomodoro / timer column ───────────────────────────────────────── */}
-          <div className="flex flex-col items-center w-full max-w-sm shrink-0">
+          {/* ── Timer card ───────────────────────────────────────────────────── */}
+          <div className="bg-white dark:bg-[#1e1008] border border-stone-200 dark:border-[#3d2b1f] rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
+
+            {/* Card header */}
+            <div className="flex items-center gap-2 mb-5 self-start">
+              <Timer size={14} className="text-stone-400 dark:text-[#c4a882]" />
+              <h2 className="text-sm font-semibold text-stone-600 dark:text-[#d4b896] tracking-tight">
+                Focus Timer
+              </h2>
+            </div>
 
             {/* Technique selector */}
-            <div className="w-full mb-6">
-              <p className="text-xs font-semibold text-stone-400 dark:text-[#c4a882] uppercase tracking-wide mb-2">
+            <div className="w-full mb-5">
+              <p className="text-xs font-medium text-stone-400 dark:text-[#c4a882] uppercase tracking-wide mb-2">
                 Technique
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -325,8 +334,8 @@ export default function StudyPage() {
                     className={cn(
                       'px-3 py-1.5 text-xs rounded-lg font-medium transition-colors',
                       techniqueId === t.id
-                        ? 'bg-stone-800 dark:bg-[#664433] text-white dark:text-[#f0e0cc]'
-                        : 'bg-stone-100 dark:bg-[#442918] border border-stone-300 dark:border-[#553311] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                        ? 'bg-stone-800 dark:bg-[#553311] text-white dark:text-[#f0e0cc]'
+                        : 'bg-stone-100 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318]'
                     )}
                   >
                     {t.label}
@@ -341,16 +350,16 @@ export default function StudyPage() {
             </div>
 
             {/* Phase tabs */}
-            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg mb-8 self-stretch justify-center">
+            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg mb-7 self-stretch justify-center">
               {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
                 <button
                   key={p}
                   onClick={() => setPhase(p)}
                   className={cn(
-                    'px-4 py-1.5 text-sm rounded-md transition-colors',
+                    'flex-1 px-4 py-1.5 text-sm rounded-md transition-colors',
                     phase === p
-                      ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                      : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                      ? 'bg-white dark:bg-[#553311] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                      : 'text-stone-500 dark:text-[#c4a882] hover:bg-stone-200/60 dark:hover:bg-[#3d2318]'
                   )}
                 >
                   {PHASE_LABELS[p]}
@@ -359,11 +368,11 @@ export default function StudyPage() {
             </div>
 
             {/* Progress ring */}
-            <div className="relative flex items-center justify-center mb-8">
+            <div className="relative flex items-center justify-center mb-7">
               <ProgressRing phase={phase} timeLeft={timeLeft} totalSecs={totalSecs} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span
-                  className="text-5xl lg:text-6xl font-semibold tabular-nums tracking-tight"
+                  className="text-5xl lg:text-[3.25rem] font-semibold tabular-nums tracking-tight"
                   style={{ color }}
                 >
                   {formatTime(timeLeft)}
@@ -375,51 +384,51 @@ export default function StudyPage() {
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-4 mb-5">
+            <div className="flex items-center gap-4 mb-4">
               <button
                 onClick={reset}
                 title="Reset"
-                className="p-2.5 text-stone-400 hover:text-stone-600 rounded-full hover:bg-stone-100 dark:hover:bg-[#553311] transition-colors"
+                className="p-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-stone-100 dark:hover:bg-[#2d1a08] transition-colors"
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={17} />
               </button>
               <button
                 onClick={isRunning ? pause : start}
                 className="flex items-center gap-2 px-8 py-3 rounded-full text-white font-medium text-sm shadow-sm transition-all hover:opacity-90 active:scale-95"
                 style={{ backgroundColor: color }}
               >
-                {isRunning ? <Pause size={16} /> : <Play size={16} />}
+                {isRunning ? <Pause size={15} /> : <Play size={15} />}
                 {isRunning ? 'Pause' : 'Start'}
               </button>
               <div className="w-[42px]" />
             </div>
 
             {/* Auto-advance */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-stone-500 dark:text-[#c4a882] mb-6">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-stone-400 dark:text-[#c4a882] mb-4">
               <input
                 type="checkbox"
                 checked={autoAdvance}
                 onChange={toggleAutoAdvance}
-                className="accent-stone-600"
+                className="accent-stone-600 dark:accent-[#e2a53b]"
               />
               Auto-advance to next phase
             </label>
 
-            {/* Custom duration pickers — only shown in Custom mode */}
+            {/* Custom duration pickers */}
             {techniqueId === 'custom' && (
-              <div className="w-full space-y-3">
+              <div className="w-full space-y-3 pt-3 border-t border-stone-100 dark:border-[#2d1a08]">
                 <div className="flex items-center gap-3">
-                  <span className="w-12 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Focus</span>
-                  <div className="flex gap-1.5">
+                  <span className="w-10 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Focus</span>
+                  <div className="flex gap-1.5 flex-wrap">
                     {FOCUS_OPTIONS.map(m => (
                       <button
                         key={m}
                         onClick={() => setFocusMins(m)}
                         className={cn(
-                          'px-3 py-1 text-sm rounded-md transition-colors',
+                          'px-3 py-1 text-xs rounded-md transition-colors',
                           focusMins === m
-                            ? 'bg-stone-800 dark:bg-[#664433] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#442918] border border-stone-300 dark:border-[#553311] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                            ? 'bg-stone-800 dark:bg-[#553311] text-white dark:text-[#f0e0cc] font-medium'
+                            : 'bg-stone-100 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318]'
                         )}
                       >
                         {m}
@@ -428,17 +437,17 @@ export default function StudyPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-12 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Break</span>
-                  <div className="flex gap-1.5">
+                  <span className="w-10 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Break</span>
+                  <div className="flex gap-1.5 flex-wrap">
                     {BREAK_OPTIONS.map(m => (
                       <button
                         key={m}
                         onClick={() => setBreakMins(m)}
                         className={cn(
-                          'px-3 py-1 text-sm rounded-md transition-colors',
+                          'px-3 py-1 text-xs rounded-md transition-colors',
                           breakMins === m
-                            ? 'bg-stone-800 dark:bg-[#664433] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#442918] border border-stone-300 dark:border-[#553311] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                            ? 'bg-stone-800 dark:bg-[#553311] text-white dark:text-[#f0e0cc] font-medium'
+                            : 'bg-stone-100 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318]'
                         )}
                       >
                         {m}
@@ -450,19 +459,17 @@ export default function StudyPage() {
             )}
           </div>
 
-          {/* ── Dividers ──────────────────────────────────────────────────────── */}
-          <div className="w-full max-w-sm h-px bg-stone-200 dark:bg-[#442918] my-10 lg:hidden" />
-          <div className="hidden lg:block w-px self-stretch bg-stone-200 dark:bg-[#442918] shrink-0" />
-
-          {/* ── Music column ───────────────────────────────────────────────────── */}
-          <div className="w-full max-w-md lg:flex-1 lg:max-w-xl lg:flex lg:flex-col">
+          {/* ── Music card ────────────────────────────────────────────────────── */}
+          <div className="bg-white dark:bg-[#1e1008] border border-stone-200 dark:border-[#3d2b1f] rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
             <MusicStudyColumn />
           </div>
 
         </div>
 
-        {/* ── Focus list ────────────────────────────────────────────────────── */}
-        <FocusListPanel />
+        {/* ── Focus list card ───────────────────────────────────────────────── */}
+        <div className="mt-5 bg-white dark:bg-[#1e1008] border border-stone-200 dark:border-[#3d2b1f] rounded-2xl shadow-sm p-6">
+          <FocusListPanel />
+        </div>
 
       </div>
     </div>

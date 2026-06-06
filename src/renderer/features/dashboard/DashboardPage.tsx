@@ -113,12 +113,12 @@ function AssignmentItem({ assignment, course }: {
         </span>
       )}
       <span className={cn('text-xs font-medium shrink-0 w-[72px] text-right', {
-        'text-red-500':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
-        'text-orange-500': deadline.urgency === 'tomorrow',
-        'text-yellow-500': deadline.urgency === 'soon',
-        'text-green-400':  deadline.urgency === 'week',
-        'text-green-500':  deadline.urgency === 'later',
-        'text-green-700':  deadline.urgency === 'future',
+        'text-red-700':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
+        'text-orange-700': deadline.urgency === 'tomorrow',
+        'text-amber-600':  deadline.urgency === 'soon',
+        'text-green-600':  deadline.urgency === 'week',
+        'text-green-700':  deadline.urgency === 'later',
+        'text-green-800':  deadline.urgency === 'future',
       })}>
         {deadline.label}
       </span>
@@ -136,12 +136,12 @@ function TaskItem({ task }: { task: Task }) {
       <div className="w-0.5 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
       <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{task.name}</span>
       <span className={cn('text-xs font-medium shrink-0 w-[72px] text-right', {
-        'text-red-500':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
-        'text-orange-500': deadline.urgency === 'tomorrow',
-        'text-yellow-500': deadline.urgency === 'soon',
-        'text-green-400':  deadline.urgency === 'week',
-        'text-green-500':  deadline.urgency === 'later',
-        'text-green-700':  deadline.urgency === 'future',
+        'text-red-700':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
+        'text-orange-700': deadline.urgency === 'tomorrow',
+        'text-amber-600':  deadline.urgency === 'soon',
+        'text-green-600':  deadline.urgency === 'week',
+        'text-green-700':  deadline.urgency === 'later',
+        'text-green-800':  deadline.urgency === 'future',
       })}>
         {deadline.label}
       </span>
