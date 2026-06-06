@@ -25,13 +25,13 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 }
 
 const URGENCY_CLASS: Record<string, string> = {
-  overdue:  'text-red-500',
-  today:    'text-red-500',
-  tomorrow: 'text-orange-500',
-  soon:     'text-yellow-500',
-  week:     'text-green-400',
-  later:    'text-green-500',
-  future:   'text-green-700',
+  overdue:  'text-red-700',
+  today:    'text-red-700',
+  tomorrow: 'text-orange-700',
+  soon:     'text-amber-600',
+  week:     'text-green-600',
+  later:    'text-green-700',
+  future:   'text-green-800',
 };
 
 export default function AssignmentRow({ assignment, onEdit, course }: Props) {
