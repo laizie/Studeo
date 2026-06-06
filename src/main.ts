@@ -46,7 +46,9 @@ const createWindow = () => {
     );
   }
 
-  mainWindow.webContents.openDevTools();
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 app.on('ready', () => {
