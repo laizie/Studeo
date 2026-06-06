@@ -40,6 +40,16 @@ function getWeekEnd(): Date {
   return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
 }
 
+const URGENCY_CLASS: Record<string, string> = {
+  overdue:  'text-red-700 bg-red-100 dark:bg-red-950/70',
+  today:    'text-red-700 bg-red-100 dark:bg-red-950/70',
+  tomorrow: 'text-orange-700 bg-orange-100 dark:bg-orange-950/70',
+  soon:     'text-amber-600 bg-amber-100 dark:bg-amber-950/70',
+  week:     'text-green-600 bg-green-100 dark:bg-green-950/70',
+  later:    'text-green-700 bg-green-100 dark:bg-green-950/70',
+  future:   'text-green-800 bg-green-100 dark:bg-green-950/70',
+};
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatChip({ label, value, urgent }: {
@@ -99,27 +109,16 @@ function AssignmentItem({ assignment, course }: {
       to={course ? `/courses/${course.id}` : '#'}
       className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
     >
-      <div
-        className="w-0.5 h-5 rounded-full shrink-0"
-        style={{ backgroundColor: course?.color ?? '#a8a29e' }}
-      />
-      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{assignment.name}</span>
       {course && (
         <span
-          className="text-xs px-1.5 py-0.5 rounded shrink-0 font-medium"
-          style={{ backgroundColor: `${course.color}1a`, color: course.color }}
+          className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
+          style={{ backgroundColor: `${course.color}40`, color: course.color }}
         >
           {course.abbreviation}
         </span>
       )}
-      <span className={cn('text-xs font-medium shrink-0 w-[72px] text-right', {
-        'text-red-700':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
-        'text-orange-700': deadline.urgency === 'tomorrow',
-        'text-amber-600':  deadline.urgency === 'soon',
-        'text-green-600':  deadline.urgency === 'week',
-        'text-green-700':  deadline.urgency === 'later',
-        'text-green-800':  deadline.urgency === 'future',
-      })}>
+      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{assignment.name}</span>
+      <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
     </Link>
@@ -133,16 +132,9 @@ function TaskItem({ task }: { task: Task }) {
       to="/tasks"
       className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
     >
-      <div className="w-0.5 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
+      <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
       <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{task.name}</span>
-      <span className={cn('text-xs font-medium shrink-0 w-[72px] text-right', {
-        'text-red-700':    deadline.urgency === 'overdue' || deadline.urgency === 'today',
-        'text-orange-700': deadline.urgency === 'tomorrow',
-        'text-amber-600':  deadline.urgency === 'soon',
-        'text-green-600':  deadline.urgency === 'week',
-        'text-green-700':  deadline.urgency === 'later',
-        'text-green-800':  deadline.urgency === 'future',
-      })}>
+      <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
     </Link>
@@ -155,12 +147,18 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
       to={course ? `/courses/${course.id}` : '#'}
       className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors"
     >
-      <div
-        className="w-2 h-2 rounded-full shrink-0"
-        style={{ backgroundColor: course?.color ?? '#a8a29e' }}
-      />
+      {course ? (
+        <span
+          className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
+          style={{ backgroundColor: `${course.color}40`, color: course.color }}
+        >
+          {course.abbreviation}
+        </span>
+      ) : (
+        <span className="shrink-0 text-xs text-stone-400 font-medium">?</span>
+      )}
       <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate">
-        {course?.abbreviation ?? '?'}
+        {course?.name ?? 'Unknown'}
       </span>
       <span className="text-xs text-stone-400 dark:text-[#e0b870] shrink-0">{formatTime(meeting.start_time)}</span>
     </Link>
@@ -442,7 +440,7 @@ export default function DashboardPage() {
                           className="flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors group"
                         >
                           <div
-                            className="w-2 h-2 rounded-full shrink-0"
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: c.color }}
                           />
                           <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate group-hover:text-stone-900 dark:group-hover:text-white">

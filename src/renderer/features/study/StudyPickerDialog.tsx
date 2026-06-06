@@ -182,7 +182,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                       {course && (
                         <span
                           className="shrink-0 px-1.5 py-0.5 rounded text-xs font-medium"
-                          style={{ backgroundColor: `${course.color}1a`, color: course.color }}
+                          style={{ backgroundColor: `${course.color}40`, color: course.color }}
                         >
                           {course.abbreviation}
                         </span>
