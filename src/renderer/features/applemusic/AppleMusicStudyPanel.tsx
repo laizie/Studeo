@@ -24,9 +24,9 @@ function PlaylistRow({ playlist, onPlay }: { playlist: AppleMusicPlaylist; onPla
   return (
     <button
       onClick={onPlay}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#2d1a08] transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors text-left group"
     >
-      <div className="w-9 h-9 rounded-lg shrink-0 overflow-hidden bg-stone-100 dark:bg-[#2d1a08] flex items-center justify-center">
+      <div className="w-9 h-9 rounded-lg shrink-0 overflow-hidden bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
         {playlist.artworkUrl
           ? <img src={playlist.artworkUrl} alt="" className="w-full h-full object-cover" />
           : <ListMusic size={14} className="text-stone-400 dark:text-[#775544]" />
@@ -61,7 +61,7 @@ function PlaybackControls() {
     <div className="flex flex-col items-center gap-4 pt-1 pb-2 shrink-0">
 
       {/* Album art */}
-      <div className="w-40 h-40 rounded-2xl bg-stone-100 dark:bg-[#2d1a08] overflow-hidden flex items-center justify-center shadow-lg">
+      <div className="w-40 h-40 rounded-2xl bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] overflow-hidden flex items-center justify-center shadow-lg">
         {track?.artworkUrl
           ? <img src={track.artworkUrl} alt="" className="w-full h-full object-cover" />
           : <Music size={40} className="text-stone-200 dark:text-[#3d2318]" />
@@ -80,7 +80,7 @@ function PlaybackControls() {
 
       {/* Progress bar + timestamps */}
       <div className="w-full px-1">
-        <div className="h-1.5 bg-stone-100 dark:bg-[#2d1a08] rounded-full overflow-hidden">
+        <div className="h-1.5 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[#fc3c44] to-[#ff6b6b] rounded-full transition-all duration-1000 ease-linear"
             style={{ width: `${pct}%` }}
@@ -140,7 +140,7 @@ export default function AppleMusicStudyPanel() {
         <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
           Music
         </h2>
-        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] gap-3">
+        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] gap-3">
           <div className="w-10 h-10 rounded-full bg-[#fc3c44]/10 flex items-center justify-center">
             <Music size={18} className="text-[#fc3c44]" />
           </div>
@@ -171,7 +171,7 @@ export default function AppleMusicStudyPanel() {
       <PlaybackControls />
 
       {/* Divider */}
-      <div className="border-t border-stone-100 dark:border-[#2d1a08] my-4 shrink-0" />
+      <div className="border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18] my-4 shrink-0" />
 
       {/* Playlists */}
       <div>
@@ -180,7 +180,7 @@ export default function AppleMusicStudyPanel() {
           {playlistsLoading ? (
             <div className="space-y-1 px-1">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#2d1a08] animate-pulse" />
+                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] animate-pulse" />
               ))}
             </div>
           ) : playlists.length === 0 ? (

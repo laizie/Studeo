@@ -236,11 +236,11 @@ export default function CalendarPage() {
           {mode === 'assignments' && (
             <button
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] bg-stone-50 dark:bg-[#332211] text-stone-600 dark:text-[#c4a882] hover:bg-stone-100 dark:hover:bg-[#442918] transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-stone-50 dark:bg-[#332211] warm:bg-[#3d2918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-100 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors"
             >
               <span className={cn(
                 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-                calendarShowTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-[#553311]'
+                calendarShowTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-[#553311] warm:bg-[#7e5a38]'
               )}>
                 <span className={cn(
                   'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
@@ -252,7 +252,7 @@ export default function CalendarPage() {
           )}
 
           {/* Mode toggle */}
-          <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg">
+          <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg">
             {(['assignments', 'lectures'] as Mode[]).map(m => (
               <button
                 key={m}
@@ -263,8 +263,8 @@ export default function CalendarPage() {
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                   mode === m
-                    ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                    : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                    ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
                 )}
               >
                 {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}

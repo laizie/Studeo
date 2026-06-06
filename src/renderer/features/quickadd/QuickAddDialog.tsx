@@ -17,7 +17,7 @@ const INPUT =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
   'placeholder:text-stone-400 ' +
-  'dark:bg-[#332211] dark:border-[#221408] dark:text-[#f0e0cc] dark:placeholder:text-[#e0b870] dark:focus:ring-[#e0b870]';
+  'dark:bg-[#332211] warm:bg-[#3d2918] dark:border-[#221408] warm:border-[#423428] dark:text-[#f0e0cc] dark:placeholder:text-[#e0b870] dark:focus:ring-[#e0b870]';
 
 export default function QuickAddDialog({ isOpen, onClose }: Props) {
   const [tab, setTab]         = useState<Tab>('assignment');
@@ -83,11 +83,11 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     >
       <div className="absolute inset-0 bg-black/30" />
 
-      <div className="relative bg-white dark:bg-[#553311] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5">
+      <div className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           {/* Tab switcher */}
-          <div className="flex items-center gap-0.5 p-0.5 bg-stone-100 dark:bg-[#664433] rounded-lg">
+          <div className="flex items-center gap-0.5 p-0.5 bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] rounded-lg">
             {(['assignment', 'task'] as Tab[]).map(t => (
               <button
                 key={t}
@@ -96,7 +96,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
                 className={cn(
                   'px-3 py-1 text-xs rounded-md transition-colors capitalize',
                   tab === t
-                    ? 'bg-white dark:bg-[#775544] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    ? 'bg-white dark:bg-[#775544] warm:bg-[#9e7860] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
                     : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
                 )}
               >

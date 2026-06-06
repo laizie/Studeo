@@ -6,6 +6,9 @@
 /* Enable class-based dark mode: dark: utilities apply when .dark is on any ancestor */
 @variant dark (&:where(.dark, .dark *));
 
+/* Warm theme variant — higher specificity than dark: so warm:bg-* beats dark:bg-* */
+@variant warm (html[data-theme="warm"] &);
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -129,3 +132,35 @@
 .dark .rbc-current-time-indicator {
   background-color: #e2a53b;
 }
+
+/* ── Warm theme body background ─────────────────────────────────────────────── */
+/* .dark sets the right text/accent colors; this overrides just the bg to lighter brown */
+
+html[data-theme="warm"] body {
+  background-color: #3d2918;
+}
+
+/* ── Warm theme: react-big-calendar overrides ───────────────────────────────── */
+
+html[data-theme="warm"] .rbc-calendar  { background-color: #3d2918; }
+html[data-theme="warm"] .rbc-toolbar button { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-toolbar button:hover { background-color: #7e5a38; }
+html[data-theme="warm"] .rbc-toolbar button.rbc-active,
+html[data-theme="warm"] .rbc-toolbar button.rbc-active:hover { background-color: #8e6a48; border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-month-view  { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-header      { background-color: #4e3424; border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-header + .rbc-header { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-day-bg      { background-color: #3d2918; }
+html[data-theme="warm"] .rbc-day-bg + .rbc-day-bg { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-off-range-bg { background-color: #472f1e; }
+html[data-theme="warm"] .rbc-today       { background-color: rgba(226,165,59,0.14); }
+html[data-theme="warm"] .rbc-month-row + .rbc-month-row { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-time-view   { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-time-header { background-color: #4e3424; border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-time-header-content { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-time-header-cell .rbc-header { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-time-content { background-color: #3d2918; border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-time-content > .rbc-time-column { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-timeslot-group { border-color: #6e4c30; }
+html[data-theme="warm"] .rbc-day-slot .rbc-time-slot { border-color: #4e3424; }
+html[data-theme="warm"] .rbc-current-time-indicator { background-color: #e2a53b; }

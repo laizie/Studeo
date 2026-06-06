@@ -30,7 +30,7 @@ function MusicSection() {
 
   if (!defaultMusicService) {
     return (
-      <div className="border-t border-[#3d2b1f] dark:border-[#1e140c] px-3 py-2.5">
+      <div className="border-t border-[#3d2b1f] px-3 py-2.5">
         <Link
           to="/settings"
           className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
@@ -53,8 +53,8 @@ interface Props {
 
 export default function Sidebar({ onOpenQuickAdd }: Props) {
   return (
-    <nav className="w-56 h-full flex flex-col bg-[#2c1f14] dark:bg-[#1c1008] shrink-0">
-      <div className="px-4 py-5 border-b border-[#3d2b1f] dark:border-[#1e140c] flex items-center justify-between">
+    <nav className="w-56 h-full flex flex-col bg-[#2c1f14] shrink-0">
+      <div className="px-4 py-5 border-b border-[#3d2b1f] flex items-center justify-between">
         <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">ClassTrack</span>
         <button
           onClick={onOpenQuickAdd}
@@ -76,7 +76,7 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
 
       <MusicSection />
 
-      <div className="px-2 pb-3 border-t border-[#3d2b1f] dark:border-[#1e140c] pt-2">
+      <div className="px-2 pb-3 border-t border-[#3d2b1f] pt-2">
         <NavLink to="/settings" className={navLinkClass}>
           <Settings size={15} className="shrink-0" />
           Settings

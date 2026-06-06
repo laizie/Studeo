@@ -51,7 +51,7 @@ function StatChip({ label, value, urgent }: {
   return (
     <div className={cn(
       'flex-1 min-w-[130px] max-w-[200px] rounded-xl px-4 py-3 border shadow-sm',
-      isUrgent ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900' : 'bg-white dark:bg-[#553311] border-[#e8ddd0] dark:border-[#442918]',
+      isUrgent ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900' : 'bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]',
     )}>
       <div className={cn(
         'text-2xl font-semibold tabular-nums',
@@ -80,7 +80,7 @@ function SectionLabel({ title, count, urgent }: {
       {count !== undefined && count > 0 && (
         <span className={cn(
           'text-xs px-1.5 py-0.5 rounded-full font-medium',
-          urgent ? 'bg-red-100 dark:bg-red-950 text-red-500' : 'bg-stone-100 dark:bg-[#553311] text-stone-500 dark:text-[#c4a882]',
+          urgent ? 'bg-red-100 dark:bg-red-950 text-red-500' : 'bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-500 dark:text-[#c4a882]',
         )}>
           {count}
         </span>
@@ -97,7 +97,7 @@ function AssignmentItem({ assignment, course }: {
   return (
     <Link
       to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors"
+      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
     >
       <div
         className="w-0.5 h-5 rounded-full shrink-0"
@@ -131,7 +131,7 @@ function TaskItem({ task }: { task: Task }) {
   return (
     <Link
       to="/tasks"
-      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors"
+      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
     >
       <div className="w-0.5 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
       <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{task.name}</span>
@@ -153,7 +153,7 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
   return (
     <Link
       to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#664433] transition-colors"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors"
     >
       <div
         className="w-2 h-2 rounded-full shrink-0"
@@ -301,7 +301,7 @@ export default function DashboardPage() {
           <select
             value={termFilter ?? ''}
             onChange={e => setTermFilter(e.target.value || null)}
-            className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] bg-white dark:bg-[#553311] text-stone-700 dark:text-[#e8d5c0] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+            className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-700 dark:text-[#e8d5c0] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
           >
             {terms.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
@@ -350,8 +350,8 @@ export default function DashboardPage() {
               {overdue.length > 0 && (
                 <div>
                   <SectionLabel title="Overdue" count={overdue.length} urgent />
-                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
                       {overdue.map(a => (
                         <AssignmentItem
                           key={a.id}
@@ -373,8 +373,8 @@ export default function DashboardPage() {
                       : 'Nothing due this week — enjoy the break!'}
                   </p>
                 ) : (
-                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
                       {dueThisWeek.map(a => (
                         <AssignmentItem
                           key={a.id}
@@ -393,8 +393,8 @@ export default function DashboardPage() {
                 {pendingTasks.length === 0 ? (
                   <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">No pending tasks.</p>
                 ) : (
-                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
                       {pendingTasks.map(t => (
                         <TaskItem key={t.id} task={t} />
                       ))}
@@ -413,8 +413,8 @@ export default function DashboardPage() {
                 {todayClasses.length === 0 ? (
                   <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">No classes today.</p>
                 ) : (
-                  <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
                       {todayClasses.map(m => (
                         <ClassItem
                           key={m.id}
@@ -429,8 +429,8 @@ export default function DashboardPage() {
 
               <div>
                 <SectionLabel title="Courses" />
-                <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
-                  <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+                <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+                  <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
                     {allCourses.map(c => {
                       const ca = allAssignments.filter(a => a.course_id === c.id);
                       const done  = ca.filter(a => a.status === 'completed').length;
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                         <Link
                           key={c.id}
                           to={`/courses/${c.id}`}
-                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 dark:hover:bg-[#664433] transition-colors group"
+                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors group"
                         >
                           <div
                             className="w-2 h-2 rounded-full shrink-0"

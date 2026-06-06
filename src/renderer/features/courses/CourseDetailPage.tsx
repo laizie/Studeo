@@ -78,7 +78,7 @@ export default function CourseDetailPage() {
         <div className="h-px bg-stone-100 mt-6" />
         <div className="space-y-2 mt-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] rounded-lg" />
+            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] rounded-lg" />
           ))}
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function CourseDetailPage() {
                   id: course.id,
                   input: { termId: e.target.value || null },
                 })}
-                className="text-xs px-2 py-1 rounded-md border border-stone-200 dark:border-[#442918] bg-transparent dark:bg-[#332211] text-stone-600 dark:text-[#d4b896] focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+                className="text-xs px-2 py-1 rounded-md border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-600 dark:text-[#d4b896] focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
               >
                 <option value="">— None —</option>
                 {terms.map(t => (
@@ -165,7 +165,7 @@ export default function CourseDetailPage() {
             <div className="flex items-center gap-2">
               <Link
                 to={`/courses/${id}/batch`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] text-stone-600 dark:text-[#c4a882] rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] text-stone-600 dark:text-[#c4a882] rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
               >
                 <Rows3 size={14} />
                 Batch add
@@ -180,7 +180,7 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg w-fit">
+          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg w-fit">
             {DUE_FILTERS.map(f => (
               <button
                 key={f.value}
@@ -188,8 +188,8 @@ export default function CourseDetailPage() {
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
-                    ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                    : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                    ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
                 )}
               >
                 {f.label}
@@ -197,7 +197,7 @@ export default function CourseDetailPage() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
             {filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-stone-400 text-sm">
@@ -215,7 +215,7 @@ export default function CourseDetailPage() {
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+              <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
                 {filtered.map(a => (
                   <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
                 ))}
@@ -237,15 +237,15 @@ export default function CourseDetailPage() {
             </button>
           </div>
 
-          <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
           {(!meetings || meetings.length === 0) ? (
             <p className="text-sm text-stone-400 dark:text-[#e0b870] py-4 px-4">No class times yet.</p>
           ) : (
-            <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+            <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
               {meetings.map(m => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] rounded-lg transition-colors"
                 >
                   <span className="w-8 text-xs font-semibold text-stone-500 dark:text-[#c4a882] shrink-0">
                     {DAY_NAMES[m.day_of_week]}

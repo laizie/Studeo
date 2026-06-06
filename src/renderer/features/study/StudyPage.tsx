@@ -157,7 +157,7 @@ function FocusListPanel() {
       {items.length === 0 ? (
         <div
           onClick={() => setPickerOpen(true)}
-          className="py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] transition-colors"
+          className="py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] transition-colors"
         >
           <p className="text-sm text-stone-400 dark:text-[#cc9a58]">
             No assignments or tasks added yet.
@@ -167,11 +167,11 @@ function FocusListPanel() {
           </p>
         </div>
       ) : (
-        <div className="bg-stone-50 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] rounded-xl overflow-hidden divide-y divide-stone-100 dark:divide-[#3d2b1f]">
+        <div className="bg-stone-50 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl overflow-hidden divide-y divide-stone-100 dark:divide-[#3d2b1f] warm:divide-[#5d4b3f]">
           {items.map(item => (
             <div
               key={item.id}
-              className="flex items-center gap-3 px-4 py-3 group hover:bg-white dark:hover:bg-[#3d2318] transition-colors"
+              className="flex items-center gap-3 px-4 py-3 group hover:bg-white dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338] transition-colors"
             >
               <button
                 onClick={() => handleToggle(item.id, item.type, item.done)}
@@ -237,7 +237,7 @@ function MusicStudyColumn() {
   if (!defaultMusicService) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3 text-center h-full">
-        <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-[#2d1a08] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
           <Music2 size={18} className="text-stone-400 dark:text-[#c4a882]" />
         </div>
         <div>
@@ -311,7 +311,7 @@ export default function StudyPage() {
         <div className="flex flex-col lg:flex-row gap-5">
 
           {/* ── Timer card ───────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1e1008] border border-stone-200 dark:border-[#3d2b1f] rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
+          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
 
             {/* Card header */}
             <div className="flex items-center gap-2 mb-5 self-start">
@@ -334,8 +334,8 @@ export default function StudyPage() {
                     className={cn(
                       'px-3 py-1.5 text-xs rounded-lg font-medium transition-colors',
                       techniqueId === t.id
-                        ? 'bg-stone-800 dark:bg-[#553311] text-white dark:text-[#f0e0cc]'
-                        : 'bg-stone-100 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318]'
+                        ? 'bg-stone-800 dark:bg-[#553311] warm:bg-[#7e5a38] text-white dark:text-[#f0e0cc]'
+                        : 'bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
                     )}
                   >
                     {t.label}
@@ -350,7 +350,7 @@ export default function StudyPage() {
             </div>
 
             {/* Phase tabs */}
-            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg mb-7 self-stretch justify-center">
+            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg mb-7 self-stretch justify-center">
               {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
                 <button
                   key={p}
@@ -358,8 +358,8 @@ export default function StudyPage() {
                   className={cn(
                     'flex-1 px-4 py-1.5 text-sm rounded-md transition-colors',
                     phase === p
-                      ? 'bg-white dark:bg-[#553311] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                      : 'text-stone-500 dark:text-[#c4a882] hover:bg-stone-200/60 dark:hover:bg-[#3d2318]'
+                      ? 'bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                      : 'text-stone-500 dark:text-[#c4a882] hover:bg-stone-200/60 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
                   )}
                 >
                   {PHASE_LABELS[p]}
@@ -388,7 +388,7 @@ export default function StudyPage() {
               <button
                 onClick={reset}
                 title="Reset"
-                className="p-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-stone-100 dark:hover:bg-[#2d1a08] transition-colors"
+                className="p-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-stone-100 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors"
               >
                 <RotateCcw size={17} />
               </button>
@@ -416,7 +416,7 @@ export default function StudyPage() {
 
             {/* Custom duration pickers */}
             {techniqueId === 'custom' && (
-              <div className="w-full space-y-3 pt-3 border-t border-stone-100 dark:border-[#2d1a08]">
+              <div className="w-full space-y-3 pt-3 border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18]">
                 <div className="flex items-center gap-3">
                   <span className="w-10 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Focus</span>
                   <div className="flex gap-1.5 flex-wrap">
@@ -427,8 +427,8 @@ export default function StudyPage() {
                         className={cn(
                           'px-3 py-1 text-xs rounded-md transition-colors',
                           focusMins === m
-                            ? 'bg-stone-800 dark:bg-[#553311] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318]'
+                            ? 'bg-stone-800 dark:bg-[#553311] warm:bg-[#7e5a38] text-white dark:text-[#f0e0cc] font-medium'
+                            : 'bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
                         )}
                       >
                         {m}
@@ -446,8 +446,8 @@ export default function StudyPage() {
                         className={cn(
                           'px-3 py-1 text-xs rounded-md transition-colors',
                           breakMins === m
-                            ? 'bg-stone-800 dark:bg-[#553311] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#2d1a08] border border-stone-200 dark:border-[#3d2b1f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318]'
+                            ? 'bg-stone-800 dark:bg-[#553311] warm:bg-[#7e5a38] text-white dark:text-[#f0e0cc] font-medium'
+                            : 'bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
                         )}
                       >
                         {m}
@@ -460,14 +460,14 @@ export default function StudyPage() {
           </div>
 
           {/* ── Music card ────────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1e1008] border border-stone-200 dark:border-[#3d2b1f] rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
+          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
             <MusicStudyColumn />
           </div>
 
         </div>
 
         {/* ── Focus list card ───────────────────────────────────────────────── */}
-        <div className="mt-5 bg-white dark:bg-[#1e1008] border border-stone-200 dark:border-[#3d2b1f] rounded-2xl shadow-sm p-6">
+        <div className="mt-5 bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-2xl shadow-sm p-6">
           <FocusListPanel />
         </div>
 

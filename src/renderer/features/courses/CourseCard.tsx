@@ -24,7 +24,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
   return (
     <Link
       to={`/courses/${course.id}`}
-      className="relative bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl overflow-hidden flex shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-stone-600 transition-all group"
+      className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl overflow-hidden flex shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-stone-600 transition-all group"
     >
       {/* Color accent bar */}
       <div className="w-1.5 shrink-0" style={{ backgroundColor: course.color }} />
@@ -62,7 +62,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
                   {pct}%
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-stone-200 dark:bg-[#443322] rounded-full">
+              <div className="w-full h-2.5 bg-stone-200 dark:bg-[#443322] warm:bg-[#6e5342] rounded-full">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, backgroundColor: course.color }}

@@ -46,7 +46,7 @@ export default function TaskRow({ task, onEdit }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] rounded-lg transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] rounded-lg transition-colors">
       <button
         onClick={handleStatusToggle}
         disabled={updateTask.isPending}

@@ -23,7 +23,7 @@ const DAYS = [
 const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'dark:bg-[#332211] dark:border-[#221408] dark:text-[#f0e0cc] dark:focus:ring-[#e0b870]';
+  'dark:bg-[#332211] warm:bg-[#3d2918] dark:border-[#221408] warm:border-[#423428] dark:text-[#f0e0cc] dark:focus:ring-[#e0b870]';
 
 export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose }: Props) {
   const isEditing = !!meeting;
@@ -83,7 +83,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute inset-0 bg-black/30" />
-      <div className="relative bg-white dark:bg-[#553311] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      <div className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-stone-800 dark:text-[#f0e0cc]">
             {isEditing ? 'Edit class time' : 'Add class time'}
