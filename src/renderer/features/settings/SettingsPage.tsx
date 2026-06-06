@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Moon, Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check } from 'lucide-react';
-import { useSettingsStore, type MusicService } from '../../store/useSettingsStore';
+import { Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check } from 'lucide-react';
+import { useSettingsStore, type MusicService, type Theme } from '../../store/useSettingsStore';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS } from '../../store/useTimerStore';
 import { useTerms, useCreateTerm, useDeleteTerm } from '../../lib/queries/useTerms';
 import { useSpotifyStatus } from '../../lib/queries/useSpotify';
@@ -10,26 +10,6 @@ import { cn } from '../../lib/utils';
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={cn(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
-        checked ? 'bg-[#e2a53b]' : 'bg-stone-300 dark:bg-[#775544]',
-      )}
-    >
-      <span
-        className={cn(
-          'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
-          checked ? 'translate-x-6' : 'translate-x-1',
-        )}
-      />
-    </button>
-  );
-}
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -41,7 +21,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function SettingsCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#553311] border border-[#e8ddd0] dark:border-[#442918] rounded-xl shadow-sm divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+    <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
       {children}
     </div>
   );
@@ -90,7 +70,7 @@ function PillGroup<T extends number>({
             'px-3 py-1 text-sm rounded-md transition-colors',
             value === opt
               ? 'bg-[#e2a53b] text-[#1e1208] font-medium'
-              : 'bg-stone-100 dark:bg-[#664433] text-stone-500 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#775544]'
+              : 'bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-500 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#775544] warm:hover:bg-[#9e7860]'
           )}
         >
           {opt}{suffix}
@@ -157,7 +137,7 @@ function MusicServiceCard({
             'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
             isDefault
               ? 'bg-[#e2a53b] text-[#1e1208]'
-              : 'border border-stone-200 dark:border-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#442918]'
+              : 'border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30]'
           )}
         >
           {isDefault && <Check size={11} />}
@@ -208,7 +188,7 @@ function MusicSection() {
             <button
               onClick={() => disconnectSpotify.mutate()}
               disabled={disconnectSpotify.isPending}
-              className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-[#442918] text-stone-500 dark:text-[#c4a882] hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] text-stone-500 dark:text-[#c4a882] hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
             >
               Disconnect
             </button>
@@ -229,8 +209,61 @@ function MusicSection() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+function ThemePicker() {
+  const { theme, setTheme } = useSettingsStore();
+
+  const options: { id: Theme; label: string; desc: string; swatches: string[] }[] = [
+    {
+      id:       'light',
+      label:    'Light',
+      desc:     'Clean cream background',
+      swatches: ['#f9f5f0', '#ffffff', '#e8ddd0', '#2c1f14'],
+    },
+    {
+      id:       'warm',
+      label:    'Warm',
+      desc:     'Rich warm browns',
+      swatches: ['#5c3c22', '#7e5a38', '#8e6a48', '#2c1f14'],
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {options.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => setTheme(opt.id)}
+          className={cn(
+            'relative text-left p-4 rounded-xl border-2 transition-all',
+            theme === opt.id
+              ? 'border-[#e2a53b] bg-[#e2a53b]/5'
+              : 'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] hover:border-stone-300 dark:hover:border-[#664433] warm:hover:border-[#8e6a48]'
+          )}
+        >
+          {theme === opt.id && (
+            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#e2a53b] flex items-center justify-center">
+              <Check size={11} className="text-white" />
+            </span>
+          )}
+          <div className="flex gap-1 mb-3">
+            {opt.swatches.map((c, i) => (
+              <div
+                key={i}
+                className="w-6 h-6 rounded-md border border-black/10"
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+          <p className="text-sm font-semibold text-stone-800 dark:text-[#f0e0cc]">{opt.label}</p>
+          <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">{opt.desc}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const { darkMode, toggleDarkMode } = useSettingsStore();
+  const { } = useSettingsStore();
   const { focusSecs, breakSecs, setFocusMins, setBreakMins } = useTimerStore();
 
   const focusMins = focusSecs / 60;
@@ -266,13 +299,12 @@ export default function SettingsPage() {
       <div className="mb-8">
         <SectionHeading>Appearance</SectionHeading>
         <SettingsCard>
-          <SettingsRow
-            icon={darkMode ? <Moon size={17} /> : <Sun size={17} />}
-            label="Dark mode"
-            description={darkMode ? 'On — warm brown theme' : 'Off — light cream theme'}
-          >
-            <ToggleSwitch checked={darkMode} onChange={toggleDarkMode} />
+          <SettingsRow icon={<Sun size={17} />} label="Theme" description="Choose your preferred color theme">
+            <span />
           </SettingsRow>
+          <div className="px-4 pb-4">
+            <ThemePicker />
+          </div>
         </SettingsCard>
       </div>
 
@@ -338,7 +370,7 @@ export default function SettingsPage() {
           ))}
 
           {/* Add term form */}
-          <form onSubmit={handleAddTerm} className="px-5 py-4 border-t border-[#e8ddd0] dark:border-[#442918]">
+          <form onSubmit={handleAddTerm} className="px-5 py-4 border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]">
             <p className="text-xs font-semibold text-stone-400 dark:text-[#c4a882] uppercase tracking-wide mb-3">
               Add semester
             </p>
@@ -348,7 +380,7 @@ export default function SettingsPage() {
                 value={newTermName}
                 onChange={e => setNewTermName(e.target.value)}
                 placeholder="e.g. Fall 2026"
-                className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] rounded-lg bg-transparent dark:bg-[#332211] text-stone-700 dark:text-[#f0e0cc] placeholder:text-stone-300 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] placeholder:text-stone-300 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
               />
               <div className="flex gap-2">
                 <input
@@ -356,14 +388,14 @@ export default function SettingsPage() {
                   value={newTermStart}
                   onChange={e => setNewTermStart(e.target.value)}
                   title="Start date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] rounded-lg bg-transparent dark:bg-[#332211] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
                 />
                 <input
                   type="date"
                   value={newTermEnd}
                   onChange={e => setNewTermEnd(e.target.value)}
                   title="End date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] rounded-lg bg-transparent dark:bg-[#332211] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
                 />
               </div>
               <button

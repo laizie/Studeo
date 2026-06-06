@@ -24,9 +24,9 @@ function PlaylistRow({ playlist, onPlay }: { playlist: SpotifyPlaylist; onPlay: 
   return (
     <button
       onClick={onPlay}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#442918] transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors text-left group"
     >
-      <div className="w-8 h-8 rounded shrink-0 bg-stone-100 dark:bg-[#442918] overflow-hidden flex items-center justify-center">
+      <div className="w-8 h-8 rounded shrink-0 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] overflow-hidden flex items-center justify-center">
         {playlist.imageUrl
           ? <img src={playlist.imageUrl} alt="" className="w-full h-full object-cover" />
           : <ListMusic size={13} className="text-stone-400" />
@@ -68,10 +68,10 @@ function PlaybackControls() {
     : 0;
 
   return (
-    <div className="mt-3 pt-3 border-t border-stone-200 dark:border-[#442918]">
+    <div className="mt-3 pt-3 border-t border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]">
       {/* Track info */}
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg shrink-0 bg-stone-100 dark:bg-[#442918] overflow-hidden flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg shrink-0 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] overflow-hidden flex items-center justify-center">
           {track?.albumArt
             ? <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
             : <Music size={16} className="text-stone-300" />
@@ -88,7 +88,7 @@ function PlaybackControls() {
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 bg-stone-100 dark:bg-[#442918] rounded-full overflow-hidden mb-3">
+      <div className="h-1 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] rounded-full overflow-hidden mb-3">
         <div
           className="h-full bg-[#1DB954] rounded-full transition-all duration-1000 ease-linear"
           style={{ width: `${pct}%` }}
@@ -151,7 +151,7 @@ export default function SpotifyStudyPanel() {
           <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
             Music
           </h2>
-          <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#442918] gap-3">
+          <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] gap-3">
             <div className="w-10 h-10 rounded-full bg-[#1DB954]/10 flex items-center justify-center">
               <Music size={18} className="text-[#1DB954]" />
             </div>
@@ -193,7 +193,7 @@ export default function SpotifyStudyPanel() {
       {/* Playlist picker */}
       <div className="mt-5">
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] rounded-lg mb-3 w-fit">
+        <div className="flex gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg mb-3 w-fit">
           {(['yours', 'search'] as const).map(t => (
             <button
               key={t}
@@ -201,8 +201,8 @@ export default function SpotifyStudyPanel() {
               className={cn(
                 'px-3 py-1 text-xs rounded-md transition-colors',
                 tab === t
-                  ? 'bg-white dark:bg-[#664433] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                  : 'bg-stone-200/70 dark:bg-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311]'
+                  ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                  : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
               )}
             >
               {t === 'yours' ? 'Your playlists' : 'Search'}
@@ -221,8 +221,8 @@ export default function SpotifyStudyPanel() {
               placeholder="Search Spotify playlists…"
               className={cn(
                 'w-full pl-8 pr-3 py-2 text-sm border rounded-lg',
-                'border-stone-200 dark:border-[#442918]',
-                'bg-white dark:bg-[#332211]',
+                'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
+                'bg-white dark:bg-[#332211] warm:bg-[#3d2918]',
                 'text-stone-800 dark:text-[#f0e0cc]',
                 'placeholder:text-stone-300 dark:placeholder:text-[#775544]',
                 'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
@@ -236,7 +236,7 @@ export default function SpotifyStudyPanel() {
           {isLoading ? (
             <div className="space-y-1 px-1">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#442918] animate-pulse" />
+                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] animate-pulse" />
               ))}
             </div>
           ) : displayList.length === 0 ? (

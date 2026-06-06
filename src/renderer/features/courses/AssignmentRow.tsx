@@ -55,7 +55,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] rounded-lg transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] rounded-lg transition-colors">
       {/* Status toggle — click to advance through not_started → in_progress → completed */}
       <button
         onClick={handleStatusToggle}
@@ -76,7 +76,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
       </span>
 
       {/* Type badge */}
-      <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433]">
+      <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48]">
         {assignment.type}
       </span>
 

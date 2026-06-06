@@ -40,10 +40,10 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2c1f14] rounded-2xl shadow-2xl border border-[#e8ddd0] dark:border-[#442918] overflow-hidden">
+      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2c1f14] rounded-2xl shadow-2xl border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8ddd0] dark:border-[#442918]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-[#1DB954] flex items-center justify-center shrink-0">
               <Music size={15} className="text-white" />
@@ -54,7 +54,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-[#442918] transition-colors"
+            className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors"
           >
             <X size={16} />
           </button>
@@ -80,7 +80,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   },
                   {
                     n: '3',
-                    text: <>Under <strong className="text-stone-700 dark:text-[#f0e0cc]">Redirect URIs</strong>, add exactly: <code className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#442918] text-xs font-mono">classtrack://spotify-callback</code></>,
+                    text: <>Under <strong className="text-stone-700 dark:text-[#f0e0cc]">Redirect URIs</strong>, add exactly: <code className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] text-xs font-mono">classtrack://spotify-callback</code></>,
                   },
                   {
                     n: '4',
@@ -88,7 +88,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   },
                 ].map(({ n, text }) => (
                   <div key={n} className="flex gap-3">
-                    <span className="shrink-0 w-5 h-5 rounded-full bg-stone-100 dark:bg-[#442918] text-xs font-semibold flex items-center justify-center text-stone-500 dark:text-[#c4a882] mt-0.5">
+                    <span className="shrink-0 w-5 h-5 rounded-full bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] text-xs font-semibold flex items-center justify-center text-stone-500 dark:text-[#c4a882] mt-0.5">
                       {n}
                     </span>
                     <p className="text-sm text-stone-600 dark:text-[#d4b896] leading-relaxed">{text}</p>
@@ -108,7 +108,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 </a>
                 <button
                   onClick={() => setStep('connect')}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-[#e8ddd0] dark:border-[#442918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#3d2b1f] transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#3d2b1f] warm:hover:bg-[#5d4b3f] transition-colors"
                 >
                   I have my Client ID →
                 </button>
@@ -129,8 +129,8 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 className={cn(
                   'w-full px-3 py-2 text-sm border rounded-lg mb-4',
                   'font-mono placeholder:font-sans placeholder:text-stone-300 dark:placeholder:text-[#775544]',
-                  'border-stone-200 dark:border-[#442918]',
-                  'bg-white dark:bg-[#332211]',
+                  'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
+                  'bg-white dark:bg-[#332211] warm:bg-[#3d2918]',
                   'text-stone-800 dark:text-[#f0e0cc]',
                   'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
                 )}

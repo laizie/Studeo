@@ -23,8 +23,8 @@ function makeRow(name = '', type: AssignmentType = 'Assignment', dueDate = ''): 
 // ── Shared input style ────────────────────────────────────────────────────────
 
 const INPUT =
-  'w-full px-2.5 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] rounded-lg ' +
-  'bg-white dark:bg-[#332211] text-stone-800 dark:text-[#f0e0cc] ' +
+  'w-full px-2.5 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-lg ' +
+  'bg-white dark:bg-[#332211] warm:bg-[#3d2918] text-stone-800 dark:text-[#f0e0cc] ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-[#e0b870] focus:border-transparent ' +
   'placeholder:text-stone-300 dark:placeholder:text-[#cc9a58]';
 
@@ -174,10 +174,10 @@ export default function BatchAddPage() {
       </div>
 
       {/* ── Import from syllabus (collapsible) ─────────────────────────── */}
-      <div className="mb-6 border border-[#e8ddd0] dark:border-[#442918] rounded-xl overflow-hidden">
+      <div className="mb-6 border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl overflow-hidden">
         <button
           onClick={() => setImportOpen(v => !v)}
-          className="w-full flex items-center justify-between px-5 py-3.5 bg-stone-50 dark:bg-[#553311] hover:bg-stone-100 dark:hover:bg-[#664433] transition-colors text-left"
+          className="w-full flex items-center justify-between px-5 py-3.5 bg-stone-50 dark:bg-[#553311] warm:bg-[#7e5a38] hover:bg-stone-100 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors text-left"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <FileText size={15} className="text-stone-400 dark:text-[#e0b870] shrink-0" />
@@ -198,7 +198,7 @@ export default function BatchAddPage() {
         </button>
 
         {importOpen && (
-          <div className="p-5 border-t border-[#e8ddd0] dark:border-[#442918] bg-white dark:bg-[#332211] space-y-4">
+          <div className="p-5 border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] bg-white dark:bg-[#332211] warm:bg-[#3d2918] space-y-4">
             <p className="text-xs text-stone-400 dark:text-[#e0b870]">
               Each line is treated as one assignment. Dates like "Jan 15", "2/14", or "March 1st"
               are extracted automatically. Lines with no date will appear in the grid with an empty
@@ -248,9 +248,9 @@ export default function BatchAddPage() {
       </div>
 
       {/* ── Grid ───────────────────────────────────────────────────────── */}
-      <div className="border border-[#e8ddd0] dark:border-[#442918] rounded-xl overflow-hidden mb-4">
+      <div className="border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl overflow-hidden mb-4">
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 bg-stone-50 dark:bg-[#553311] border-b border-[#e8ddd0] dark:border-[#442918] px-4 py-2.5">
+        <div className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 bg-stone-50 dark:bg-[#553311] warm:bg-[#7e5a38] border-b border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] px-4 py-2.5">
           <span className="text-xs font-medium text-stone-500 dark:text-[#c4a882]">Assignment name</span>
           <span className="text-xs font-medium text-stone-500 dark:text-[#c4a882]">Type</span>
           <span className="text-xs font-medium text-stone-500 dark:text-[#c4a882]">Due date</span>
@@ -258,11 +258,11 @@ export default function BatchAddPage() {
         </div>
 
         {/* Data rows */}
-        <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918]">
+        <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
           {rows.map((row, idx) => (
             <div
               key={row.id}
-              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-[#332211] hover:bg-stone-50 dark:hover:bg-[#553311]/60 transition-colors"
+              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-[#332211] warm:bg-[#3d2918] hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]/60 transition-colors"
             >
               <input
                 ref={el => { nameRefs.current[row.id] = el; }}
@@ -304,7 +304,7 @@ export default function BatchAddPage() {
         {/* Add row */}
         <button
           onClick={() => addRowAfter()}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] hover:bg-stone-50 dark:hover:bg-[#553311] transition-colors border-t border-[#e8ddd0] dark:border-[#442918]"
+          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]"
         >
           <Plus size={14} />
           Add row
