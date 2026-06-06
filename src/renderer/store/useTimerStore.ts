@@ -65,8 +65,8 @@ interface TimerState {
   setBreakMins: (mins: number) => void;
 }
 
-const initFocusSecs = readMins('classtrack:focusMins', 25) * 60;
-const initBreakSecs = readMins('classtrack:breakMins', 5)  * 60;
+const initFocusSecs = readMins('studeo:focusMins', 25) * 60;
+const initBreakSecs = readMins('studeo:breakMins', 5)  * 60;
 
 export const useTimerStore = create<TimerState>((set, get) => ({
   phase:       'focus',
@@ -104,14 +104,14 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   setFocusMins: (mins) => {
-    localStorage.setItem('classtrack:focusMins', String(mins));
+    localStorage.setItem('studeo:focusMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
     set({ focusSecs: secs, ...(phase === 'focus' ? { timeLeft: secs, isRunning: false } : {}) });
   },
 
   setBreakMins: (mins) => {
-    localStorage.setItem('classtrack:breakMins', String(mins));
+    localStorage.setItem('studeo:breakMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
     set({ breakSecs: secs, ...(phase === 'short_break' ? { timeLeft: secs, isRunning: false } : {}) });

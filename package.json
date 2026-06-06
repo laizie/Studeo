@@ -1,8 +1,8 @@
 {
-  "name": "classtrack",
-  "productName": "classtrack",
+  "name": "studeo",
+  "productName": "Studeo",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "A local-first desktop app for students to track courses, assignments, and study sessions.",
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {

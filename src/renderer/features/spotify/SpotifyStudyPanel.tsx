@@ -157,7 +157,7 @@ export default function SpotifyStudyPanel() {
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Connect Spotify</p>
-              <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">Control music without leaving ClassTrack</p>
+              <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">Control music without leaving Studeo</p>
             </div>
             <button
               onClick={() => setSetupOpen(true)}

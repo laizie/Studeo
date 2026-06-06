@@ -64,7 +64,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
           {step === 'instructions' ? (
             <>
               <p className="text-sm text-stone-600 dark:text-[#d4b896] mb-5 leading-relaxed">
-                ClassTrack uses the Spotify Web API to control playback from your Spotify app.
+                Studeo uses the Spotify Web API to control playback from your Spotify app.
                 You'll need a free <strong className="text-stone-800 dark:text-[#f0e0cc]">Spotify Developer</strong> app to get a Client ID — it only takes about 2 minutes.
               </p>
 
@@ -76,11 +76,11 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   },
                   {
                     n: '2',
-                    text: <>Click <strong className="text-stone-700 dark:text-[#f0e0cc]">Create app</strong>. Give it any name (e.g. "ClassTrack"). The description and website fields can be anything.</>,
+                    text: <>Click <strong className="text-stone-700 dark:text-[#f0e0cc]">Create app</strong>. Give it any name (e.g. "Studeo"). The description and website fields can be anything.</>,
                   },
                   {
                     n: '3',
-                    text: <>Under <strong className="text-stone-700 dark:text-[#f0e0cc]">Redirect URIs</strong>, add exactly: <code className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] text-xs font-mono">classtrack://spotify-callback</code></>,
+                    text: <>Under <strong className="text-stone-700 dark:text-[#f0e0cc]">Redirect URIs</strong>, add exactly: <code className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] text-xs font-mono">studeo://spotify-callback</code></>,
                   },
                   {
                     n: '4',

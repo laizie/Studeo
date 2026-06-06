@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Target } from 'lucide-react';
+import { useStudyListStore } from '../../store/useStudyListStore';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
@@ -104,10 +105,29 @@ function AssignmentItem({ assignment, course }: {
   course: Course | undefined;
 }) {
   const deadline = computeDeadlineLabel(assignment.due_date);
+  const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
+  const inFocusList = focusItems.some(i => i.id === assignment.id);
+
+  function handleFocusToggle(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inFocusList) {
+      removeFromFocus(assignment.id);
+    } else {
+      addToFocus({
+        id: assignment.id,
+        type: 'assignment',
+        name: assignment.name,
+        courseName: course?.abbreviation || course?.name,
+        courseColor: course?.color,
+      });
+    }
+  }
+
   return (
     <Link
       to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
+      className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
     >
       {course && (
         <span
@@ -121,22 +141,59 @@ function AssignmentItem({ assignment, course }: {
       <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
+      <button
+        onClick={handleFocusToggle}
+        className={cn(
+          'shrink-0 p-1 rounded transition-colors',
+          inFocusList
+            ? 'text-[#e2a53b]'
+            : 'opacity-0 group-hover:opacity-100 text-stone-400 hover:text-[#e2a53b]'
+        )}
+        title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
+      >
+        <Target size={13} />
+      </button>
     </Link>
   );
 }
 
 function TaskItem({ task }: { task: Task }) {
   const deadline = computeDeadlineLabel(task.due_date);
+  const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
+  const inFocusList = focusItems.some(i => i.id === task.id);
+
+  function handleFocusToggle(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inFocusList) {
+      removeFromFocus(task.id);
+    } else {
+      addToFocus({ id: task.id, type: 'task', name: task.name });
+    }
+  }
+
   return (
     <Link
       to="/tasks"
-      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
+      className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
     >
       <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
       <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{task.name}</span>
       <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
+      <button
+        onClick={handleFocusToggle}
+        className={cn(
+          'shrink-0 p-1 rounded transition-colors',
+          inFocusList
+            ? 'text-[#e2a53b]'
+            : 'opacity-0 group-hover:opacity-100 text-stone-400 hover:text-[#e2a53b]'
+        )}
+        title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
+      >
+        <Target size={13} />
+      </button>
     </Link>
   );
 }

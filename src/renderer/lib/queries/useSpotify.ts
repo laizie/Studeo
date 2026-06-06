@@ -48,7 +48,7 @@ export function useSpotifyPlayback() {
 
 // ── Auth callback listener ────────────────────────────────────────────────────
 // Call this hook once at the app root level. When main sends the auth-callback
-// event (after the OS routes classtrack://spotify-callback back), we immediately
+// event (after the OS routes studeo://spotify-callback back), we immediately
 // invalidate the status query so the UI reflects the new connection.
 
 export function useSpotifyAuthListener() {

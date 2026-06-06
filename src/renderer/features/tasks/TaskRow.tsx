@@ -1,7 +1,9 @@
-import { Circle, Clock3, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { Circle, Clock3, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
 import type { Task, AssignmentStatus } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateTask, useDeleteTask } from '../../lib/queries/useTasks';
+import { useStudyListStore } from '../../store/useStudyListStore';
+import { cn } from '../../lib/utils';
 
 interface Props {
   task: Task;
@@ -33,6 +35,8 @@ const URGENCY_CLASS: Record<string, string> = {
 export default function TaskRow({ task, onEdit }: Props) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
+  const inFocusList = focusItems.some(i => i.id === task.id);
 
   const deadline    = computeDeadlineLabel(task.due_date);
   const isCompleted = task.status === 'completed';
@@ -43,6 +47,15 @@ export default function TaskRow({ task, onEdit }: Props) {
 
   function handleDelete() {
     if (confirm(`Delete "${task.name}"?`)) deleteTask.mutate(task.id);
+  }
+
+  function handleFocusToggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (inFocusList) {
+      removeFromFocus(task.id);
+    } else {
+      addToFocus({ id: task.id, type: 'task', name: task.name });
+    }
   }
 
   return (
@@ -67,6 +80,20 @@ export default function TaskRow({ task, onEdit }: Props) {
       <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded ${isCompleted ? 'text-stone-400 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48]' : URGENCY_CLASS[deadline.urgency]}`}>
         {isCompleted ? 'Done' : deadline.label}
       </span>
+
+      {/* Focus list toggle */}
+      <button
+        onClick={handleFocusToggle}
+        className={cn(
+          'shrink-0 p-1 rounded transition-colors',
+          inFocusList
+            ? 'text-[#e2a53b]'
+            : 'opacity-0 group-hover:opacity-100 text-stone-400 dark:text-[#e0b870] hover:text-[#e2a53b]'
+        )}
+        title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
+      >
+        <Target size={13} />
+      </button>
 
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
