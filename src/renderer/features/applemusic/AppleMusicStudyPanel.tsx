@@ -147,7 +147,7 @@ export default function AppleMusicStudyPanel() {
           <div className="text-center">
             <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Open Music app</p>
             <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">
-              ClassTrack controls Apple Music via the Music app — open it to get started
+              Studeo controls Apple Music via the Music app — open it to get started
             </p>
           </div>
         </div>

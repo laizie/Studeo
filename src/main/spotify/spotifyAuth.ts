@@ -106,8 +106,8 @@ function callbackPage(success: boolean, detail?: string): string {
   const bg    = success ? '#f0fdf4' : '#fff1f2';
   const title = success ? '✓ Connected to Spotify!' : 'Authorization failed';
   const body  = success
-    ? 'You can close this tab and return to ClassTrack.'
-    : 'You can close this tab and try again in ClassTrack.';
+    ? 'You can close this tab and return to Studeo.'
+    : 'You can close this tab and try again in Studeo.';
   const detailHtml = detail
     ? `<p style="margin-top:8px;font-size:12px;color:#9ca3af;font-family:monospace">${detail}</p>`
     : '';
@@ -145,7 +145,7 @@ function startCallbackServer(): void {
     }
 
     // Do the token exchange BEFORE responding so the browser shows the real outcome
-    const syntheticUrl = `classtrack://cb?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state ?? '')}`;
+    const syntheticUrl = `studeo://cb?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state ?? '')}`;
     const success = await exchangeCode(syntheticUrl);
     console.log('[Spotify token exchange]', success ? 'succeeded' : 'failed');
 

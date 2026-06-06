@@ -1,4 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
+import logoUrl from '../assets/logo.png';
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
   Calendar, Timer, Settings, Plus, Music,
@@ -55,7 +56,10 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
   return (
     <nav className="w-56 h-full flex flex-col bg-[#2c1f14] shrink-0">
       <div className="px-4 py-5 border-b border-[#3d2b1f] flex items-center justify-between">
-        <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">ClassTrack</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+          <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">Studeo</span>
+        </div>
         <button
           onClick={onOpenQuickAdd}
           title="Quick add (⌘N)"

@@ -24,13 +24,13 @@ function applyTheme(theme: Theme) {
   }
 }
 
-const storedTheme = localStorage.getItem('classtrack:theme') as Theme | null;
+const storedTheme = localStorage.getItem('studeo:theme') as Theme | null;
 // Back-compat: migrate old darkMode flag to theme
-const legacyDark  = localStorage.getItem('classtrack:darkMode') === 'true';
+const legacyDark  = localStorage.getItem('studeo:darkMode') === 'true';
 const initTheme: Theme = storedTheme ?? (legacyDark ? 'warm' : 'light');
 applyTheme(initTheme);
 
-const storedMusic = localStorage.getItem('classtrack:defaultMusicService');
+const storedMusic = localStorage.getItem('studeo:defaultMusicService');
 const initMusic: MusicService | null =
   storedMusic === 'spotify' || storedMusic === 'apple_music' ? storedMusic : null;
 
@@ -38,7 +38,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   theme: initTheme,
 
   setTheme: (t) => {
-    localStorage.setItem('classtrack:theme', t);
+    localStorage.setItem('studeo:theme', t);
     applyTheme(t);
     set({ theme: t });
   },
@@ -46,8 +46,8 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   defaultMusicService: initMusic,
 
   setDefaultMusicService: (s) => {
-    if (s === null) localStorage.removeItem('classtrack:defaultMusicService');
-    else localStorage.setItem('classtrack:defaultMusicService', s);
+    if (s === null) localStorage.removeItem('studeo:defaultMusicService');
+    else localStorage.setItem('studeo:defaultMusicService', s);
     set({ defaultMusicService: s });
   },
 }));

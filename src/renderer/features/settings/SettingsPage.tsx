@@ -293,7 +293,7 @@ export default function SettingsPage() {
   return (
     <div className="p-8 max-w-2xl">
       <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-1">Settings</h1>
-      <p className="text-sm text-stone-400 dark:text-[#e0b870] mb-8">Preferences for ClassTrack</p>
+      <p className="text-sm text-stone-400 dark:text-[#e0b870] mb-8">Preferences for Studeo</p>
 
       {/* ── Appearance ────────────────────────────────────────────────────── */}
       <div className="mb-8">
@@ -416,7 +416,7 @@ export default function SettingsPage() {
 
       {/* ── How to use ────────────────────────────────────────────────────── */}
       <div>
-        <SectionHeading>How to use ClassTrack efficiently</SectionHeading>
+        <SectionHeading>How to use Studeo efficiently</SectionHeading>
         <SettingsCard>
           <TipCard icon={<Keyboard size={16} />} title="Quick Add — ⌘N (or Ctrl+N on Windows)">
             Press this shortcut from any screen to instantly add an assignment or task without
@@ -425,7 +425,7 @@ export default function SettingsPage() {
           </TipCard>
           <TipCard icon={<Layers size={16} />} title="Batch import from your syllabus">
             On any course's detail page, click <strong>Batch add</strong> next to the Add button.
-            Paste your full syllabus text — ClassTrack will extract assignment names, types, and
+            Paste your full syllabus text — Studeo will extract assignment names, types, and
             due dates automatically. Review and edit in the grid before saving.
           </TipCard>
           <TipCard icon={<BookOpen size={16} />} title="Mark progress with one click">

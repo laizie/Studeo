@@ -15,9 +15,9 @@ export function getDb(): DatabaseSync {
 
 export function initDb(): void {
   // app.getPath('userData') resolves to the OS-appropriate app data folder:
-  //   macOS:   ~/Library/Application Support/classtrack
-  //   Windows: %APPDATA%\classtrack
-  const dbPath = path.join(app.getPath('userData'), 'classtrack.db');
+  //   macOS:   ~/Library/Application Support/Studeo
+  //   Windows: %APPDATA%\Studeo
+  const dbPath = path.join(app.getPath('userData'), 'studeo.db');
 
   db = new DatabaseSync(dbPath, { enableForeignKeyConstraints: true });
 
