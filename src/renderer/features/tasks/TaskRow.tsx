@@ -21,13 +21,13 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 }
 
 const URGENCY_CLASS: Record<string, string> = {
-  overdue:  'text-red-700',
-  today:    'text-red-700',
-  tomorrow: 'text-orange-700',
-  soon:     'text-amber-600',
-  week:     'text-green-600',
-  later:    'text-green-700',
-  future:   'text-green-800',
+  overdue:  'text-red-700 bg-red-100 dark:bg-red-950/70',
+  today:    'text-red-700 bg-red-100 dark:bg-red-950/70',
+  tomorrow: 'text-orange-700 bg-orange-100 dark:bg-orange-950/70',
+  soon:     'text-amber-600 bg-amber-100 dark:bg-amber-950/70',
+  week:     'text-green-600 bg-green-100 dark:bg-green-950/70',
+  later:    'text-green-700 bg-green-100 dark:bg-green-950/70',
+  future:   'text-green-800 bg-green-100 dark:bg-green-950/70',
 };
 
 export default function TaskRow({ task, onEdit }: Props) {
@@ -60,11 +60,11 @@ export default function TaskRow({ task, onEdit }: Props) {
         {task.name}
       </span>
 
-      <span className="shrink-0 text-xs text-stone-400 dark:text-[#e0b870] w-14 text-right hidden md:block">
+      <span className="shrink-0 text-xs text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] px-2 py-0.5 rounded hidden md:block">
         {formatDueDate(task.due_date)}
       </span>
 
-      <span className={`shrink-0 text-xs font-medium w-20 text-right ${isCompleted ? 'text-stone-300' : URGENCY_CLASS[deadline.urgency]}`}>
+      <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded ${isCompleted ? 'text-stone-400 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48]' : URGENCY_CLASS[deadline.urgency]}`}>
         {isCompleted ? 'Done' : deadline.label}
       </span>
 

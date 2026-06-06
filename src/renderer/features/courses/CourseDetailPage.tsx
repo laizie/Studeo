@@ -112,7 +112,7 @@ export default function CourseDetailPage() {
       {/* Course header */}
       <div className="flex items-start gap-3 mb-8">
         <div
-          className="w-1 self-stretch rounded-full shrink-0 mt-1"
+          className="w-1.5 self-stretch rounded-full shrink-0 mt-1"
           style={{ backgroundColor: course.color }}
         />
         <div className="min-w-0">
@@ -123,7 +123,7 @@ export default function CourseDetailPage() {
             <span
               className="inline-block px-2 py-0.5 rounded text-sm font-medium"
               style={{
-                backgroundColor: `${course.color}1a`,
+                backgroundColor: `${course.color}40`,
                 color: course.color,
               }}
             >

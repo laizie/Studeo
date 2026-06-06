@@ -25,13 +25,13 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 }
 
 const URGENCY_CLASS: Record<string, string> = {
-  overdue:  'text-red-700',
-  today:    'text-red-700',
-  tomorrow: 'text-orange-700',
-  soon:     'text-amber-600',
-  week:     'text-green-600',
-  later:    'text-green-700',
-  future:   'text-green-800',
+  overdue:  'text-red-700 bg-red-100 dark:bg-red-950/70',
+  today:    'text-red-700 bg-red-100 dark:bg-red-950/70',
+  tomorrow: 'text-orange-700 bg-orange-100 dark:bg-orange-950/70',
+  soon:     'text-amber-600 bg-amber-100 dark:bg-amber-950/70',
+  week:     'text-green-600 bg-green-100 dark:bg-green-950/70',
+  later:    'text-green-700 bg-green-100 dark:bg-green-950/70',
+  future:   'text-green-800 bg-green-100 dark:bg-green-950/70',
 };
 
 export default function AssignmentRow({ assignment, onEdit, course }: Props) {
@@ -66,6 +66,16 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         <StatusIcon status={assignment.status} />
       </button>
 
+      {/* Course badge — shown first in cross-course views so color is the first thing seen */}
+      {course && (
+        <span
+          className="shrink-0 px-2 py-0.5 rounded text-xs font-semibold"
+          style={{ backgroundColor: `${course.color}40`, color: course.color }}
+        >
+          {course.abbreviation}
+        </span>
+      )}
+
       {/* Name */}
       <span
         className={`flex-1 text-sm truncate ${
@@ -80,25 +90,17 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         {assignment.type}
       </span>
 
-      {/* Course badge — only shown in cross-course views (e.g. This Week) */}
-      {course && (
-        <span
-          className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
-          style={{ backgroundColor: `${course.color}1a`, color: course.color }}
-        >
-          {course.abbreviation}
-        </span>
-      )}
-
       {/* Due date */}
-      <span className="shrink-0 text-xs text-stone-400 dark:text-[#e0b870] w-14 text-right hidden md:block">
+      <span className="shrink-0 text-xs text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] px-2 py-0.5 rounded hidden md:block">
         {formatDueDate(assignment.due_date)}
       </span>
 
       {/* Deadline label */}
       <span
-        className={`shrink-0 text-xs font-medium w-20 text-right ${
-          isCompleted ? 'text-stone-300 dark:text-[#cc9a58]' : URGENCY_CLASS[deadline.urgency]
+        className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded ${
+          isCompleted
+            ? 'text-stone-400 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48]'
+            : URGENCY_CLASS[deadline.urgency]
         }`}
       >
         {isCompleted ? 'Done' : deadline.label}

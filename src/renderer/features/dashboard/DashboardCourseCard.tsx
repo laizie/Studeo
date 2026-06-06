@@ -13,10 +13,10 @@ export default function DashboardCourseCard({ course, total, completed }: Props)
   return (
     <Link
       to={`/courses/${course.id}`}
-      className="bg-white border border-[#e8ddd0] rounded-xl overflow-hidden flex shadow-sm hover:shadow-md hover:border-[#d4c8b8] transition-all group"
+      className="bg-white border border-[#e8ddd0] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] transition-all group"
     >
-      {/* Color accent bar */}
-      <div className="w-1.5 shrink-0" style={{ backgroundColor: course.color }} />
+      {/* Color accent strip */}
+      <div className="h-2 shrink-0 w-full" style={{ backgroundColor: course.color }} />
 
       <div className="flex-1 p-5 min-w-0">
         {/* Top row: name + abbreviation pill */}
@@ -27,7 +27,7 @@ export default function DashboardCourseCard({ course, total, completed }: Props)
           <span
             className="shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium"
             style={{
-              backgroundColor: `${course.color}1a`,
+              backgroundColor: `${course.color}40`,
               color: course.color,
             }}
           >

@@ -204,7 +204,7 @@ function FocusListPanel() {
                 <span
                   className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
                   style={{
-                    backgroundColor: `${item.courseColor}1a`,
+                    backgroundColor: `${item.courseColor}40`,
                     color: item.courseColor,
                   }}
                 >
