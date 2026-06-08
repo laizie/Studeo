@@ -62,14 +62,16 @@ const api: WindowApi = {
   },
 
   appleMusic: {
-    status:       ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.STATUS),
-    playback:     ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYBACK),
-    play:         ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY),
-    pause:        ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PAUSE),
-    next:         ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.NEXT),
-    previous:     ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PREVIOUS),
-    playlists:    ()           => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYLISTS),
-    playPlaylist: (id: string) => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY_PLAYLIST, id),
+    status:        ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.STATUS),
+    playback:      ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYBACK),
+    play:          ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY),
+    pause:         ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PAUSE),
+    next:          ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.NEXT),
+    previous:      ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PREVIOUS),
+    playlists:     ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYLISTS),
+    playPlaylist:  (id: string)          => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY_PLAYLIST, id),
+    searchLibrary: (query: string)       => ipcRenderer.invoke(IPC.APPLE_MUSIC.SEARCH_LIBRARY, query),
+    playTrack:     (databaseId: string)  => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAY_TRACK, databaseId),
   },
 
   spotify: {
