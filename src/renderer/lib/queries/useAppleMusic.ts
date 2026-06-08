@@ -85,3 +85,23 @@ export function useAppleMusicPlayPlaylist() {
     ),
   });
 }
+
+export function useAppleMusicSearchLibrary(query: string) {
+  const { data: status } = useAppleMusicStatus();
+  return useQuery({
+    queryKey: ['apple_music', 'search_library', query] as const,
+    queryFn:  () => window.api.appleMusic.searchLibrary(query),
+    enabled:  status?.authorized === true && query.trim().length > 0,
+    staleTime: 30_000,
+  });
+}
+
+export function useAppleMusicPlayTrack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (databaseId: string) => window.api.appleMusic.playTrack(databaseId),
+    onSuccess: () => setTimeout(
+      () => qc.invalidateQueries({ queryKey: AM_KEYS.playback }), 600
+    ),
+  });
+}

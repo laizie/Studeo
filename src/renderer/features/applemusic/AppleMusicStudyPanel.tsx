@@ -1,4 +1,5 @@
-import { Play, Pause, SkipForward, SkipBack, Music, ListMusic } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, Pause, SkipForward, SkipBack, Music, ListMusic, Search } from 'lucide-react';
 import {
   useAppleMusicStatus,
   useAppleMusicPlayback,
@@ -8,8 +9,10 @@ import {
   useAppleMusicNext,
   useAppleMusicPrevious,
   useAppleMusicPlayPlaylist,
+  useAppleMusicSearchLibrary,
+  useAppleMusicPlayTrack,
 } from '../../lib/queries/useAppleMusic';
-import type { AppleMusicPlaylist } from '../../../shared/types';
+import type { AppleMusicPlaylist, AppleMusicTrack } from '../../../shared/types';
 
 function formatMs(ms: number): string {
   const total = Math.floor(ms / 1000);
@@ -37,6 +40,33 @@ function PlaylistRow({ playlist, onPlay }: { playlist: AppleMusicPlaylist; onPla
         <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">{playlist.trackCount} tracks</p>
       </div>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <Play size={9} fill="white" className="text-white ml-0.5" />
+      </div>
+    </button>
+  );
+}
+
+// ── Track row (library search result) ─────────────────────────────────────────
+
+function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => void }) {
+  return (
+    <button
+      onClick={onPlay}
+      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors text-left group"
+    >
+      <div className="w-9 h-9 rounded-lg shrink-0 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
+        <Music size={14} className="text-stone-400 dark:text-[#775544]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">{track.name}</p>
+        <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5 truncate">
+          {track.artistName}{track.albumName ? ` · ${track.albumName}` : ''}
+        </p>
+      </div>
+      <span className="text-[10px] tabular-nums text-stone-300 dark:text-[#775544] shrink-0 mr-1 group-hover:hidden">
+        {formatMs(track.durationMs)}
+      </span>
+      <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:flex">
         <Play size={9} fill="white" className="text-white ml-0.5" />
       </div>
     </button>
@@ -127,12 +157,51 @@ function PlaybackControls() {
   );
 }
 
+// ── Search input ──────────────────────────────────────────────────────────────
+
+function SearchInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative mb-2">
+      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-[#775544] pointer-events-none" />
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] text-stone-700 dark:text-[#f0e0cc] placeholder-stone-300 dark:placeholder-[#775544] outline-none focus:ring-1 focus:ring-[#fc3c44]/40"
+      />
+    </div>
+  );
+}
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export default function AppleMusicStudyPanel() {
   const { data: status }                              = useAppleMusicStatus();
   const { data: playlists = [], isLoading: playlistsLoading } = useAppleMusicPlaylists();
   const playPlaylist = useAppleMusicPlayPlaylist();
+  const playTrack    = useAppleMusicPlayTrack();
+
+  const [playlistFilter, setPlaylistFilter] = useState('');
+
+  // Library search — debounce 400 ms so we don't fire on every keystroke
+  const [libraryInput, setLibraryInput] = useState('');
+  const [libraryQuery, setLibraryQuery] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setLibraryQuery(libraryInput), 400);
+    return () => clearTimeout(t);
+  }, [libraryInput]);
+
+  const { data: libraryResults = [], isFetching: libraryFetching } =
+    useAppleMusicSearchLibrary(libraryQuery);
 
   if (!status?.running) {
     return (
@@ -155,6 +224,37 @@ export default function AppleMusicStudyPanel() {
     );
   }
 
+  if (!status.authorized) {
+    return (
+      <div className="w-full">
+        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+          Music
+        </h2>
+        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] gap-3 px-4">
+          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <Music size={18} className="text-amber-500" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Permission needed</p>
+            <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-1 leading-relaxed">
+              Allow Studeo to control Music in{' '}
+              <span className="font-medium text-stone-600 dark:text-[#d4b896]">
+                System Settings → Privacy &amp; Security → Automation
+              </span>
+              , then restart the app.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredPlaylists = playlistFilter.trim()
+    ? playlists.filter(pl =>
+        pl.name.toLowerCase().includes(playlistFilter.toLowerCase())
+      )
+    : playlists;
+
   return (
     <div className="w-full flex flex-col">
 
@@ -176,6 +276,11 @@ export default function AppleMusicStudyPanel() {
       {/* Playlists */}
       <div>
         <p className="text-xs font-medium text-stone-500 dark:text-[#c4a882] mb-2">Your playlists</p>
+        <SearchInput
+          value={playlistFilter}
+          onChange={setPlaylistFilter}
+          placeholder="Filter playlists…"
+        />
         <div className="max-h-52 overflow-y-auto -mx-1">
           {playlistsLoading ? (
             <div className="space-y-1 px-1">
@@ -183,12 +288,12 @@ export default function AppleMusicStudyPanel() {
                 <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] animate-pulse" />
               ))}
             </div>
-          ) : playlists.length === 0 ? (
+          ) : filteredPlaylists.length === 0 ? (
             <p className="px-3 py-4 text-sm text-stone-400 dark:text-[#c4a882] text-center">
-              No playlists found in Music app.
+              {playlistFilter ? 'No matching playlists.' : 'No playlists found in Music app.'}
             </p>
           ) : (
-            playlists.map(pl => (
+            filteredPlaylists.map(pl => (
               <PlaylistRow
                 key={pl.id}
                 playlist={pl}
@@ -198,6 +303,41 @@ export default function AppleMusicStudyPanel() {
           )}
         </div>
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18] my-4 shrink-0" />
+
+      {/* Library search */}
+      <div>
+        <p className="text-xs font-medium text-stone-500 dark:text-[#c4a882] mb-2">Search library</p>
+        <SearchInput
+          value={libraryInput}
+          onChange={setLibraryInput}
+          placeholder="Search songs, artists, albums…"
+        />
+        <div className="max-h-52 overflow-y-auto -mx-1">
+          {libraryFetching ? (
+            <div className="space-y-1 px-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] animate-pulse" />
+              ))}
+            </div>
+          ) : libraryQuery && libraryResults.length === 0 ? (
+            <p className="px-3 py-4 text-sm text-stone-400 dark:text-[#c4a882] text-center">
+              No results for "{libraryQuery}"
+            </p>
+          ) : (
+            libraryResults.map(track => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                onPlay={() => playTrack.mutate(track.id)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }

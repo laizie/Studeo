@@ -23,7 +23,8 @@ const execAsync = promisify(execFile);
 
 async function osascript(script: string): Promise<string> {
   try {
-    const { stdout } = await execAsync('osascript', ['-e', script]);
+    // Use the full path — packaged Electron apps don't inherit the shell PATH.
+    const { stdout } = await execAsync('/usr/bin/osascript', ['-e', script]);
     return stdout.trim();
   } catch {
     return '';
@@ -88,7 +89,10 @@ export async function getMusicAppStatus(): Promise<{ running: boolean; authorize
   );
   if (running !== 'true') return { running: false, authorized: false };
 
-  // Try a harmless call to check Automation permission is granted
+  // Try a harmless call. If macOS hasn't granted this app Automation permission
+  // yet, osascript will return '' (the error is swallowed in osascript()). The
+  // user needs to allow "Studeo → Music" in System Settings > Privacy & Security
+  // > Automation, then restart the app.
   const state = await osascript('tell application "Music" to return player state as string');
   return { running: true, authorized: state !== '' };
 }
@@ -263,5 +267,64 @@ export async function playPlaylist(id: string): Promise<void> {
   // AppleScript playlist IDs are integers
   await osascript(
     `tell application "Music" to play (first user playlist whose id is ${parseInt(id)})`
+  );
+}
+
+// ── Library search ────────────────────────────────────────────────────────────
+
+export async function searchLibrary(query: string): Promise<AppleMusicTrack[]> {
+  if (process.platform !== 'darwin') return [];
+  // Strip characters that would break the AppleScript string literal.
+  const safeQuery = query.replace(/"/g, ' ').replace(/\\/g, ' ').trim();
+  if (!safeQuery) return [];
+
+  const result = await osascript(`
+    tell application "Music"
+      try
+        set results to search (first library playlist) for "${safeQuery}"
+        if (count of results) = 0 then return ""
+        set output to ""
+        set i to 0
+        repeat with t in results
+          if i >= 30 then exit repeat
+          set i to i + 1
+          try
+            set tId   to (database ID of t) as string
+            set tName to name of t as string
+            set tArt  to artist of t as string
+            set tAlb  to album of t as string
+            set tDur  to (duration of t) as integer
+            set output to output & tId & "||" & tName & "||" & tArt & "||" & tAlb & "||" & tDur & "\\n"
+          on error
+          end try
+        end repeat
+        return output
+      on error
+        return ""
+      end try
+    end tell
+  `);
+
+  if (!result) return [];
+
+  return result
+    .split('\n')
+    .filter(Boolean)
+    .map(line => {
+      const [id, name, artistName, albumName, durSecs] = line.split('||');
+      return {
+        id:         id         ?? '',
+        name:       name       ?? '',
+        artistName: artistName ?? '',
+        albumName:  albumName  ?? '',
+        artworkUrl: null,
+        durationMs: (parseInt(durSecs ?? '0') || 0) * 1000,
+      };
+    });
+}
+
+export async function playTrack(databaseId: string): Promise<void> {
+  await osascript(
+    `tell application "Music" to play (first track of library playlist 1 whose database ID is ${parseInt(databaseId)})`
   );
 }

@@ -242,14 +242,16 @@ export const IPC = {
     DELETE: 'terms:delete',
   },
   APPLE_MUSIC: {
-    STATUS:        'apple_music:status',
-    PLAYBACK:      'apple_music:playback',
-    PLAY:          'apple_music:play',
-    PAUSE:         'apple_music:pause',
-    NEXT:          'apple_music:next',
-    PREVIOUS:      'apple_music:previous',
-    PLAYLISTS:     'apple_music:playlists',
-    PLAY_PLAYLIST: 'apple_music:play-playlist',
+    STATUS:         'apple_music:status',
+    PLAYBACK:       'apple_music:playback',
+    PLAY:           'apple_music:play',
+    PAUSE:          'apple_music:pause',
+    NEXT:           'apple_music:next',
+    PREVIOUS:       'apple_music:previous',
+    PLAYLISTS:      'apple_music:playlists',
+    PLAY_PLAYLIST:  'apple_music:play-playlist',
+    SEARCH_LIBRARY: 'apple_music:search-library',
+    PLAY_TRACK:     'apple_music:play-track',
   },
   SPOTIFY: {
     STATUS:           'spotify:status',
@@ -304,14 +306,16 @@ export interface WindowApi {
     delete(id: string): Promise<void>;
   };
   appleMusic: {
-    status():                   Promise<{ running: boolean; authorized: boolean }>;
-    playback():                 Promise<{ isPlaying: boolean; progressMs: number; track: AppleMusicTrack | null } | null>;
-    play():                     Promise<{ ok: boolean; error?: string }>;
-    pause():                    Promise<{ ok: boolean; error?: string }>;
-    next():                     Promise<{ ok: boolean; error?: string }>;
-    previous():                 Promise<{ ok: boolean; error?: string }>;
-    playlists():                Promise<AppleMusicPlaylist[]>;
-    playPlaylist(id: string):   Promise<{ ok: boolean; error?: string }>;
+    status():                        Promise<{ running: boolean; authorized: boolean }>;
+    playback():                      Promise<{ isPlaying: boolean; progressMs: number; track: AppleMusicTrack | null } | null>;
+    play():                          Promise<{ ok: boolean; error?: string }>;
+    pause():                         Promise<{ ok: boolean; error?: string }>;
+    next():                          Promise<{ ok: boolean; error?: string }>;
+    previous():                      Promise<{ ok: boolean; error?: string }>;
+    playlists():                     Promise<AppleMusicPlaylist[]>;
+    playPlaylist(id: string):        Promise<{ ok: boolean; error?: string }>;
+    searchLibrary(query: string):    Promise<AppleMusicTrack[]>;
+    playTrack(databaseId: string):   Promise<{ ok: boolean; error?: string }>;
   };
   spotify: {
     status(): Promise<SpotifyConnectionStatus>;
