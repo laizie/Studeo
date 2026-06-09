@@ -6,6 +6,9 @@ Built with Electron, React, TypeScript, and SQLite.
 
 ---
 
+## Mac Terminal Run before Launch
+``xattr -cr /Applications/Studeo.app``
+
 ## Tech stack
 
 | Layer | Technology |
