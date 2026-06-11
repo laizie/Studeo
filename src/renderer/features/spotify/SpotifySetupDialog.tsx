@@ -54,7 +54,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors"
+            className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors"
           >
             <X size={16} />
           </button>
@@ -128,7 +128,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 placeholder="e.g. 3a8d2f1c4b6e9d7a5c2f8b4e1d6a9c3f"
                 className={cn(
                   'w-full px-3 py-2 text-sm border rounded-lg mb-4',
-                  'font-mono placeholder:font-sans placeholder:text-stone-300 dark:placeholder:text-[#775544]',
+                  'font-mono placeholder:font-sans placeholder:text-stone-500 dark:placeholder:text-[#775544]',
                   'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
                   'bg-white dark:bg-[#332211] warm:bg-[#3d2918]',
                   'text-stone-800 dark:text-[#f0e0cc]',
@@ -147,7 +147,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 </button>
                 <button
                   onClick={() => setStep('instructions')}
-                  className="text-sm text-stone-400 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
+                  className="text-sm text-stone-500 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
                 >
                   ← Back
                 </button>

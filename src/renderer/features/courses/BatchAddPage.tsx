@@ -26,7 +26,7 @@ const INPUT =
   'w-full px-2.5 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-lg ' +
   'bg-white dark:bg-[#332211] warm:bg-[#3d2918] text-stone-800 dark:text-[#f0e0cc] ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-[#e0b870] focus:border-transparent ' +
-  'placeholder:text-stone-300 dark:placeholder:text-[#cc9a58]';
+  'placeholder:text-stone-500 dark:placeholder:text-[#cc9a58]';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ export default function BatchAddPage() {
       {/* Back link */}
       <Link
         to={courseId ? `/courses/${courseId}` : '/courses'}
-        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         {course?.name ?? 'Course'}
@@ -168,7 +168,7 @@ export default function BatchAddPage() {
         <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">
           Batch add assignments
         </h1>
-        <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">
+        <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">
           {course ? `Adding to ${course.name}` : 'Loading…'}
         </p>
       </div>
@@ -180,18 +180,18 @@ export default function BatchAddPage() {
           className="w-full flex items-center justify-between px-5 py-3.5 bg-stone-50 dark:bg-[#553311] warm:bg-[#7e5a38] hover:bg-stone-100 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors text-left"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <FileText size={15} className="text-stone-400 dark:text-[#e0b870] shrink-0" />
+            <FileText size={15} className="text-stone-500 dark:text-[#e0b870] shrink-0" />
             <span className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0] shrink-0">
               Import from syllabus
             </span>
-            <span className="text-xs text-stone-400 dark:text-[#e0b870] truncate hidden sm:block">
+            <span className="text-xs text-stone-500 dark:text-[#e0b870] truncate hidden sm:block">
               Paste your syllabus text and we'll extract the assignments
             </span>
           </div>
           <ChevronDown
             size={15}
             className={cn(
-              'text-stone-400 dark:text-[#e0b870] transition-transform shrink-0 ml-3',
+              'text-stone-500 dark:text-[#e0b870] transition-transform shrink-0 ml-3',
               importOpen && 'rotate-180',
             )}
           />
@@ -199,7 +199,7 @@ export default function BatchAddPage() {
 
         {importOpen && (
           <div className="p-5 border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] bg-white dark:bg-[#332211] warm:bg-[#3d2918] space-y-4">
-            <p className="text-xs text-stone-400 dark:text-[#e0b870]">
+            <p className="text-xs text-stone-500 dark:text-[#e0b870]">
               Each line is treated as one assignment. Dates like "Jan 15", "2/14", or "March 1st"
               are extracted automatically. Lines with no date will appear in the grid with an empty
               due date for you to fill in.
@@ -238,7 +238,7 @@ export default function BatchAddPage() {
 
               <button
                 onClick={() => { setImportOpen(false); setSyllabusText(''); }}
-                className="text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
+                className="text-sm text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
               >
                 Cancel
               </button>
@@ -291,7 +291,7 @@ export default function BatchAddPage() {
               />
               <button
                 onClick={() => removeRow(row.id)}
-                className="p-1 text-stone-300 dark:text-[#cc9a58] hover:text-red-400 dark:hover:text-red-400 rounded transition-colors"
+                className="p-1 text-stone-500 dark:text-[#cc9a58] hover:text-red-400 dark:hover:text-red-400 rounded transition-colors"
                 title="Remove row"
                 tabIndex={-1}
               >
@@ -304,7 +304,7 @@ export default function BatchAddPage() {
         {/* Add row */}
         <button
           onClick={() => addRowAfter()}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]"
+          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]"
         >
           <Plus size={14} />
           Add row
@@ -338,7 +338,7 @@ export default function BatchAddPage() {
         >
           Cancel
         </Link>
-        <span className="text-xs text-stone-300 dark:text-[#cc9a58] ml-2">
+        <span className="text-xs text-stone-500 dark:text-[#cc9a58] ml-2">
           Enter to jump rows · Tab to move between fields
         </span>
       </div>

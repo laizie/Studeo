@@ -66,8 +66,20 @@ const PHASE_LABELS: Record<Phase, string> = {
 
 const PHASE_COLORS: Record<Phase, string> = {
   focus:       '#b85050',
-  short_break: '#528c66',
+  short_break: '#467a59', // deepened so white button text clears WCAG AA (4.5:1)
 };
+
+// Shared segmented-control styling so every selector on this screen speaks one
+// visual language — white-on-track when selected — matching the phase tabs.
+const SEG_GROUP = 'flex flex-wrap gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg';
+function segBtn(active: boolean): string {
+  return cn(
+    'px-3 py-1.5 text-xs rounded-md font-medium transition-colors',
+    active
+      ? 'bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-800 dark:text-[#f0e0cc] shadow-sm'
+      : 'text-stone-600 dark:text-[#d4b896] hover:bg-stone-200/60 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]',
+  );
+}
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -130,7 +142,7 @@ function FocusListPanel() {
             Today's Focus List
           </h2>
           {items.length > 0 && (
-            <p className="text-xs text-stone-400 dark:text-[#e0b870] mt-0.5">
+            <p className="text-xs text-stone-500 dark:text-[#e0b870] mt-0.5">
               {doneCount} of {items.length} done
             </p>
           )}
@@ -139,7 +151,7 @@ function FocusListPanel() {
           {items.length > 0 && (
             <button
               onClick={clear}
-              className="text-xs text-stone-400 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
+              className="text-xs text-stone-500 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
             >
               Clear all
             </button>
@@ -155,17 +167,18 @@ function FocusListPanel() {
       </div>
 
       {items.length === 0 ? (
-        <div
+        <button
+          type="button"
           onClick={() => setPickerOpen(true)}
-          className="py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] transition-colors"
+          className="w-full py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
         >
-          <p className="text-sm text-stone-400 dark:text-[#cc9a58]">
+          <p className="text-sm text-stone-500 dark:text-[#cc9a58]">
             No assignments or tasks added yet.
           </p>
-          <p className="text-xs text-stone-300 dark:text-[#bb8c50] mt-1">
+          <p className="text-xs text-stone-500 dark:text-[#bb8c50] mt-1">
             Click to pick what you're working on today
           </p>
-        </div>
+        </button>
       ) : (
         <div className="bg-stone-50 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl overflow-hidden divide-y divide-stone-100 dark:divide-[#3d2b1f] warm:divide-[#5d4b3f]">
           {items.map(item => (
@@ -180,20 +193,20 @@ function FocusListPanel() {
               >
                 {item.done
                   ? <CheckCircle2 size={17} className="text-green-500" />
-                  : <Circle size={17} className="text-stone-300 dark:text-[#775544]" />
+                  : <Circle size={17} className="text-stone-500 dark:text-[#775544]" />
                 }
               </button>
 
               <span className={cn(
                 'flex-1 text-sm truncate',
                 item.done
-                  ? 'line-through text-stone-400 dark:text-[#cc9a58]'
+                  ? 'line-through text-stone-500 dark:text-[#cc9a58]'
                   : 'text-stone-800 dark:text-[#f0e0cc]'
               )}>
                 {item.name}
               </span>
 
-              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-stone-400 dark:text-[#c4a882]">
+              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-stone-500 dark:text-[#c4a882]">
                 {item.type === 'assignment'
                   ? <BookOpen size={11} />
                   : <ListTodo size={11} />
@@ -214,8 +227,9 @@ function FocusListPanel() {
 
               <button
                 onClick={() => removeItem(item.id)}
-                className="shrink-0 opacity-0 group-hover:opacity-100 p-1 text-stone-300 dark:text-[#775544] hover:text-stone-500 dark:hover:text-[#c4a882] transition-all"
+                aria-label={`Remove ${item.name} from focus list`}
                 title="Remove from focus list"
+                className="shrink-0 p-1 rounded text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
               >
                 <X size={13} />
               </button>
@@ -238,11 +252,11 @@ function MusicStudyColumn() {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3 text-center h-full">
         <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
-          <Music2 size={18} className="text-stone-400 dark:text-[#c4a882]" />
+          <Music2 size={18} className="text-stone-500 dark:text-[#c4a882]" />
         </div>
         <div>
           <p className="text-sm font-medium text-stone-600 dark:text-[#d4b896]">No music service selected</p>
-          <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-1">
+          <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-1">
             Choose Spotify or Apple Music in Settings
           </p>
         </div>
@@ -268,7 +282,7 @@ function MusicStudyColumn() {
 export default function StudyPage() {
   const {
     phase, isRunning, timeLeft, autoAdvance, focusSecs, breakSecs,
-    setPhase, start, pause, reset, tick, toggleAutoAdvance,
+    setPhase, start, pause, reset, toggleAutoAdvance,
     setFocusMins, setBreakMins,
   } = useTimerStore();
 
@@ -288,11 +302,22 @@ export default function StudyPage() {
     }
   }
 
+  // The countdown itself is driven app-wide from Layout (useTimerDriver), so it
+  // survives navigation. Here we only wire up keyboard control while on this screen.
   useEffect(() => {
-    if (!isRunning) return;
-    const id = setInterval(() => tick(), 1_000);
-    return () => clearInterval(id);
-  }, [isRunning, tick]);
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isRunning) pause(); else start();
+      } else if (e.key === 'r' || e.key === 'R') {
+        reset();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isRunning, pause, start, reset]);
 
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -301,7 +326,7 @@ export default function StudyPage() {
   }, []);
 
   const color           = PHASE_COLORS[phase];
-  const activeTechnique = TECHNIQUES.find(t => t.id === techniqueId)!;
+  const activeTechnique = TECHNIQUES.find(t => t.id === techniqueId) ?? TECHNIQUES[0];
 
   return (
     <div className="p-8">
@@ -315,7 +340,7 @@ export default function StudyPage() {
 
             {/* Card header */}
             <div className="flex items-center gap-2 mb-5 self-start">
-              <Timer size={14} className="text-stone-400 dark:text-[#c4a882]" />
+              <Timer size={14} className="text-stone-500 dark:text-[#c4a882]" />
               <h2 className="text-sm font-semibold text-stone-600 dark:text-[#d4b896] tracking-tight">
                 Focus Timer
               </h2>
@@ -323,27 +348,22 @@ export default function StudyPage() {
 
             {/* Technique selector */}
             <div className="w-full mb-5">
-              <p className="text-xs font-medium text-stone-400 dark:text-[#c4a882] uppercase tracking-wide mb-2">
+              <p className="text-xs font-medium text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-2">
                 Technique
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className={SEG_GROUP}>
                 {TECHNIQUES.map(t => (
                   <button
                     key={t.id}
                     onClick={() => applyTechnique(t)}
-                    className={cn(
-                      'px-3 py-1.5 text-xs rounded-lg font-medium transition-colors',
-                      techniqueId === t.id
-                        ? 'bg-stone-800 dark:bg-[#553311] warm:bg-[#7e5a38] text-white dark:text-[#f0e0cc]'
-                        : 'bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
-                    )}
+                    className={segBtn(techniqueId === t.id)}
                   >
                     {t.label}
                   </button>
                 ))}
               </div>
               {activeTechnique.id !== 'custom' && (
-                <p className="mt-2 text-xs text-stone-400 dark:text-[#cc9a58] leading-relaxed">
+                <p className="mt-2 text-xs text-stone-500 dark:text-[#cc9a58] leading-relaxed">
                   {activeTechnique.desc}
                 </p>
               )}
@@ -377,7 +397,7 @@ export default function StudyPage() {
                 >
                   {formatTime(timeLeft)}
                 </span>
-                <span className="text-xs text-stone-400 dark:text-[#c4a882] mt-1">
+                <span className="text-xs text-stone-500 dark:text-[#c4a882] mt-1">
                   {PHASE_LABELS[phase]}
                 </span>
               </div>
@@ -388,7 +408,7 @@ export default function StudyPage() {
               <button
                 onClick={reset}
                 title="Reset"
-                className="p-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-stone-100 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors"
+                className="p-2.5 text-stone-500 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-stone-100 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors"
               >
                 <RotateCcw size={17} />
               </button>
@@ -403,8 +423,16 @@ export default function StudyPage() {
               <div className="w-[42px]" />
             </div>
 
+            {/* Keyboard hint */}
+            <p className="text-xs text-stone-500 dark:text-[#c4a882] mb-4">
+              <kbd className="px-1.5 py-0.5 rounded border border-stone-200 dark:border-[#3d2b1f] font-sans">Space</kbd>
+              <span className="mx-1.5">start / pause</span>·
+              <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-[#3d2b1f] font-sans">R</kbd>
+              <span className="ml-1.5">reset</span>
+            </p>
+
             {/* Auto-advance */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-stone-400 dark:text-[#c4a882] mb-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-stone-500 dark:text-[#c4a882] mb-4">
               <input
                 type="checkbox"
                 checked={autoAdvance}
@@ -418,38 +446,20 @@ export default function StudyPage() {
             {techniqueId === 'custom' && (
               <div className="w-full space-y-3 pt-3 border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18]">
                 <div className="flex items-center gap-3">
-                  <span className="w-10 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Focus</span>
-                  <div className="flex gap-1.5 flex-wrap">
+                  <span className="w-10 text-xs text-stone-500 dark:text-[#c4a882] shrink-0 text-right">Focus</span>
+                  <div className={SEG_GROUP}>
                     {FOCUS_OPTIONS.map(m => (
-                      <button
-                        key={m}
-                        onClick={() => setFocusMins(m)}
-                        className={cn(
-                          'px-3 py-1 text-xs rounded-md transition-colors',
-                          focusMins === m
-                            ? 'bg-stone-800 dark:bg-[#553311] warm:bg-[#7e5a38] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
-                        )}
-                      >
+                      <button key={m} onClick={() => setFocusMins(m)} className={segBtn(focusMins === m)}>
                         {m}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-10 text-xs text-stone-400 dark:text-[#c4a882] shrink-0 text-right">Break</span>
-                  <div className="flex gap-1.5 flex-wrap">
+                  <span className="w-10 text-xs text-stone-500 dark:text-[#c4a882] shrink-0 text-right">Break</span>
+                  <div className={SEG_GROUP}>
                     {BREAK_OPTIONS.map(m => (
-                      <button
-                        key={m}
-                        onClick={() => setBreakMins(m)}
-                        className={cn(
-                          'px-3 py-1 text-xs rounded-md transition-colors',
-                          breakMins === m
-                            ? 'bg-stone-800 dark:bg-[#553311] warm:bg-[#7e5a38] text-white dark:text-[#f0e0cc] font-medium'
-                            : 'bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] text-stone-600 dark:text-[#d4b896] hover:bg-stone-200 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
-                        )}
-                      >
+                      <button key={m} onClick={() => setBreakMins(m)} className={segBtn(breakMins === m)}>
                         {m}
                       </button>
                     ))}

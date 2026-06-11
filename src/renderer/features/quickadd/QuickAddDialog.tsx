@@ -16,7 +16,7 @@ type Tab = 'assignment' | 'task';
 const INPUT =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-stone-400 ' +
+  'placeholder:text-stone-500 ' +
   'dark:bg-[#332211] warm:bg-[#3d2918] dark:border-[#221408] warm:border-[#423428] dark:text-[#f0e0cc] dark:placeholder:text-[#e0b870] dark:focus:ring-[#e0b870]';
 
 export default function QuickAddDialog({ isOpen, onClose }: Props) {
@@ -107,7 +107,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
+            className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
           >
             <X size={16} />
           </button>
@@ -176,7 +176,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           </div>
         </form>
 
-        <p className="mt-3 text-center text-[11px] text-stone-300 dark:text-[#cc9a58]">
+        <p className="mt-3 text-center text-[11px] text-stone-500 dark:text-[#cc9a58]">
           ⌘N to open · Esc to close
         </p>
       </div>

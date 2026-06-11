@@ -9,6 +9,8 @@ on:
 jobs:
   build-mac:
     runs-on: macos-latest
+    env:
+      APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -20,8 +22,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build (macOS)
+      # Import the Developer ID certificate into a temporary keychain so
+      # codesign can find it. The keychain is deleted in the cleanup step.
+      - name: Import signing certificate
+        if: ${{ env.APPLE_CERT_P12 != '' }}
+        env:
+          CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 20)
+
+          # Create a fresh keychain that only lives for this job
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Decode and import the certificate
+          echo "$CERT_P12_BASE64" | base64 --decode -o "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+          # Allow codesign to use the key without a password prompt
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Build and sign (macOS)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: npm run make -- --platform=darwin
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/build.keychain" || true
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4

@@ -6,6 +6,7 @@ import { parseDateLocal } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import TaskRow from './TaskRow';
 import AddTaskDialog from './AddTaskDialog';
+import QueryErrorState from '../../components/QueryErrorState';
 import { usePageFiltersStore, type TasksDueFilter } from '../../store/usePageFiltersStore';
 
 type DueFilter = TasksDueFilter;
@@ -48,7 +49,7 @@ function applyFilter(tasks: Task[], filter: DueFilter, showCompleted: boolean): 
 }
 
 export default function TasksPage() {
-  const { data: tasks, isLoading } = useTasks();
+  const { data: tasks, isLoading, isError, refetch } = useTasks();
 
   const filter          = usePageFiltersStore(s => s.tasksDueFilter);
   const setFilter       = usePageFiltersStore(s => s.setTasksDueFilter);
@@ -83,7 +84,7 @@ export default function TasksPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Tasks</h1>
-          <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">
+          <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">
             {remainingCount > 0
               ? `${remainingCount} remaining`
               : allTasks.length > 0
@@ -126,9 +127,14 @@ export default function TasksPage() {
             onChange={e => setShowCompleted(e.target.checked)}
             className="accent-stone-600"
           />
-          <span className="text-sm text-stone-500">Show completed</span>
+          <span className="text-sm text-stone-500 dark:text-[#c4a882]">Show completed</span>
         </label>
       </div>
+
+      {/* Error — must never render as the empty state */}
+      {isError && (
+        <QueryErrorState title="Couldn't load your tasks" onRetry={() => refetch()} />
+      )}
 
       {/* Loading */}
       {isLoading && (
@@ -140,9 +146,9 @@ export default function TasksPage() {
       )}
 
       {/* Empty state */}
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && !isError && filtered.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-stone-400 text-sm">
+          <p className="text-stone-500 text-sm">
             {allTasks.length === 0
               ? 'No tasks yet.'
               : showCompleted
@@ -160,7 +166,7 @@ export default function TasksPage() {
           {allTasks.length > 0 && !showCompleted && completedCount > 0 && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-stone-400 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-stone-500 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
             >
               Show {completedCount} completed
             </button>
@@ -179,7 +185,7 @@ export default function TasksPage() {
 
       {/* Footer stats */}
       {!isLoading && allTasks.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] flex gap-4 text-xs text-stone-400 dark:text-[#e0b870]">
+        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] flex gap-4 text-xs text-stone-500 dark:text-[#e0b870]">
           <span>{completedCount} completed</span>
           <span>{remainingCount} remaining</span>
           {!showCompleted && completedCount > 0 && (

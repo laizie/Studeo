@@ -6,6 +6,8 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
+const isSigning = !!(process.env.APPLE_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_APP_PASSWORD);
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -14,6 +16,17 @@ const config: ForgeConfig = {
     icon: './assets/icon',
     appBundleId: 'com.studeo.app',
     appCategoryType: 'public.app-category.education',
+    ...(isSigning && {
+      osxSign: {
+        identity: `Developer ID Application: ${process.env.APPLE_TEAM_NAME ?? ''} (${process.env.APPLE_TEAM_ID})`,
+      },
+      osxNotarize: {
+        tool: 'notarytool' as const,
+        appleId: process.env.APPLE_ID!,
+        appleIdPassword: process.env.APPLE_APP_PASSWORD!,
+        teamId: process.env.APPLE_TEAM_ID!,
+      },
+    }),
   },
   rebuildConfig: {},
   makers: [

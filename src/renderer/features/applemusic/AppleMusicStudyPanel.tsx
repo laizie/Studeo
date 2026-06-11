@@ -32,12 +32,12 @@ function PlaylistRow({ playlist, onPlay }: { playlist: AppleMusicPlaylist; onPla
       <div className="w-9 h-9 rounded-lg shrink-0 overflow-hidden bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
         {playlist.artworkUrl
           ? <img src={playlist.artworkUrl} alt="" className="w-full h-full object-cover" />
-          : <ListMusic size={14} className="text-stone-400 dark:text-[#775544]" />
+          : <ListMusic size={14} className="text-stone-500 dark:text-[#775544]" />
         }
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">{playlist.name}</p>
-        <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">{playlist.trackCount} tracks</p>
+        <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">{playlist.trackCount} tracks</p>
       </div>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         <Play size={9} fill="white" className="text-white ml-0.5" />
@@ -55,15 +55,15 @@ function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => voi
       className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors text-left group"
     >
       <div className="w-9 h-9 rounded-lg shrink-0 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
-        <Music size={14} className="text-stone-400 dark:text-[#775544]" />
+        <Music size={14} className="text-stone-500 dark:text-[#775544]" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">{track.name}</p>
-        <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5 truncate">
+        <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5 truncate">
           {track.artistName}{track.albumName ? ` · ${track.albumName}` : ''}
         </p>
       </div>
-      <span className="text-[10px] tabular-nums text-stone-300 dark:text-[#775544] shrink-0 mr-1 group-hover:hidden">
+      <span className="text-[10px] tabular-nums text-stone-500 dark:text-[#775544] shrink-0 mr-1 group-hover:hidden">
         {formatMs(track.durationMs)}
       </span>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:flex">
@@ -103,7 +103,7 @@ function PlaybackControls() {
         <p className="text-base font-semibold text-stone-800 dark:text-[#f0e0cc] truncate leading-snug">
           {track?.name ?? 'Nothing playing'}
         </p>
-        <p className="text-sm text-stone-400 dark:text-[#c4a882] truncate mt-0.5">
+        <p className="text-sm text-stone-500 dark:text-[#c4a882] truncate mt-0.5">
           {track?.artistName ?? '—'}
         </p>
       </div>
@@ -117,10 +117,10 @@ function PlaybackControls() {
           />
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[10px] tabular-nums text-stone-400 dark:text-[#c4a882]">
+          <span className="text-[10px] tabular-nums text-stone-500 dark:text-[#c4a882]">
             {formatMs(progressMs)}
           </span>
-          <span className="text-[10px] tabular-nums text-stone-400 dark:text-[#c4a882]">
+          <span className="text-[10px] tabular-nums text-stone-500 dark:text-[#c4a882]">
             {formatMs(durationMs)}
           </span>
         </div>
@@ -131,7 +131,7 @@ function PlaybackControls() {
         <button
           onClick={() => previous.mutate()}
           disabled={previous.isPending}
-          className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
+          className="p-2 text-stone-500 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
         >
           <SkipBack size={20} />
         </button>
@@ -148,7 +148,7 @@ function PlaybackControls() {
         <button
           onClick={() => next.mutate()}
           disabled={next.isPending}
-          className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
+          className="p-2 text-stone-500 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
         >
           <SkipForward size={20} />
         </button>
@@ -170,7 +170,7 @@ function SearchInput({
 }) {
   return (
     <div className="relative mb-2">
-      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-[#775544] pointer-events-none" />
+      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500 dark:text-[#775544] pointer-events-none" />
       <input
         type="text"
         value={value}
@@ -215,7 +215,7 @@ export default function AppleMusicStudyPanel() {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Open Music app</p>
-            <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">
+            <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">
               Studeo controls Apple Music via the Music app — open it to get started
             </p>
           </div>
@@ -236,7 +236,7 @@ export default function AppleMusicStudyPanel() {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Permission needed</p>
-            <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-1 leading-relaxed">
+            <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-1 leading-relaxed">
               Allow Studeo to control Music in{' '}
               <span className="font-medium text-stone-600 dark:text-[#d4b896]">
                 System Settings → Privacy &amp; Security → Automation
@@ -289,7 +289,7 @@ export default function AppleMusicStudyPanel() {
               ))}
             </div>
           ) : filteredPlaylists.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-stone-400 dark:text-[#c4a882] text-center">
+            <p className="px-3 py-4 text-sm text-stone-500 dark:text-[#c4a882] text-center">
               {playlistFilter ? 'No matching playlists.' : 'No playlists found in Music app.'}
             </p>
           ) : (
@@ -323,7 +323,7 @@ export default function AppleMusicStudyPanel() {
               ))}
             </div>
           ) : libraryQuery && libraryResults.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-stone-400 dark:text-[#c4a882] text-center">
+            <p className="px-3 py-4 text-sm text-stone-500 dark:text-[#c4a882] text-center">
               No results for "{libraryQuery}"
             </p>
           ) : (

@@ -10,6 +10,7 @@ import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
 import ClassMeetingDialog from './ClassMeetingDialog';
+import QueryErrorState from '../../components/QueryErrorState';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -46,8 +47,8 @@ export default function CourseDetailPage() {
   const [meetingDialogOpen, setMeetingDialogOpen]       = useState(false);
   const [editingMeeting, setEditingMeeting]             = useState<ClassMeeting | undefined>();
 
-  const { data: course,      isLoading: courseLoading      } = useCourse(id ?? '');
-  const { data: assignments, isLoading: assignmentsLoading } = useAssignments(
+  const { data: course,      isLoading: courseLoading,      isError: courseError,      refetch: refetchCourse      } = useCourse(id ?? '');
+  const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments(
     id ? { courseId: id } : {}
   );
   const { data: meetings }    = useClassMeetings(id ? { courseId: id } : {});
@@ -85,12 +86,24 @@ export default function CourseDetailPage() {
     );
   }
 
+  // ── Error ── distinct from "not found": the course may exist but failed to load.
+  if (courseError || assignmentsError) {
+    return (
+      <div className="p-8">
+        <QueryErrorState
+          title="Couldn't load this course"
+          onRetry={() => { refetchCourse(); refetchAssignments(); }}
+        />
+      </div>
+    );
+  }
+
   // ── Not found ────────────────────────────────────────────────────────────────
   if (!course) {
     return (
       <div className="p-8">
         <p className="text-sm text-stone-500">Course not found.</p>
-        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-400 dark:text-[#e0b870] underline hover:text-stone-600">
+        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-500 dark:text-[#e0b870] underline hover:text-stone-600">
           ← Back to Courses
         </Link>
       </div>
@@ -103,7 +116,7 @@ export default function CourseDetailPage() {
       {/* Back link */}
       <Link
         to="/courses"
-        className="inline-flex items-center gap-1.5 text-sm text-stone-400 dark:text-[#e0b870] hover:text-stone-600 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-stone-500 dark:text-[#e0b870] hover:text-stone-600 transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         Courses
@@ -131,12 +144,12 @@ export default function CourseDetailPage() {
             </span>
           </div>
           {course.building && (
-            <p className="mt-1 text-sm text-stone-400 dark:text-[#e0b870]">{course.building}</p>
+            <p className="mt-1 text-sm text-stone-500 dark:text-[#e0b870]">{course.building}</p>
           )}
           {/* Semester selector — only shown when at least one term exists */}
           {terms.length > 0 && (
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs text-stone-400 dark:text-[#c4a882]">Semester:</span>
+              <span className="text-xs text-stone-500 dark:text-[#c4a882]">Semester:</span>
               <select
                 value={course.term_id ?? ''}
                 onChange={e => updateCourse.mutate({
@@ -200,7 +213,7 @@ export default function CourseDetailPage() {
           <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
             {filtered.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-stone-400 text-sm">
+                <p className="text-stone-500 text-sm">
                   {allAssignments.length === 0
                     ? 'No assignments yet.'
                     : 'No assignments in this window.'}
@@ -227,7 +240,7 @@ export default function CourseDetailPage() {
         {/* ── Class Schedule ───────────────────────────────────────────────── */}
         <div className="mt-10 lg:mt-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-stone-700">Class Schedule</h2>
+            <h2 className="text-base font-semibold text-stone-700 dark:text-[#d4b896]">Class Schedule</h2>
             <button
               onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
@@ -239,7 +252,7 @@ export default function CourseDetailPage() {
 
           <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
           {(!meetings || meetings.length === 0) ? (
-            <p className="text-sm text-stone-400 dark:text-[#e0b870] py-4 px-4">No class times yet.</p>
+            <p className="text-sm text-stone-500 dark:text-[#e0b870] py-4 px-4">No class times yet.</p>
           ) : (
             <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
               {meetings.map(m => (
@@ -250,13 +263,13 @@ export default function CourseDetailPage() {
                   <span className="w-8 text-xs font-semibold text-stone-500 dark:text-[#c4a882] shrink-0">
                     {DAY_NAMES[m.day_of_week]}
                   </span>
-                  <span className="flex-1 text-sm text-stone-700">
+                  <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0]">
                     {formatTime(m.start_time)} – {formatTime(m.end_time)}
                   </span>
                   <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
-                      className="p-1 text-stone-400 dark:text-[#e0b870] hover:text-stone-600 rounded transition-colors"
+                      className="p-1 text-stone-500 dark:text-[#e0b870] hover:text-stone-600 rounded transition-colors"
                       title="Edit"
                     >
                       <Pencil size={13} />
@@ -266,7 +279,7 @@ export default function CourseDetailPage() {
                         if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
                       }}
                       disabled={deleteMeeting.isPending}
-                      className="p-1 text-stone-400 dark:text-[#e0b870] hover:text-red-500 rounded transition-colors disabled:opacity-50"
+                      className="p-1 text-stone-500 dark:text-[#e0b870] hover:text-red-500 rounded transition-colors disabled:opacity-50"
                       title="Delete"
                     >
                       <Trash2 size={13} />

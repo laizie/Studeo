@@ -29,14 +29,14 @@ function PlaylistRow({ playlist, onPlay }: { playlist: SpotifyPlaylist; onPlay: 
       <div className="w-8 h-8 rounded shrink-0 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] overflow-hidden flex items-center justify-center">
         {playlist.imageUrl
           ? <img src={playlist.imageUrl} alt="" className="w-full h-full object-cover" />
-          : <ListMusic size={13} className="text-stone-400" />
+          : <ListMusic size={13} className="text-stone-500" />
         }
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">
           {playlist.name}
         </p>
-        <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">
+        <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">
           {playlist.trackCount} tracks
         </p>
       </div>
@@ -74,14 +74,14 @@ function PlaybackControls() {
         <div className="w-10 h-10 rounded-lg shrink-0 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] overflow-hidden flex items-center justify-center">
           {track?.albumArt
             ? <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
-            : <Music size={16} className="text-stone-300" />
+            : <Music size={16} className="text-stone-500" />
           }
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-stone-800 dark:text-[#f0e0cc] truncate">
             {track?.name ?? 'Nothing playing'}
           </p>
-          <p className="text-xs text-stone-400 dark:text-[#c4a882] truncate mt-0.5">
+          <p className="text-xs text-stone-500 dark:text-[#c4a882] truncate mt-0.5">
             {track?.artists.join(', ') ?? '—'}
           </p>
         </div>
@@ -100,7 +100,7 @@ function PlaybackControls() {
         <button
           onClick={() => previous.mutate()}
           disabled={previous.isPending}
-          className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
+          className="p-1.5 text-stone-500 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
           title="Previous"
         >
           <SkipBack size={16} />
@@ -119,7 +119,7 @@ function PlaybackControls() {
         <button
           onClick={() => next.mutate()}
           disabled={next.isPending}
-          className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
+          className="p-1.5 text-stone-500 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
           title="Next"
         >
           <SkipForward size={16} />
@@ -157,7 +157,7 @@ export default function SpotifyStudyPanel() {
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Connect Spotify</p>
-              <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">Control music without leaving Studeo</p>
+              <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">Control music without leaving Studeo</p>
             </div>
             <button
               onClick={() => setSetupOpen(true)}
@@ -213,7 +213,7 @@ export default function SpotifyStudyPanel() {
         {/* Search input */}
         {tab === 'search' && (
           <div className="relative mb-2">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-300 dark:text-[#775544]" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500 dark:text-[#775544]" />
             <input
               type="text"
               value={query}
@@ -224,7 +224,7 @@ export default function SpotifyStudyPanel() {
                 'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
                 'bg-white dark:bg-[#332211] warm:bg-[#3d2918]',
                 'text-stone-800 dark:text-[#f0e0cc]',
-                'placeholder:text-stone-300 dark:placeholder:text-[#775544]',
+                'placeholder:text-stone-500 dark:placeholder:text-[#775544]',
                 'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
               )}
             />
@@ -240,7 +240,7 @@ export default function SpotifyStudyPanel() {
               ))}
             </div>
           ) : displayList.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-stone-400 dark:text-[#c4a882] text-center">
+            <p className="px-3 py-4 text-sm text-stone-500 dark:text-[#c4a882] text-center">
               {tab === 'search' && query.length > 1
                 ? 'No playlists found.'
                 : tab === 'search'

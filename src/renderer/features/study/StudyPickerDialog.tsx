@@ -92,13 +92,13 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
             <h2 className="text-sm font-semibold text-stone-700 dark:text-[#e8d5c0]">
               Add to Focus List
             </h2>
-            <p className="text-xs text-stone-400 dark:text-[#cc9a58] mt-0.5">
+            <p className="text-xs text-stone-500 dark:text-[#cc9a58] mt-0.5">
               {items.length} selected
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-stone-400 dark:text-[#e0b870] hover:text-stone-600 transition-colors"
+            className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 transition-colors"
           >
             <X size={16} />
           </button>
@@ -107,7 +107,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         {/* Search */}
         <div className="px-5 pb-3 shrink-0">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-300 dark:text-[#cc9a58]" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-[#cc9a58]" />
             <input
               autoFocus
               type="text"
@@ -119,7 +119,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                 'border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
                 'bg-transparent dark:bg-[#332211] warm:bg-[#3d2918]',
                 'text-stone-700 dark:text-[#f0e0cc]',
-                'placeholder:text-stone-300 dark:placeholder:text-[#cc9a58]',
+                'placeholder:text-stone-500 dark:placeholder:text-[#cc9a58]',
                 'focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]',
               )}
             />
@@ -136,7 +136,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                 'px-3 py-1 text-xs rounded-md capitalize transition-colors',
                 tab === t
                   ? 'bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-700 dark:text-[#f0e0cc] font-medium'
-                  : 'text-stone-400 dark:text-[#c4a882] hover:text-stone-600 dark:hover:text-[#e8d5c0]'
+                  : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-600 dark:hover:text-[#e8d5c0]'
               )}
             >
               {t} ({t === 'assignments' ? pendingAssignments.length : pendingTasks.length})
@@ -148,7 +148,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         <div className="overflow-y-auto flex-1 px-3 pb-3">
           {tab === 'assignments' && (
             pendingAssignments.length === 0 ? (
-              <p className="text-center text-sm text-stone-400 dark:text-[#cc9a58] py-10">
+              <p className="text-center text-sm text-stone-500 dark:text-[#cc9a58] py-10">
                 {q ? 'No matches.' : 'All assignments are complete — nice!'}
               </p>
             ) : (
@@ -176,7 +176,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                       <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">
                         {a.name}
                       </span>
-                      <span className="shrink-0 text-xs text-stone-400 dark:text-[#cc9a58]">
+                      <span className="shrink-0 text-xs text-stone-500 dark:text-[#cc9a58]">
                         {a.due_date}
                       </span>
                       {course && (
@@ -196,7 +196,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
 
           {tab === 'tasks' && (
             pendingTasks.length === 0 ? (
-              <p className="text-center text-sm text-stone-400 dark:text-[#cc9a58] py-10">
+              <p className="text-center text-sm text-stone-500 dark:text-[#cc9a58] py-10">
                 {q ? 'No matches.' : 'No pending tasks.'}
               </p>
             ) : (
@@ -223,7 +223,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                       <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">
                         {t.name}
                       </span>
-                      <span className="shrink-0 text-xs text-stone-400 dark:text-[#cc9a58]">
+                      <span className="shrink-0 text-xs text-stone-500 dark:text-[#cc9a58]">
                         {t.due_date}
                       </span>
                     </button>

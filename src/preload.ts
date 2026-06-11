@@ -21,6 +21,7 @@ import type {
   UpdateClassMeetingInput,
   CreateTermInput,
   UpdateTermInput,
+  CreateStudySessionInput,
 } from './shared/types';
 
 const api: WindowApi = {
@@ -59,6 +60,11 @@ const api: WindowApi = {
     create: (input: CreateTermInput)        => ipcRenderer.invoke(IPC.TERMS.CREATE, input),
     update: (id, input: UpdateTermInput)    => ipcRenderer.invoke(IPC.TERMS.UPDATE, id, input),
     delete: (id)                            => ipcRenderer.invoke(IPC.TERMS.DELETE, id),
+  },
+
+  studySessions: {
+    list:   ()                                  => ipcRenderer.invoke(IPC.STUDY_SESSIONS.LIST),
+    create: (input: CreateStudySessionInput)    => ipcRenderer.invoke(IPC.STUDY_SESSIONS.CREATE, input),
   },
 
   appleMusic: {

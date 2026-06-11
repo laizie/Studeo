@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Target } from 'lucide-react';
+import { Plus, Target, AlertTriangle } from 'lucide-react';
+import QueryErrorState from '../../components/QueryErrorState';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
@@ -10,6 +11,7 @@ import { useTerms } from '../../lib/queries/useTerms';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
+import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 import CreateCourseDialog from '../courses/CreateCourseDialog';
 
@@ -41,39 +43,7 @@ function getWeekEnd(): Date {
   return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
 }
 
-const URGENCY_CLASS: Record<string, string> = {
-  overdue:  'text-red-700 bg-red-100 dark:bg-red-950/70',
-  today:    'text-red-700 bg-red-100 dark:bg-red-950/70',
-  tomorrow: 'text-orange-700 bg-orange-100 dark:bg-orange-950/70',
-  soon:     'text-amber-600 bg-amber-100 dark:bg-amber-950/70',
-  week:     'text-green-600 bg-green-100 dark:bg-green-950/70',
-  later:    'text-green-700 bg-green-100 dark:bg-green-950/70',
-  future:   'text-green-800 bg-green-100 dark:bg-green-950/70',
-};
-
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function StatChip({ label, value, urgent }: {
-  label: string;
-  value: string | number;
-  urgent?: boolean;
-}) {
-  const isUrgent = urgent && (value as number) > 0;
-  return (
-    <div className={cn(
-      'flex-1 min-w-[130px] max-w-[200px] rounded-xl px-4 py-3 border shadow-sm',
-      isUrgent ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-900' : 'bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]',
-    )}>
-      <div className={cn(
-        'text-2xl font-semibold tabular-nums',
-        isUrgent ? 'text-red-500' : 'text-stone-800 dark:text-[#f0e0cc]',
-      )}>
-        {value}
-      </div>
-      <div className="text-xs text-stone-400 dark:text-[#e0b870] mt-0.5">{label}</div>
-    </div>
-  );
-}
 
 function SectionLabel({ title, count, urgent }: {
   title: string;
@@ -82,16 +52,16 @@ function SectionLabel({ title, count, urgent }: {
 }) {
   return (
     <div className="flex items-center gap-2 mb-2 px-3">
-      <span className={cn(
+      <h2 className={cn(
         'text-xs font-semibold uppercase tracking-wide',
-        urgent ? 'text-red-400' : 'text-stone-400',
+        urgent ? 'text-red-700' : 'text-stone-500',
       )}>
         {title}
-      </span>
+      </h2>
       {count !== undefined && count > 0 && (
         <span className={cn(
           'text-xs px-1.5 py-0.5 rounded-full font-medium',
-          urgent ? 'bg-red-100 dark:bg-red-950 text-red-500' : 'bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-500 dark:text-[#c4a882]',
+          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-600 dark:text-[#c4a882]',
         )}>
           {count}
         </span>
@@ -125,10 +95,7 @@ function AssignmentItem({ assignment, course }: {
   }
 
   return (
-    <Link
-      to={course ? `/courses/${course.id}` : '#'}
-      className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
-    >
+    <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors">
       {course && (
         <span
           className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
@@ -137,23 +104,32 @@ function AssignmentItem({ assignment, course }: {
           {course.abbreviation}
         </span>
       )}
-      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{assignment.name}</span>
+      {/* Stretched link: the whole row navigates, but the link stays a sibling of the
+          star button — no interactive element nested inside another (valid + a11y). */}
+      <Link
+        to={course ? `/courses/${course.id}` : '#'}
+        className="flex-1 min-w-0 truncate text-sm text-stone-700 dark:text-[#e8d5c0] rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
+      >
+        {assignment.name}
+      </Link>
       <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
       <button
         onClick={handleFocusToggle}
-        className={cn(
-          'shrink-0 p-1 rounded transition-colors',
-          inFocusList
-            ? 'text-[#e2a53b]'
-            : 'opacity-0 group-hover:opacity-100 text-stone-400 hover:text-[#e2a53b]'
-        )}
+        aria-pressed={inFocusList}
+        aria-label={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
+        className={cn(
+          'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e2a53b]',
+          inFocusList
+            ? 'text-[#e2a53b] opacity-100'
+            : 'text-stone-500 hover:text-[#e2a53b] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+        )}
       >
         <Target size={13} />
       </button>
-    </Link>
+    </div>
   );
 }
 
@@ -173,28 +149,32 @@ function TaskItem({ task }: { task: Task }) {
   }
 
   return (
-    <Link
-      to="/tasks"
-      className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
-    >
+    <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors">
       <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
-      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">{task.name}</span>
+      <Link
+        to="/tasks"
+        className="flex-1 min-w-0 truncate text-sm text-stone-700 dark:text-[#e8d5c0] rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
+      >
+        {task.name}
+      </Link>
       <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
       <button
         onClick={handleFocusToggle}
-        className={cn(
-          'shrink-0 p-1 rounded transition-colors',
-          inFocusList
-            ? 'text-[#e2a53b]'
-            : 'opacity-0 group-hover:opacity-100 text-stone-400 hover:text-[#e2a53b]'
-        )}
+        aria-pressed={inFocusList}
+        aria-label={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
+        className={cn(
+          'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e2a53b]',
+          inFocusList
+            ? 'text-[#e2a53b] opacity-100'
+            : 'text-stone-500 hover:text-[#e2a53b] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+        )}
       >
         <Target size={13} />
       </button>
-    </Link>
+    </div>
   );
 }
 
@@ -212,12 +192,12 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
           {course.abbreviation}
         </span>
       ) : (
-        <span className="shrink-0 text-xs text-stone-400 font-medium">?</span>
+        <span className="shrink-0 text-xs text-stone-500 font-medium">?</span>
       )}
       <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate">
         {course?.name ?? 'Unknown'}
       </span>
-      <span className="text-xs text-stone-400 dark:text-[#e0b870] shrink-0">{formatTime(meeting.start_time)}</span>
+      <span className="text-xs text-stone-500 dark:text-[#e0b870] shrink-0">{formatTime(meeting.start_time)}</span>
     </Link>
   );
 }
@@ -227,8 +207,8 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
 export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: courses,     isLoading: coursesLoading     } = useCourses();
-  const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
+  const { data: courses,     isLoading: coursesLoading,     isError: coursesError,     refetch: refetchCourses     } = useCourses();
+  const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
   const { data: tasks  } = useTasks();
   const { data: meetings } = useClassMeetings();
   const { data: terms = [] } = useTerms();
@@ -309,23 +289,43 @@ export default function DashboardPage() {
     [allTasks],
   );
 
-  const completedCount  = allAssignments.filter(a => a.status === 'completed').length;
-  const tasksRemaining  = pendingTasks.length;
-
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
+    // Skeleton mirrors the loaded layout (header + 1fr/240px grid, no stat row)
+    // so content doesn't shift on arrival. Theme-aware so it doesn't flash light.
+    const block = 'bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] rounded-xl';
     return (
-      <div className="p-8 space-y-6 animate-pulse">
-        <div className="h-8 w-48 bg-stone-100 rounded" />
-        <div className="flex gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex-1 h-20 bg-stone-100 rounded-xl" />
-          ))}
+      <div className="p-8 animate-pulse">
+        <div className="flex items-start justify-between mb-8">
+          <div className="space-y-2">
+            <div className={cn('h-7 w-44', block)} />
+            <div className={cn('h-4 w-32', block)} />
+          </div>
+          <div className={cn('h-9 w-28', block)} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
-          <div className="h-64 bg-stone-100 rounded-xl" />
-          <div className="h-64 bg-stone-100 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-x-8 gap-y-8">
+          <div className="space-y-8">
+            <div className={cn('h-48', block)} />
+            <div className={cn('h-32', block)} />
+          </div>
+          <div className="space-y-8">
+            <div className={cn('h-32', block)} />
+            <div className={cn('h-40', block)} />
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  // ── Error ── A failed load must never look like an empty account ("No courses yet").
+  if (coursesError || assignmentsError) {
+    return (
+      <div className="p-8">
+        <QueryErrorState
+          title="Couldn't load your dashboard"
+          message="Your courses and assignments are saved on this device — this is usually a brief hiccup."
+          onRetry={() => { refetchCourses(); refetchAssignments(); }}
+        />
       </div>
     );
   }
@@ -339,7 +339,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">{greetingText()}</h1>
-          <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">{todayLabel()}</p>
+          <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">{todayLabel()}</p>
         </div>
         <button
           onClick={() => setDialogOpen(true)}
@@ -369,7 +369,7 @@ export default function DashboardPage() {
       {/* ── No courses empty state ───────────────────────────────────────────── */}
       {!hasCourses && (
         <div className="text-center py-24">
-          <p className="text-stone-400 text-sm">No courses yet. Add your first one to get started.</p>
+          <p className="text-stone-500 text-sm">No courses yet. Add your first one to get started.</p>
           <button
             onClick={() => setDialogOpen(true)}
             className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
@@ -381,20 +381,16 @@ export default function DashboardPage() {
 
       {hasCourses && (
         <>
-          {/* ── Stat chips ────────────────────────────────────────────────── */}
-          <div className="flex flex-wrap gap-3 mb-8">
-            <StatChip
-              label="assignments done"
-              value={
-                allAssignments.length > 0
-                  ? `${completedCount} / ${allAssignments.length}`
-                  : '—'
-              }
-            />
-            <StatChip label="overdue"        value={overdue.length}    urgent />
-            <StatChip label="due this week"  value={dueThisWeek.length}       />
-            <StatChip label="tasks remaining" value={tasksRemaining}          />
-          </div>
+          {/* ── Overdue alert (only when something is actually overdue) ───── */}
+          {overdue.length > 0 && (
+            <div className="flex items-center gap-2.5 w-fit mb-8 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span className="text-sm font-medium">
+                <span className="font-semibold tabular-nums">{overdue.length}</span>{' '}
+                {overdue.length === 1 ? 'assignment' : 'assignments'} overdue
+              </span>
+            </div>
+          )}
 
           {/* ── Content grid ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-x-8 gap-y-8">
@@ -422,7 +418,7 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Due this week" count={dueThisWeek.length} />
                 {dueThisWeek.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">
+                  <p className="px-3 text-sm text-stone-500 dark:text-[#cc9a58]">
                     {allAssignments.length === 0
                       ? 'Add assignments to a course to see them here.'
                       : 'Nothing due this week — enjoy the break!'}
@@ -446,7 +442,7 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Tasks" count={pendingTasks.length} />
                 {pendingTasks.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">No pending tasks.</p>
+                  <p className="px-3 text-sm text-stone-500 dark:text-[#cc9a58]">No pending tasks.</p>
                 ) : (
                   <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
                     <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
@@ -466,7 +462,7 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Today's classes" />
                 {todayClasses.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-300 dark:text-[#cc9a58]">No classes today.</p>
+                  <p className="px-3 text-sm text-stone-500 dark:text-[#cc9a58]">No classes today.</p>
                 ) : (
                   <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
                     <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
@@ -504,7 +500,7 @@ export default function DashboardPage() {
                             {c.name}
                           </span>
                           {total > 0 && (
-                            <span className="text-xs text-stone-400 dark:text-[#e0b870] shrink-0 tabular-nums">
+                            <span className="text-xs text-stone-500 dark:text-[#e0b870] shrink-0 tabular-nums">
                               {done}/{total}
                             </span>
                           )}

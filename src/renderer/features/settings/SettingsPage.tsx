@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check } from 'lucide-react';
-import { useSettingsStore, type MusicService, type Theme } from '../../store/useSettingsStore';
+import { useSettingsStore, type Theme } from '../../store/useSettingsStore';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS } from '../../store/useTimerStore';
 import { useTerms, useCreateTerm, useDeleteTerm } from '../../lib/queries/useTerms';
 import { useSpotifyStatus } from '../../lib/queries/useSpotify';
@@ -13,7 +13,7 @@ import { cn } from '../../lib/utils';
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xs font-semibold text-stone-400 dark:text-[#e0b870] uppercase tracking-wide mb-3">
+    <h2 className="text-xs font-semibold text-stone-500 dark:text-[#e0b870] uppercase tracking-wide mb-3">
       {children}
     </h2>
   );
@@ -36,11 +36,11 @@ function SettingsRow({ icon, label, description, children }: {
   return (
     <div className="flex items-center justify-between px-5 py-4">
       <div className="flex items-center gap-3">
-        <span className="text-stone-400 dark:text-[#c4a882] shrink-0">{icon}</span>
+        <span className="text-stone-500 dark:text-[#c4a882] shrink-0">{icon}</span>
         <div>
           <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{label}</p>
           {description && (
-            <p className="text-xs text-stone-400 dark:text-[#e0b870] mt-0.5">{description}</p>
+            <p className="text-xs text-stone-500 dark:text-[#e0b870] mt-0.5">{description}</p>
           )}
         </div>
       </div>
@@ -101,11 +101,10 @@ function TipCard({ icon, title, children }: {
 // ── Music settings ────────────────────────────────────────────────────────────
 
 function MusicServiceCard({
-  service, label, accentColor, statusLine,
+  label, accentColor, statusLine,
   isDefault, onSetDefault,
   action,
 }: {
-  service:     MusicService;
   label:       string;
   accentColor: string;
   statusLine:  string;
@@ -126,7 +125,7 @@ function MusicServiceCard({
         </div>
         <div>
           <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{label}</p>
-          <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">{statusLine}</p>
+          <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">{statusLine}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 ml-4">
@@ -173,12 +172,11 @@ function MusicSection() {
   return (
     <div className="mb-8">
       <SectionHeading>Music</SectionHeading>
-      <p className="text-xs text-stone-400 dark:text-[#c4a882] mb-3 -mt-1">
+      <p className="text-xs text-stone-500 dark:text-[#c4a882] mb-3 -mt-1">
         Choose which service shows in the sidebar and Study page. You can connect both and switch here anytime.
       </p>
       <SettingsCard>
         <MusicServiceCard
-          service="spotify"
           label="Spotify"
           accentColor="#1DB954"
           statusLine={spotifyStatusLine}
@@ -195,7 +193,6 @@ function MusicSection() {
           ) : undefined}
         />
         <MusicServiceCard
-          service="apple_music"
           label="Apple Music"
           accentColor="#fc3c44"
           statusLine={amStatusLine}
@@ -255,7 +252,7 @@ function ThemePicker() {
             ))}
           </div>
           <p className="text-sm font-semibold text-stone-800 dark:text-[#f0e0cc]">{opt.label}</p>
-          <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">{opt.desc}</p>
+          <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">{opt.desc}</p>
         </button>
       ))}
     </div>
@@ -263,7 +260,6 @@ function ThemePicker() {
 }
 
 export default function SettingsPage() {
-  const { } = useSettingsStore();
   const { focusSecs, breakSecs, setFocusMins, setBreakMins } = useTimerStore();
 
   const focusMins = focusSecs / 60;
@@ -293,7 +289,7 @@ export default function SettingsPage() {
   return (
     <div className="p-8 max-w-2xl">
       <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-1">Settings</h1>
-      <p className="text-sm text-stone-400 dark:text-[#e0b870] mb-8">Preferences for Studeo</p>
+      <p className="text-sm text-stone-500 dark:text-[#e0b870] mb-8">Preferences for Studeo</p>
 
       {/* ── Appearance ────────────────────────────────────────────────────── */}
       <div className="mb-8">
@@ -345,7 +341,7 @@ export default function SettingsPage() {
         <SettingsCard>
           {/* Existing terms */}
           {terms.length === 0 && (
-            <div className="px-5 py-4 text-sm text-stone-400 dark:text-[#c4a882]">
+            <div className="px-5 py-4 text-sm text-stone-500 dark:text-[#c4a882]">
               No semesters yet. Add one below.
             </div>
           )}
@@ -354,14 +350,18 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{t.name}</p>
                 {(t.start_date || t.end_date) && (
-                  <p className="text-xs text-stone-400 dark:text-[#c4a882] mt-0.5">
+                  <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">
                     {t.start_date ?? '?'} → {t.end_date ?? '?'}
                   </p>
                 )}
               </div>
               <button
-                onClick={() => deleteTerm.mutate(t.id)}
-                className="ml-4 p-1.5 text-stone-300 dark:text-[#775544] hover:text-red-400 transition-colors rounded"
+                onClick={() => {
+                  if (confirm(`Delete "${t.name}"? Courses assigned to it are kept — they just lose their semester grouping.`)) {
+                    deleteTerm.mutate(t.id);
+                  }
+                }}
+                className="ml-4 p-1.5 text-stone-500 dark:text-[#c4a882] hover:text-red-500 transition-colors rounded"
                 title="Delete semester"
               >
                 <Trash2 size={14} />
@@ -371,7 +371,7 @@ export default function SettingsPage() {
 
           {/* Add term form */}
           <form onSubmit={handleAddTerm} className="px-5 py-4 border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]">
-            <p className="text-xs font-semibold text-stone-400 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+            <p className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
               Add semester
             </p>
             <div className="flex flex-col gap-2">
@@ -380,7 +380,7 @@ export default function SettingsPage() {
                 value={newTermName}
                 onChange={e => setNewTermName(e.target.value)}
                 placeholder="e.g. Fall 2026"
-                className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] placeholder:text-stone-300 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] placeholder:text-stone-500 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
               />
               <div className="flex gap-2">
                 <input

@@ -15,7 +15,7 @@ interface Props {
 const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-stone-400 ' +
+  'placeholder:text-stone-500 ' +
   'dark:bg-[#332211] warm:bg-[#3d2918] dark:border-[#221408] warm:border-[#423428] dark:text-[#f0e0cc] dark:placeholder:text-[#e0b870] dark:focus:ring-[#e0b870]';
 
 export default function AddAssignmentDialog({ courseId, assignment, isOpen, onClose }: Props) {
@@ -98,7 +98,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           <h2 className="text-base font-semibold text-stone-800 dark:text-[#f0e0cc]">
             {isEditing ? 'Edit assignment' : 'New assignment'}
           </h2>
-          <button onClick={onClose} className="text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
+          <button onClick={onClose} className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -144,7 +144,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           <div>
             <label className="block text-sm font-medium text-stone-700 dark:text-[#d4b896] mb-1">
               Notes
-              <span className="ml-1 text-stone-400 font-normal">(optional)</span>
+              <span className="ml-1 text-stone-500 font-normal">(optional)</span>
             </label>
             <textarea
               value={notes}
