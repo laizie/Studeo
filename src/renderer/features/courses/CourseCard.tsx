@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import type { Course } from '../../../shared/types';
 import { useDeleteCourse } from '../../lib/queries/useCourses';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface Props {
   course: Course;
@@ -11,30 +13,26 @@ interface Props {
 
 export default function CourseCard({ course, total = 0, completed = 0 }: Props) {
   const deleteCourse = useDeleteCourse();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  function handleDelete(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (confirm(`Delete "${course.name}"? This will also delete all its assignments.`)) {
-      deleteCourse.mutate(course.id);
-    }
-  }
-
   return (
-    <Link
-      to={`/courses/${course.id}`}
-      className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-stone-600 transition-all group"
-    >
+    <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-stone-600 transition-all group">
       {/* Color accent strip */}
       <div className="h-2 shrink-0 w-full" style={{ backgroundColor: course.color }} />
 
       {/* Card body */}
       <div className="flex-1 p-5 min-w-0">
-        {/* Name + abbreviation */}
+        {/* Name + abbreviation. Stretched link: the whole card navigates, but the
+            link stays a sibling of the delete button — no button-inside-anchor. */}
         <div className="flex items-start justify-between gap-3 pr-5">
-          <h3 className="font-semibold text-stone-800 dark:text-[#f0e0cc] truncate leading-snug group-hover:text-stone-900 dark:group-hover:text-white">
-            {course.name}
+          <h3 className="font-semibold truncate leading-snug">
+            <Link
+              to={`/courses/${course.id}`}
+              className="text-ink group-hover:text-stone-900 dark:group-hover:text-white after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-stone-400"
+            >
+              {course.name}
+            </Link>
           </h3>
           <span
             className="shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium"
@@ -46,7 +44,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
 
         {/* Building */}
         {course.building && (
-          <p className="mt-1 text-xs text-stone-500 dark:text-[#e0b870] truncate">{course.building}</p>
+          <p className="mt-1 text-xs text-muted truncate">{course.building}</p>
         )}
 
         {/* Progress */}
@@ -54,7 +52,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
           {total > 0 ? (
             <>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-stone-500 dark:text-[#e0b870]">{completed} / {total} done</span>
+                <span className="text-xs text-muted">{completed} / {total} done</span>
                 <span
                   className="text-xs font-semibold tabular-nums"
                   style={{ color: course.color }}
@@ -70,20 +68,30 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
               </div>
             </>
           ) : (
-            <p className="text-xs text-stone-500 dark:text-[#cc9a58]">No assignments yet</p>
+            <p className="text-xs text-muted">No assignments yet</p>
           )}
         </div>
       </div>
 
-      {/* Delete — top-right, appears on hover */}
+      {/* Delete — top-right, revealed on hover or keyboard focus. `relative` lifts
+          it above the stretched link overlay so it stays clickable. */}
       <button
-        onClick={handleDelete}
+        onClick={() => setConfirmOpen(true)}
         disabled={deleteCourse.isPending}
-        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 p-1 text-stone-500 dark:text-[#cc9a58] hover:text-red-500 rounded transition-all disabled:opacity-50"
+        aria-label={`Delete ${course.name}`}
         title="Delete course"
+        className="absolute top-2.5 right-2.5 z-10 p-1 rounded text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-all disabled:opacity-50"
       >
         <Trash2 size={13} />
       </button>
-    </Link>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title={`Delete "${course.name}"?`}
+        message="This will also delete all of its assignments and class times."
+        onConfirm={() => deleteCourse.mutate(course.id)}
+        onClose={() => setConfirmOpen(false)}
+      />
+    </div>
   );
 }

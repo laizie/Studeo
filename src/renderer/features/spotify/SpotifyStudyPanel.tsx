@@ -24,7 +24,7 @@ function PlaylistRow({ playlist, onPlay }: { playlist: SpotifyPlaylist; onPlay: 
   return (
     <button
       onClick={onPlay}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors text-left group"
     >
       <div className="w-8 h-8 rounded shrink-0 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] overflow-hidden flex items-center justify-center">
         {playlist.imageUrl
@@ -33,10 +33,10 @@ function PlaylistRow({ playlist, onPlay }: { playlist: SpotifyPlaylist; onPlay: 
         }
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">
+        <p className="text-sm text-ink truncate leading-tight">
           {playlist.name}
         </p>
-        <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">
+        <p className="text-xs text-muted mt-0.5">
           {playlist.trackCount} tracks
         </p>
       </div>
@@ -68,7 +68,7 @@ function PlaybackControls() {
     : 0;
 
   return (
-    <div className="mt-3 pt-3 border-t border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]">
+    <div className="mt-3 pt-3 border-t border-line">
       {/* Track info */}
       <div className="flex items-center gap-3 mb-3">
         <div className="w-10 h-10 rounded-lg shrink-0 bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] overflow-hidden flex items-center justify-center">
@@ -78,10 +78,10 @@ function PlaybackControls() {
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-stone-800 dark:text-[#f0e0cc] truncate">
+          <p className="text-sm font-medium text-ink truncate">
             {track?.name ?? 'Nothing playing'}
           </p>
-          <p className="text-xs text-stone-500 dark:text-[#c4a882] truncate mt-0.5">
+          <p className="text-xs text-muted truncate mt-0.5">
             {track?.artists.join(', ') ?? '—'}
           </p>
         </div>
@@ -148,16 +148,16 @@ export default function SpotifyStudyPanel() {
     return (
       <>
         <div className="w-full">
-          <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
             Music
           </h2>
-          <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] gap-3">
+          <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-line gap-3">
             <div className="w-10 h-10 rounded-full bg-[#1DB954]/10 flex items-center justify-center">
               <Music size={18} className="text-[#1DB954]" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Connect Spotify</p>
-              <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">Control music without leaving Studeo</p>
+              <p className="text-sm font-medium text-ink-soft">Connect Spotify</p>
+              <p className="text-xs text-muted mt-0.5">Control music without leaving Studeo</p>
             </div>
             <button
               onClick={() => setSetupOpen(true)}
@@ -178,7 +178,7 @@ export default function SpotifyStudyPanel() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide">
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">
           Music
         </h2>
         <span className="flex items-center gap-1 text-[10px] text-[#1DB954]">
@@ -193,7 +193,7 @@ export default function SpotifyStudyPanel() {
       {/* Playlist picker */}
       <div className="mt-5">
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg mb-3 w-fit">
+        <div className="flex gap-1 p-1 bg-inset rounded-lg mb-3 w-fit">
           {(['yours', 'search'] as const).map(t => (
             <button
               key={t}
@@ -201,7 +201,7 @@ export default function SpotifyStudyPanel() {
               className={cn(
                 'px-3 py-1 text-xs rounded-md transition-colors',
                 tab === t
-                  ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                  ? 'bg-surface text-ink shadow-sm font-medium'
                   : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
               )}
             >
@@ -221,9 +221,9 @@ export default function SpotifyStudyPanel() {
               placeholder="Search Spotify playlists…"
               className={cn(
                 'w-full pl-8 pr-3 py-2 text-sm border rounded-lg',
-                'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
+                'border-line',
                 'bg-white dark:bg-[#332211] warm:bg-[#3d2918]',
-                'text-stone-800 dark:text-[#f0e0cc]',
+                'text-ink',
                 'placeholder:text-stone-500 dark:placeholder:text-[#775544]',
                 'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
               )}
@@ -240,7 +240,7 @@ export default function SpotifyStudyPanel() {
               ))}
             </div>
           ) : displayList.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-stone-500 dark:text-[#c4a882] text-center">
+            <p className="px-3 py-4 text-sm text-muted text-center">
               {tab === 'search' && query.length > 1
                 ? 'No playlists found.'
                 : tab === 'search'

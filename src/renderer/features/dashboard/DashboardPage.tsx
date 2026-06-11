@@ -8,6 +8,7 @@ import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useTerms } from '../../lib/queries/useTerms';
+import { useStudySessions } from '../../lib/queries/useStudySessions';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
@@ -61,7 +62,7 @@ function SectionLabel({ title, count, urgent }: {
       {count !== undefined && count > 0 && (
         <span className={cn(
           'text-xs px-1.5 py-0.5 rounded-full font-medium',
-          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-600 dark:text-[#c4a882]',
+          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-surface text-stone-600 dark:text-[#c4a882]',
         )}>
           {count}
         </span>
@@ -95,7 +96,7 @@ function AssignmentItem({ assignment, course }: {
   }
 
   return (
-    <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors">
+    <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors">
       {course && (
         <span
           className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
@@ -108,7 +109,7 @@ function AssignmentItem({ assignment, course }: {
           star button — no interactive element nested inside another (valid + a11y). */}
       <Link
         to={course ? `/courses/${course.id}` : '#'}
-        className="flex-1 min-w-0 truncate text-sm text-stone-700 dark:text-[#e8d5c0] rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
+        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
       >
         {assignment.name}
       </Link>
@@ -121,10 +122,10 @@ function AssignmentItem({ assignment, course }: {
         aria-label={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         className={cn(
-          'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e2a53b]',
+          'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
-            ? 'text-[#e2a53b] opacity-100'
-            : 'text-stone-500 hover:text-[#e2a53b] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            ? 'text-accent opacity-100'
+            : 'text-stone-500 hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
         <Target size={13} />
@@ -149,11 +150,11 @@ function TaskItem({ task }: { task: Task }) {
   }
 
   return (
-    <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors">
+    <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors">
       <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
       <Link
         to="/tasks"
-        className="flex-1 min-w-0 truncate text-sm text-stone-700 dark:text-[#e8d5c0] rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
+        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
       >
         {task.name}
       </Link>
@@ -166,10 +167,10 @@ function TaskItem({ task }: { task: Task }) {
         aria-label={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         className={cn(
-          'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e2a53b]',
+          'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
-            ? 'text-[#e2a53b] opacity-100'
-            : 'text-stone-500 hover:text-[#e2a53b] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            ? 'text-accent opacity-100'
+            : 'text-stone-500 hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
         <Target size={13} />
@@ -182,7 +183,7 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
   return (
     <Link
       to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors"
     >
       {course ? (
         <span
@@ -194,10 +195,10 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
       ) : (
         <span className="shrink-0 text-xs text-stone-500 font-medium">?</span>
       )}
-      <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate">
+      <span className="text-sm text-ink-soft flex-1 truncate">
         {course?.name ?? 'Unknown'}
       </span>
-      <span className="text-xs text-stone-500 dark:text-[#e0b870] shrink-0">{formatTime(meeting.start_time)}</span>
+      <span className="text-xs text-muted shrink-0">{formatTime(meeting.start_time)}</span>
     </Link>
   );
 }
@@ -212,6 +213,17 @@ export default function DashboardPage() {
   const { data: tasks  } = useTasks();
   const { data: meetings } = useClassMeetings();
   const { data: terms = [] } = useTerms();
+  const { data: studySessions } = useStudySessions();
+
+  // One quiet line, not a metric tile: total focus time over the last 7 days.
+  const focusedThisWeek = useMemo(() => {
+    const cutoff = Date.now() - 7 * 86_400_000;
+    const secs = (studySessions ?? [])
+      .filter(s => s.kind === 'focus' && new Date(s.started_at).getTime() >= cutoff)
+      .reduce((sum, s) => sum + s.duration_seconds, 0);
+    if (secs < 60) return null;
+    return secs >= 3600 ? `${(secs / 3600).toFixed(1)} hrs` : `${Math.round(secs / 60)} min`;
+  }, [studySessions]);
 
   const termFilter    = usePageFiltersStore(s => s.termFilter);
   const setTermFilter = usePageFiltersStore(s => s.setTermFilter);
@@ -293,7 +305,7 @@ export default function DashboardPage() {
   if (isLoading) {
     // Skeleton mirrors the loaded layout (header + 1fr/240px grid, no stat row)
     // so content doesn't shift on arrival. Theme-aware so it doesn't flash light.
-    const block = 'bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] rounded-xl';
+    const block = 'bg-surface rounded-xl';
     return (
       <div className="p-8 animate-pulse">
         <div className="flex items-start justify-between mb-8">
@@ -338,12 +350,15 @@ export default function DashboardPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">{greetingText()}</h1>
-          <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">{todayLabel()}</p>
+          <h1 className="text-2xl font-semibold text-ink">{greetingText()}</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            {todayLabel()}
+            {focusedThisWeek && <> · {focusedThisWeek} focused this week</>}
+          </p>
         </div>
         <button
           onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
         >
           <Plus size={15} />
           Add course
@@ -356,7 +371,7 @@ export default function DashboardPage() {
           <select
             value={termFilter ?? ''}
             onChange={e => setTermFilter(e.target.value || null)}
-            className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-700 dark:text-[#e8d5c0] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+            className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
           >
             {terms.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
@@ -372,7 +387,7 @@ export default function DashboardPage() {
           <p className="text-stone-500 text-sm">No courses yet. Add your first one to get started.</p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
+            className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
           >
             Add course
           </button>
@@ -401,8 +416,8 @@ export default function DashboardPage() {
               {overdue.length > 0 && (
                 <div>
                   <SectionLabel title="Overdue" count={overdue.length} urgent />
-                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+                  <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-line">
                       {overdue.map(a => (
                         <AssignmentItem
                           key={a.id}
@@ -418,14 +433,14 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Due this week" count={dueThisWeek.length} />
                 {dueThisWeek.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-500 dark:text-[#cc9a58]">
+                  <p className="px-3 text-sm text-muted">
                     {allAssignments.length === 0
                       ? 'Add assignments to a course to see them here.'
                       : 'Nothing due this week — enjoy the break!'}
                   </p>
                 ) : (
-                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+                  <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-line">
                       {dueThisWeek.map(a => (
                         <AssignmentItem
                           key={a.id}
@@ -442,10 +457,10 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Tasks" count={pendingTasks.length} />
                 {pendingTasks.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-500 dark:text-[#cc9a58]">No pending tasks.</p>
+                  <p className="px-3 text-sm text-muted">No pending tasks.</p>
                 ) : (
-                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+                  <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-line">
                       {pendingTasks.map(t => (
                         <TaskItem key={t.id} task={t} />
                       ))}
@@ -462,10 +477,10 @@ export default function DashboardPage() {
               <div>
                 <SectionLabel title="Today's classes" />
                 {todayClasses.length === 0 ? (
-                  <p className="px-3 text-sm text-stone-500 dark:text-[#cc9a58]">No classes today.</p>
+                  <p className="px-3 text-sm text-muted">No classes today.</p>
                 ) : (
-                  <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+                  <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                    <div className="divide-y divide-line">
                       {todayClasses.map(m => (
                         <ClassItem
                           key={m.id}
@@ -480,8 +495,8 @@ export default function DashboardPage() {
 
               <div>
                 <SectionLabel title="Courses" />
-                <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
-                  <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+                <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                  <div className="divide-y divide-line">
                     {allCourses.map(c => {
                       const ca = allAssignments.filter(a => a.course_id === c.id);
                       const done  = ca.filter(a => a.status === 'completed').length;
@@ -490,17 +505,17 @@ export default function DashboardPage() {
                         <Link
                           key={c.id}
                           to={`/courses/${c.id}`}
-                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] transition-colors group"
+                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-surface-hi transition-colors group"
                         >
                           <div
                             className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: c.color }}
                           />
-                          <span className="text-sm text-stone-700 dark:text-[#e8d5c0] flex-1 truncate group-hover:text-stone-900 dark:group-hover:text-white">
+                          <span className="text-sm text-ink-soft flex-1 truncate group-hover:text-stone-900 dark:group-hover:text-white">
                             {c.name}
                           </span>
                           {total > 0 && (
-                            <span className="text-xs text-stone-500 dark:text-[#e0b870] shrink-0 tabular-nums">
+                            <span className="text-xs text-muted shrink-0 tabular-nums">
                               {done}/{total}
                             </span>
                           )}

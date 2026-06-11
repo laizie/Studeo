@@ -192,8 +192,9 @@ export default function CalendarPage() {
     (event: CalEvent) => {
       if (event.resource.type === 'assignment' && event.resource.course) {
         navigate(`/courses/${event.resource.course.id}`);
+      } else if (event.resource.type === 'task') {
+        navigate('/tasks');
       }
-      // task events: no detail page, click does nothing
     },
     [navigate]
   );
@@ -237,14 +238,14 @@ export default function CalendarPage() {
     <div className="p-8 flex flex-col" style={{ height: 'calc(100vh - 40px)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 shrink-0">
-        <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Calendar</h1>
+        <h1 className="text-2xl font-semibold text-ink">Calendar</h1>
 
         <div className="flex items-center gap-3">
           {/* Tasks toggle — only meaningful in Assignments mode */}
           {mode === 'assignments' && (
             <button
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-stone-50 dark:bg-[#332211] warm:bg-[#3d2918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-100 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-[#c4a882] hover:bg-surface-hi transition-colors"
             >
               <span className={cn(
                 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
@@ -260,7 +261,7 @@ export default function CalendarPage() {
           )}
 
           {/* Mode toggle */}
-          <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg">
+          <div className="flex items-center gap-1 p-1 bg-inset rounded-lg">
             {(['assignments', 'lectures'] as Mode[]).map(m => (
               <button
                 key={m}
@@ -271,7 +272,7 @@ export default function CalendarPage() {
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                   mode === m
-                    ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    ? 'bg-surface text-ink shadow-sm font-medium'
                     : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
                 )}
               >
@@ -288,6 +289,15 @@ export default function CalendarPage() {
           title="Couldn't load your calendar"
           onRetry={() => { refetchCourses(); refetchAssignments(); refetchMeetings(); }}
         />
+      )}
+
+      {/* Empty hint — a blank grid teaches nothing */}
+      {!hasError && events.length === 0 && (
+        <p className="mb-3 text-sm text-muted shrink-0">
+          {mode === 'assignments'
+            ? 'Nothing here yet — assignments you add will appear color-coded by course.'
+            : 'No class times yet — add them from a course page to see your weekly schedule.'}
+        </p>
       )}
 
       {/* Calendar — flex-1 so it fills the remaining height */}

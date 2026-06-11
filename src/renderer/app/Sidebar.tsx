@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
 import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock } from '../store/useTimerStore';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -22,9 +23,34 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
     'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm w-full transition-colors',
     isActive
-      ? 'bg-[#e2a53b] text-[#1e1208] font-semibold'
+      ? 'bg-accent text-accent-ink font-semibold'
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
   );
+
+/** Compact running-timer chip — visible from any screen, click to jump to Study. */
+function TimerChip() {
+  const isRunning = useTimerStore(s => s.isRunning);
+  const timeLeft  = useTimerStore(s => s.timeLeft);
+  const phase     = useTimerStore(s => s.phase);
+
+  if (!isRunning) return null;
+
+  return (
+    <Link
+      to="/study"
+      className="mx-2 mb-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#3d2b1f] hover:bg-[#4a3527] transition-colors"
+      title="Go to Study"
+    >
+      <span
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ backgroundColor: PHASE_COLORS[phase] }}
+        aria-hidden="true"
+      />
+      <span className="text-xs font-medium tabular-nums text-[#e8d5c0]">{formatClock(timeLeft)}</span>
+      <span className="text-xs text-[#c4a882] truncate">{PHASE_LABELS[phase]}</span>
+    </Link>
+  );
+}
 
 function MusicSection() {
   const { defaultMusicService } = useSettingsStore();
@@ -77,6 +103,8 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
           </NavLink>
         ))}
       </div>
+
+      <TimerChip />
 
       <MusicSection />
 

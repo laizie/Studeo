@@ -27,6 +27,14 @@ export function useCreateAssignment() {
   });
 }
 
+export function useCreateAssignments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inputs: CreateAssignmentInput[]) => window.api.assignments.createMany(inputs),
+    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
+  });
+}
+
 export function useUpdateAssignment() {
   const qc = useQueryClient();
   return useMutation({

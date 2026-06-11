@@ -1,9 +1,33 @@
 import { create } from 'zustand';
 
-export type Phase = 'focus' | 'short_break';
+export type Phase = 'focus' | 'short_break' | 'long_break';
 
-export const FOCUS_OPTIONS  = [25, 30, 50, 60, 75, 90]    as const;
-export const BREAK_OPTIONS  = [5, 10, 15, 20, 25, 30]     as const;
+export const FOCUS_OPTIONS      = [25, 30, 50, 60, 75, 90] as const;
+export const BREAK_OPTIONS      = [5, 10, 15, 20, 25, 30]  as const;
+export const LONG_BREAK_OPTIONS = [10, 15, 20, 25, 30]     as const;
+
+// Classic Pomodoro: every 4th completed focus session earns a long break.
+const LONG_BREAK_EVERY = 4;
+
+// Phase presentation lives here (not in a component) so the Study page, the
+// sidebar chip, and the window title all agree on names and colors.
+export const PHASE_LABELS: Record<Phase, string> = {
+  focus:       'Focus',
+  short_break: 'Break',
+  long_break:  'Long break',
+};
+
+export const PHASE_COLORS: Record<Phase, string> = {
+  focus:       '#b85050',
+  short_break: '#467a59',
+  long_break:  '#34604a',
+};
+
+export function formatClock(totalSeconds: number): string {
+  const s = Math.max(0, totalSeconds);
+  const m = Math.floor(s / 60).toString().padStart(2, '0');
+  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+}
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 let audioCtx: AudioContext | null = null;
@@ -27,12 +51,26 @@ function playChime(): void {
   }
 }
 
-function sendNotification(phase: Phase): void {
+function sendNotification(completed: Phase, next: Phase): void {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const isWork = phase === 'focus';
+  const isWork = completed === 'focus';
   new Notification(isWork ? 'Focus session complete' : 'Break over', {
-    body: isWork ? 'Take a short break.' : 'Time to focus!',
+    body: isWork
+      ? (next === 'long_break' ? 'Time for a long break — you earned it.' : 'Take a short break.')
+      : 'Time to focus!',
   });
+}
+
+// Persist finished focus sessions so study stats are possible later.
+// Fire-and-forget: a failed write must never break the timer itself.
+function logFocusSession(durationSeconds: number): void {
+  window.api.studySessions
+    .create({
+      startedAt: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+      durationSeconds,
+      kind: 'focus',
+    })
+    .catch(() => { /* best-effort logging */ });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -42,8 +80,10 @@ function readMins(key: string, fallback: number): number {
   return isNaN(stored) ? fallback : stored;
 }
 
-function phaseSecs(phase: Phase, focusSecs: number, breakSecs: number): number {
-  return phase === 'focus' ? focusSecs : breakSecs;
+function phaseSecs(phase: Phase, focusSecs: number, breakSecs: number, longBreakSecs: number): number {
+  if (phase === 'focus')      return focusSecs;
+  if (phase === 'long_break') return longBreakSecs;
+  return breakSecs;
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -54,10 +94,20 @@ interface TimerState {
   autoAdvance: boolean;
   focusSecs: number;
   breakSecs: number;
+  longBreakSecs: number;
+  /** Completed focus sessions in the current cycle — every 4th earns a long break. */
+  focusCount: number;
   /** Wall-clock ms when the running phase ends; null when paused/stopped. */
   endsAt: number | null;
+  /**
+   * True when the user explicitly chose "Custom" on the Study page. The active
+   * technique is otherwise *derived* from the durations, so this is the only
+   * technique fact that needs storing — and it persists across navigation.
+   */
+  customTechnique: boolean;
 
   setPhase: (phase: Phase) => void;
+  setCustomTechnique: (v: boolean) => void;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -65,23 +115,116 @@ interface TimerState {
   toggleAutoAdvance: () => void;
   setFocusMins: (mins: number) => void;
   setBreakMins: (mins: number) => void;
+  setLongBreakMins: (mins: number) => void;
 }
 
-const initFocusSecs = readMins('studeo:focusMins', 25) * 60;
-const initBreakSecs = readMins('studeo:breakMins', 5)  * 60;
+const initFocusSecs     = readMins('studeo:focusMins', 25)     * 60;
+const initBreakSecs     = readMins('studeo:breakMins', 5)      * 60;
+const initLongBreakSecs = readMins('studeo:longBreakMins', 15) * 60;
+
+// ── Restore a previous session ────────────────────────────────────────────────
+// The timer state is snapshotted to localStorage on every change (subscribe at
+// the bottom of this file), so a running session survives quitting the app.
+
+interface TimerSnapshot {
+  phase: Phase;
+  timeLeft: number;
+  isRunning: boolean;
+  endsAt: number | null;
+  focusCount: number;
+}
+
+function readSnapshot(): TimerSnapshot | null {
+  try {
+    const raw = localStorage.getItem('studeo:timerState');
+    if (!raw) return null;
+    const s = JSON.parse(raw) as TimerSnapshot;
+    if (s.phase !== 'focus' && s.phase !== 'short_break' && s.phase !== 'long_break') return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+const restored = (() => {
+  const fresh = {
+    phase: 'focus' as Phase,
+    timeLeft: initFocusSecs,
+    isRunning: false,
+    endsAt: null as number | null,
+    focusCount: 0,
+  };
+  const s = readSnapshot();
+  if (!s) return fresh;
+
+  const focusCount = Number.isFinite(s.focusCount) ? s.focusCount : 0;
+
+  // Still mid-session: resume running exactly where the wall clock says.
+  if (s.isRunning && typeof s.endsAt === 'number' && s.endsAt > Date.now()) {
+    return {
+      phase: s.phase,
+      timeLeft: Math.round((s.endsAt - Date.now()) / 1000),
+      isRunning: true,
+      endsAt: s.endsAt,
+      focusCount,
+    };
+  }
+
+  // The phase finished while the app was closed: advance like tick() would,
+  // but silently (no stale chime on launch), landing paused on the next phase.
+  if (s.isRunning && typeof s.endsAt === 'number') {
+    let nextCount = focusCount;
+    let nextPhase: Phase;
+    if (s.phase === 'focus') {
+      // The focus block genuinely completed — persist it with its real timestamps.
+      window.api.studySessions
+        .create({
+          startedAt: new Date(s.endsAt - initFocusSecs * 1000).toISOString(),
+          durationSeconds: initFocusSecs,
+          kind: 'focus',
+        })
+        .catch(() => { /* best-effort */ });
+      nextCount = focusCount + 1;
+      nextPhase = nextCount % LONG_BREAK_EVERY === 0 ? 'long_break' : 'short_break';
+    } else {
+      nextPhase = 'focus';
+    }
+    return {
+      phase: nextPhase,
+      timeLeft: phaseSecs(nextPhase, initFocusSecs, initBreakSecs, initLongBreakSecs),
+      isRunning: false,
+      endsAt: null,
+      focusCount: nextCount,
+    };
+  }
+
+  // Was paused: restore the remaining time as-is.
+  const timeLeft = Number.isFinite(s.timeLeft) && s.timeLeft > 0
+    ? s.timeLeft
+    : phaseSecs(s.phase, initFocusSecs, initBreakSecs, initLongBreakSecs);
+  return { phase: s.phase, timeLeft, isRunning: false, endsAt: null, focusCount };
+})();
 
 export const useTimerStore = create<TimerState>((set, get) => ({
-  phase:       'focus',
-  isRunning:   false,
-  timeLeft:    initFocusSecs,
+  phase:       restored.phase,
+  isRunning:   restored.isRunning,
+  timeLeft:    restored.timeLeft,
   autoAdvance: false,
-  focusSecs:   initFocusSecs,
-  breakSecs:   initBreakSecs,
-  endsAt:      null,
+  focusSecs:     initFocusSecs,
+  breakSecs:     initBreakSecs,
+  longBreakSecs: initLongBreakSecs,
+  focusCount:    restored.focusCount,
+  endsAt:        restored.endsAt,
+  customTechnique: localStorage.getItem('studeo:customTechnique') === 'true',
+
+  setCustomTechnique: (v) => {
+    localStorage.setItem('studeo:customTechnique', String(v));
+    set({ customTechnique: v });
+  },
 
   setPhase: (phase) => {
-    const { focusSecs, breakSecs } = get();
-    set({ phase, isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs) });
+    const { focusSecs, breakSecs, longBreakSecs } = get();
+    set({ phase, isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs, longBreakSecs) });
   },
 
   // Anchor a wall-clock end time so the countdown survives navigation and
@@ -94,8 +237,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   reset: () => {
-    const { phase, focusSecs, breakSecs } = get();
-    set({ isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs) });
+    const { phase, focusSecs, breakSecs, longBreakSecs } = get();
+    set({ isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs, longBreakSecs) });
   },
 
   toggleAutoAdvance: () => set(s => ({ autoAdvance: !s.autoAdvance })),
@@ -103,19 +246,32 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // Driven once a second from the app shell. Remaining time is derived from
   // endsAt rather than decremented, so a missed tick can't accumulate drift.
   tick: () => {
-    const { isRunning, endsAt, phase, autoAdvance, focusSecs, breakSecs } = get();
+    const { isRunning, endsAt, phase, autoAdvance, focusSecs, breakSecs, longBreakSecs, focusCount } = get();
     if (!isRunning || endsAt == null) return;
     const remaining = Math.round((endsAt - Date.now()) / 1000);
     if (remaining > 0) {
       set({ timeLeft: remaining });
       return;
     }
+
+    // Phase complete. Finished focus sessions are persisted and counted;
+    // every LONG_BREAK_EVERY-th one earns a long break instead of a short one.
+    let next: Phase;
+    let nextFocusCount = focusCount;
+    if (phase === 'focus') {
+      logFocusSession(focusSecs);
+      nextFocusCount = focusCount + 1;
+      next = nextFocusCount % LONG_BREAK_EVERY === 0 ? 'long_break' : 'short_break';
+    } else {
+      next = 'focus';
+    }
+
     playChime();
-    sendNotification(phase);
-    const next: Phase = phase === 'focus' ? 'short_break' : 'focus';
-    const nextSecs = phaseSecs(next, focusSecs, breakSecs);
+    sendNotification(phase, next);
+    const nextSecs = phaseSecs(next, focusSecs, breakSecs, longBreakSecs);
     set({
       phase: next,
+      focusCount: nextFocusCount,
       timeLeft: nextSecs,
       isRunning: autoAdvance,
       endsAt: autoAdvance ? Date.now() + nextSecs * 1000 : null,
@@ -135,4 +291,23 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     const { phase } = get();
     set({ breakSecs: secs, ...(phase === 'short_break' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
+
+  setLongBreakMins: (mins) => {
+    localStorage.setItem('studeo:longBreakMins', String(mins));
+    const secs = mins * 60;
+    const { phase } = get();
+    set({ longBreakSecs: secs, ...(phase === 'long_break' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
+  },
 }));
+
+// Snapshot every change so a session survives quitting the app (restored above).
+useTimerStore.subscribe((s) => {
+  const snapshot: TimerSnapshot = {
+    phase: s.phase,
+    timeLeft: s.timeLeft,
+    isRunning: s.isRunning,
+    endsAt: s.endsAt,
+    focusCount: s.focusCount,
+  };
+  localStorage.setItem('studeo:timerState', JSON.stringify(snapshot));
+});

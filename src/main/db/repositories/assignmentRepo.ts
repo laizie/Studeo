@@ -54,6 +54,24 @@ export function createAssignment(input: CreateAssignmentInput): Assignment {
   return getAssignment(id)!;
 }
 
+/**
+ * Insert a whole batch atomically (Day-One Setup / syllabus import).
+ * Wrapped in a transaction so one bad row can't leave a half-saved semester:
+ * either every assignment lands or none do.
+ */
+export function createAssignments(inputs: CreateAssignmentInput[]): Assignment[] {
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const created = inputs.map(createAssignment);
+    db.exec('COMMIT');
+    return created;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
 export function updateAssignment(id: string, input: UpdateAssignmentInput): Assignment {
   const fields: string[] = [];
   const values: (string | null)[] = [];

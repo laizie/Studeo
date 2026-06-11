@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2 } from 'lucide-react';
-import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS, type Phase } from '../../store/useTimerStore';
+import {
+  useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
+  PHASE_LABELS, PHASE_COLORS, formatClock,
+  type Phase,
+} from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useUpdateTask } from '../../lib/queries/useTasks';
@@ -58,33 +62,19 @@ function detectTechnique(focusMins: number, breakMins: number): string {
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const PHASE_LABELS: Record<Phase, string> = {
-  focus:       'Focus',
-  short_break: 'Break',
-};
-
-const PHASE_COLORS: Record<Phase, string> = {
-  focus:       '#b85050',
-  short_break: '#467a59', // deepened so white button text clears WCAG AA (4.5:1)
-};
+// (Phase labels/colors and the clock formatter live in useTimerStore so the
+// sidebar chip and window title stay in sync with this page.)
 
 // Shared segmented-control styling so every selector on this screen speaks one
 // visual language — white-on-track when selected — matching the phase tabs.
-const SEG_GROUP = 'flex flex-wrap gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg';
+const SEG_GROUP = 'flex flex-wrap gap-1 p-1 bg-inset rounded-lg';
 function segBtn(active: boolean): string {
   return cn(
     'px-3 py-1.5 text-xs rounded-md font-medium transition-colors',
     active
-      ? 'bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-800 dark:text-[#f0e0cc] shadow-sm'
-      : 'text-stone-600 dark:text-[#d4b896] hover:bg-stone-200/60 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]',
+      ? 'bg-surface text-ink shadow-sm'
+      : 'text-ink-soft hover:bg-surface-hi',
   );
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
 }
 
 // ── Progress ring ─────────────────────────────────────────────────────────────
@@ -138,11 +128,11 @@ function FocusListPanel() {
     <>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-stone-700 dark:text-[#d4b896]">
+          <h2 className="text-sm font-semibold text-ink-soft">
             Today's Focus List
           </h2>
           {items.length > 0 && (
-            <p className="text-xs text-stone-500 dark:text-[#e0b870] mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               {doneCount} of {items.length} done
             </p>
           )}
@@ -151,14 +141,14 @@ function FocusListPanel() {
           {items.length > 0 && (
             <button
               onClick={clear}
-              className="text-xs text-stone-500 dark:text-[#c4a882] hover:text-stone-600 transition-colors"
+              className="text-xs text-muted hover:text-stone-600 transition-colors"
             >
               Clear all
             </button>
           )}
           <button
             onClick={() => setPickerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
           >
             <Plus size={14} />
             Add
@@ -170,9 +160,9 @@ function FocusListPanel() {
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="w-full py-8 text-center border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+          className="w-full py-8 text-center border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
         >
-          <p className="text-sm text-stone-500 dark:text-[#cc9a58]">
+          <p className="text-sm text-muted">
             No assignments or tasks added yet.
           </p>
           <p className="text-xs text-stone-500 dark:text-[#bb8c50] mt-1">
@@ -180,11 +170,11 @@ function FocusListPanel() {
           </p>
         </button>
       ) : (
-        <div className="bg-stone-50 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-xl overflow-hidden divide-y divide-stone-100 dark:divide-[#3d2b1f] warm:divide-[#5d4b3f]">
+        <div className="bg-stone-50 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-line rounded-xl overflow-hidden divide-y divide-line">
           {items.map(item => (
             <div
               key={item.id}
-              className="flex items-center gap-3 px-4 py-3 group hover:bg-white dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338] transition-colors"
+              className="flex items-center gap-3 px-4 py-3 group hover:bg-surface-hi transition-colors"
             >
               <button
                 onClick={() => handleToggle(item.id, item.type, item.done)}
@@ -200,13 +190,13 @@ function FocusListPanel() {
               <span className={cn(
                 'flex-1 text-sm truncate',
                 item.done
-                  ? 'line-through text-stone-500 dark:text-[#cc9a58]'
-                  : 'text-stone-800 dark:text-[#f0e0cc]'
+                  ? 'line-through text-muted'
+                  : 'text-ink'
               )}>
                 {item.name}
               </span>
 
-              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-stone-500 dark:text-[#c4a882]">
+              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-muted">
                 {item.type === 'assignment'
                   ? <BookOpen size={11} />
                   : <ListTodo size={11} />
@@ -229,7 +219,7 @@ function FocusListPanel() {
                 onClick={() => removeItem(item.id)}
                 aria-label={`Remove ${item.name} from focus list`}
                 title="Remove from focus list"
-                className="shrink-0 p-1 rounded text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
+                className="shrink-0 p-1 rounded text-muted hover:text-stone-700 dark:hover:text-[#e8d5c0] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
               >
                 <X size={13} />
               </button>
@@ -251,18 +241,18 @@ function MusicStudyColumn() {
   if (!defaultMusicService) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3 text-center h-full">
-        <div className="w-10 h-10 rounded-full bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
-          <Music2 size={18} className="text-stone-500 dark:text-[#c4a882]" />
+        <div className="w-10 h-10 rounded-full bg-inset flex items-center justify-center">
+          <Music2 size={18} className="text-muted" />
         </div>
         <div>
-          <p className="text-sm font-medium text-stone-600 dark:text-[#d4b896]">No music service selected</p>
-          <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-1">
+          <p className="text-sm font-medium text-ink-soft">No music service selected</p>
+          <p className="text-xs text-muted mt-1">
             Choose Spotify or Apple Music in Settings
           </p>
         </div>
         <Link
           to="/settings"
-          className="mt-1 px-4 py-2 rounded-lg bg-[#e2a53b] text-[#1e1208] text-sm font-medium hover:bg-[#d49530] transition-colors"
+          className="mt-1 px-4 py-2 rounded-lg bg-accent text-accent-ink text-sm font-medium hover:bg-accent-deep transition-colors"
         >
           Open Settings
         </Link>
@@ -281,21 +271,24 @@ function MusicStudyColumn() {
 
 export default function StudyPage() {
   const {
-    phase, isRunning, timeLeft, autoAdvance, focusSecs, breakSecs,
+    phase, isRunning, timeLeft, autoAdvance, focusSecs, breakSecs, longBreakSecs,
     setPhase, start, pause, reset, toggleAutoAdvance,
     setFocusMins, setBreakMins,
+    customTechnique, setCustomTechnique,
   } = useTimerStore();
 
-  const totalSecs = phase === 'focus' ? focusSecs : breakSecs;
+  const totalSecs =
+    phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
   const focusMins = focusSecs / 60;
   const breakMins = breakSecs / 60;
 
-  const [techniqueId, setTechniqueId] = useState(
-    () => detectTechnique(focusMins, breakMins)
-  );
+  // Derived, never stored: the durations are the source of truth, plus one
+  // persisted "user chose Custom" flag. Local state here went stale on
+  // remount (navigate away + back snapped Custom back to a preset).
+  const techniqueId = customTechnique ? 'custom' : detectTechnique(focusMins, breakMins);
 
   function applyTechnique(t: Technique) {
-    setTechniqueId(t.id);
+    setCustomTechnique(t.id === 'custom');
     if (t.id !== 'custom') {
       setFocusMins(t.focusMins);
       setBreakMins(t.breakMins);
@@ -331,27 +324,28 @@ export default function StudyPage() {
   return (
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-6">Study</h1>
+        <h1 className="text-2xl font-semibold text-ink mb-6">Study</h1>
 
         <div className="flex flex-col lg:flex-row gap-5">
 
           {/* ── Timer card ───────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
+          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-line rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
 
             {/* Card header */}
             <div className="flex items-center gap-2 mb-5 self-start">
-              <Timer size={14} className="text-stone-500 dark:text-[#c4a882]" />
-              <h2 className="text-sm font-semibold text-stone-600 dark:text-[#d4b896] tracking-tight">
+              <Timer size={14} className="text-muted" />
+              <h2 className="text-sm font-semibold text-ink-soft tracking-tight">
                 Focus Timer
               </h2>
             </div>
 
             {/* Technique selector */}
             <div className="w-full mb-5">
-              <p className="text-xs font-medium text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-2">
+              <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">
                 Technique
               </p>
-              <div className={SEG_GROUP}>
+              {/* 2×2 grid — a single-row track wraps lopsidedly in this narrow card */}
+              <div className="grid grid-cols-2 gap-1 p-1 bg-inset rounded-lg">
                 {TECHNIQUES.map(t => (
                   <button
                     key={t.id}
@@ -363,28 +357,40 @@ export default function StudyPage() {
                 ))}
               </div>
               {activeTechnique.id !== 'custom' && (
-                <p className="mt-2 text-xs text-stone-500 dark:text-[#cc9a58] leading-relaxed">
+                <p className="mt-2 text-xs text-muted leading-relaxed">
                   {activeTechnique.desc}
                 </p>
               )}
             </div>
 
-            {/* Phase tabs */}
-            <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg mb-7 self-stretch justify-center">
-              {(Object.keys(PHASE_LABELS) as Phase[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPhase(p)}
-                  className={cn(
-                    'flex-1 px-4 py-1.5 text-sm rounded-md transition-colors',
-                    phase === p
-                      ? 'bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                      : 'text-stone-500 dark:text-[#c4a882] hover:bg-stone-200/60 dark:hover:bg-[#3d2318] warm:hover:bg-[#5d4338]'
-                  )}
-                >
-                  {PHASE_LABELS[p]}
-                </button>
-              ))}
+            {/* Phase tabs — just Focus and Break. A long break is granted automatically
+                every 4th focus session; while one is running, the Break tab relabels to
+                "Long break" rather than existing as a third button nobody selects. */}
+            <div className="flex items-center gap-1 p-1 bg-inset rounded-lg mb-7 self-stretch justify-center">
+              {(['focus', 'short_break'] as Phase[]).map(p => {
+                const isBreakTab   = p === 'short_break';
+                const inLongBreak  = phase === 'long_break';
+                const isActive     = phase === p || (isBreakTab && inLongBreak);
+                return (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      // Clicking the already-active Break tab during a long break
+                      // shouldn't downgrade it to a short one.
+                      if (isBreakTab && inLongBreak) return;
+                      setPhase(p);
+                    }}
+                    className={cn(
+                      'flex-1 px-4 py-1.5 text-sm rounded-md transition-colors',
+                      isActive
+                        ? 'bg-surface text-ink shadow-sm font-medium'
+                        : 'text-muted hover:bg-surface-hi'
+                    )}
+                  >
+                    {isBreakTab && inLongBreak ? 'Long break' : PHASE_LABELS[p]}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Progress ring */}
@@ -395,9 +401,9 @@ export default function StudyPage() {
                   className="text-5xl lg:text-[3.25rem] font-semibold tabular-nums tracking-tight"
                   style={{ color }}
                 >
-                  {formatTime(timeLeft)}
+                  {formatClock(timeLeft)}
                 </span>
-                <span className="text-xs text-stone-500 dark:text-[#c4a882] mt-1">
+                <span className="text-xs text-muted mt-1">
                   {PHASE_LABELS[phase]}
                 </span>
               </div>
@@ -408,7 +414,7 @@ export default function StudyPage() {
               <button
                 onClick={reset}
                 title="Reset"
-                className="p-2.5 text-stone-500 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-stone-100 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors"
+                className="p-2.5 text-stone-500 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-surface-hi transition-colors"
               >
                 <RotateCcw size={17} />
               </button>
@@ -424,7 +430,7 @@ export default function StudyPage() {
             </div>
 
             {/* Keyboard hint */}
-            <p className="text-xs text-stone-500 dark:text-[#c4a882] mb-4">
+            <p className="text-xs text-muted mb-4">
               <kbd className="px-1.5 py-0.5 rounded border border-stone-200 dark:border-[#3d2b1f] font-sans">Space</kbd>
               <span className="mx-1.5">start / pause</span>·
               <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-[#3d2b1f] font-sans">R</kbd>
@@ -432,7 +438,7 @@ export default function StudyPage() {
             </p>
 
             {/* Auto-advance */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-stone-500 dark:text-[#c4a882] mb-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-muted mb-4">
               <input
                 type="checkbox"
                 checked={autoAdvance}
@@ -444,9 +450,9 @@ export default function StudyPage() {
 
             {/* Custom duration pickers */}
             {techniqueId === 'custom' && (
-              <div className="w-full space-y-3 pt-3 border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18]">
+              <div className="w-full space-y-3 pt-3 border-t border-line">
                 <div className="flex items-center gap-3">
-                  <span className="w-10 text-xs text-stone-500 dark:text-[#c4a882] shrink-0 text-right">Focus</span>
+                  <span className="w-10 text-xs text-muted shrink-0 text-right">Focus</span>
                   <div className={SEG_GROUP}>
                     {FOCUS_OPTIONS.map(m => (
                       <button key={m} onClick={() => setFocusMins(m)} className={segBtn(focusMins === m)}>
@@ -456,7 +462,7 @@ export default function StudyPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="w-10 text-xs text-stone-500 dark:text-[#c4a882] shrink-0 text-right">Break</span>
+                  <span className="w-10 text-xs text-muted shrink-0 text-right">Break</span>
                   <div className={SEG_GROUP}>
                     {BREAK_OPTIONS.map(m => (
                       <button key={m} onClick={() => setBreakMins(m)} className={segBtn(breakMins === m)}>
@@ -470,14 +476,14 @@ export default function StudyPage() {
           </div>
 
           {/* ── Music card ────────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
+          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-line rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
             <MusicStudyColumn />
           </div>
 
         </div>
 
         {/* ── Focus list card ───────────────────────────────────────────────── */}
-        <div className="mt-5 bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] rounded-2xl shadow-sm p-6">
+        <div className="mt-5 bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-line rounded-2xl shadow-sm p-6">
           <FocusListPanel />
         </div>
 
