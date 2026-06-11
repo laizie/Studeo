@@ -163,10 +163,10 @@ export default function ThisWeekPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">
+          <h1 className="text-2xl font-semibold text-ink">
             {windowConfig.title}
           </h1>
-          <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">
+          <p className="mt-0.5 text-sm text-muted">
             {windowConfig.subtitle}
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function ThisWeekPage() {
           {/* Tasks toggle */}
           <button
             onClick={() => setShowTasks(!showTasks)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-stone-50 dark:bg-[#332211] warm:bg-[#3d2918] text-stone-600 dark:text-[#c4a882] hover:bg-stone-100 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30] transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-[#c4a882] hover:bg-surface-hi transition-colors"
           >
             <span className={cn(
               'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
@@ -195,13 +195,13 @@ export default function ThisWeekPage() {
               onChange={e => setShowCompleted(e.target.checked)}
               className="accent-stone-600"
             />
-            <span className="text-sm text-stone-500 dark:text-[#c4a882]">Show completed</span>
+            <span className="text-sm text-muted">Show completed</span>
           </label>
         </div>
       </div>
 
       {/* Window tab switcher */}
-      <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg w-fit mb-6">
+      <div className="flex items-center gap-1 p-1 bg-inset rounded-lg w-fit mb-6">
         {WINDOW_TABS.map(t => (
           <button
             key={t.value}
@@ -209,7 +209,7 @@ export default function ThisWeekPage() {
             className={cn(
               'px-3 py-1.5 text-sm rounded-md transition-colors',
               activeWindow === t.value
-                ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                ? 'bg-surface text-ink shadow-sm font-medium'
                 : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
             )}
           >
@@ -230,7 +230,7 @@ export default function ThisWeekPage() {
       {isLoading && (
         <div className="space-y-2 animate-pulse">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] rounded-lg" />
+            <div key={i} className="h-10 bg-surface rounded-lg" />
           ))}
         </div>
       )}
@@ -246,7 +246,7 @@ export default function ThisWeekPage() {
           {!showCompleted && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-stone-500 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-muted underline hover:text-stone-600 transition-colors"
             >
               Show completed
             </button>
@@ -258,14 +258,14 @@ export default function ThisWeekPage() {
       {!isLoading && relevant.length > 0 && (
         <div className="space-y-4">
           {Array.from(grouped.entries()).map(([label, items]) => (
-            <div key={label} className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+            <div key={label} className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
-                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] bg-stone-50 dark:bg-[#664433] warm:bg-[#8e6a48]',
-                label === 'Overdue' ? 'text-red-400' : 'text-stone-500 dark:text-[#c4a882]'
+                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-stone-50 dark:bg-[#664433] warm:bg-[#8e6a48]',
+                label === 'Overdue' ? 'text-red-400' : 'text-muted'
               )}>
                 {label}
               </div>
-              <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+              <div className="divide-y divide-line">
                 {items.map(item =>
                   item.kind === 'assignment' ? (
                     <AssignmentRow
@@ -290,7 +290,7 @@ export default function ThisWeekPage() {
 
       {/* Stats footer */}
       {!isLoading && relevant.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] flex gap-4 text-xs text-stone-500 dark:text-[#e0b870]">
+        <div className="mt-6 pt-4 border-t border-line flex gap-4 text-xs text-muted">
           <span>{completedCount} completed</span>
           <span>{remainingCount} remaining</span>
           {!showCompleted && (

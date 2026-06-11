@@ -51,7 +51,7 @@ export default function CoursesPage() {
       {/* Page header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Courses</h1>
+          <h1 className="text-2xl font-semibold text-ink">Courses</h1>
           <p className="mt-0.5 text-sm text-stone-500">
             {isLoading
               ? 'Loading…'
@@ -63,7 +63,7 @@ export default function CoursesPage() {
 
         <button
           onClick={() => setIsDialogOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
         >
           <Plus size={15} />
           Add course
@@ -76,7 +76,7 @@ export default function CoursesPage() {
           <select
             value={termFilter ?? ''}
             onChange={e => setTermFilter(e.target.value || null)}
-            className="px-3 py-1.5 text-sm rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-white dark:bg-[#553311] warm:bg-[#7e5a38] text-stone-700 dark:text-[#e8d5c0] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+            className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
           >
             {terms.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
@@ -90,7 +90,7 @@ export default function CoursesPage() {
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-stone-100 rounded-xl h-28 animate-pulse" />
+            <div key={i} className="bg-surface rounded-xl h-28 animate-pulse" />
           ))}
         </div>
       )}
@@ -106,7 +106,7 @@ export default function CoursesPage() {
           <p className="text-stone-500 text-sm">No courses yet.</p>
           <button
             onClick={() => setIsDialogOpen(true)}
-            className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
+            className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
           >
             Add your first course
           </button>

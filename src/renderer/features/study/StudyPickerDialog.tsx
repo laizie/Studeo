@@ -84,21 +84,21 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
     >
       <div className="absolute inset-0 bg-black/30" />
 
-      <div className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[72vh]">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[72vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
           <div>
-            <h2 className="text-sm font-semibold text-stone-700 dark:text-[#e8d5c0]">
+            <h2 className="text-sm font-semibold text-ink-soft">
               Add to Focus List
             </h2>
-            <p className="text-xs text-stone-500 dark:text-[#cc9a58] mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               {items.length} selected
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 transition-colors"
+            className="text-muted hover:text-stone-600 transition-colors"
           >
             <X size={16} />
           </button>
@@ -107,7 +107,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         {/* Search */}
         <div className="px-5 pb-3 shrink-0">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500 dark:text-[#cc9a58]" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               autoFocus
               type="text"
@@ -116,9 +116,9 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
               placeholder="Search…"
               className={cn(
                 'w-full pl-8 pr-3 py-2 text-sm rounded-lg',
-                'border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30]',
+                'border border-line',
                 'bg-transparent dark:bg-[#332211] warm:bg-[#3d2918]',
-                'text-stone-700 dark:text-[#f0e0cc]',
+                'text-ink',
                 'placeholder:text-stone-500 dark:placeholder:text-[#cc9a58]',
                 'focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]',
               )}
@@ -135,8 +135,8 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
               className={cn(
                 'px-3 py-1 text-xs rounded-md capitalize transition-colors',
                 tab === t
-                  ? 'bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-700 dark:text-[#f0e0cc] font-medium'
-                  : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-600 dark:hover:text-[#e8d5c0]'
+                  ? 'bg-inset text-ink font-medium'
+                  : 'text-muted hover:text-stone-600 dark:hover:text-[#e8d5c0]'
               )}
             >
               {t} ({t === 'assignments' ? pendingAssignments.length : pendingTasks.length})
@@ -148,7 +148,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         <div className="overflow-y-auto flex-1 px-3 pb-3">
           {tab === 'assignments' && (
             pendingAssignments.length === 0 ? (
-              <p className="text-center text-sm text-stone-500 dark:text-[#cc9a58] py-10">
+              <p className="text-center text-sm text-muted py-10">
                 {q ? 'No matches.' : 'All assignments are complete — nice!'}
               </p>
             ) : (
@@ -164,19 +164,19 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                         'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
                         inList
                           ? 'bg-amber-50 dark:bg-[#664433] warm:bg-[#8e6a48]'
-                          : 'hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48]'
+                          : 'hover:bg-surface-hi'
                       )}
                     >
                       <span className={cn(
                         'shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors',
-                        inList ? 'bg-[#e2a53b] border-[#e2a53b]' : 'border-stone-300 dark:border-[#775544] warm:border-[#9e7860]'
+                        inList ? 'bg-accent border-accent' : 'border-stone-300 dark:border-[#775544] warm:border-[#9e7860]'
                       )}>
                         {inList && <Check size={9} strokeWidth={3} className="text-white" />}
                       </span>
-                      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">
+                      <span className="flex-1 text-sm text-ink-soft truncate">
                         {a.name}
                       </span>
-                      <span className="shrink-0 text-xs text-stone-500 dark:text-[#cc9a58]">
+                      <span className="shrink-0 text-xs text-muted">
                         {a.due_date}
                       </span>
                       {course && (
@@ -196,7 +196,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
 
           {tab === 'tasks' && (
             pendingTasks.length === 0 ? (
-              <p className="text-center text-sm text-stone-500 dark:text-[#cc9a58] py-10">
+              <p className="text-center text-sm text-muted py-10">
                 {q ? 'No matches.' : 'No pending tasks.'}
               </p>
             ) : (
@@ -211,19 +211,19 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                         'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
                         inList
                           ? 'bg-amber-50 dark:bg-[#664433] warm:bg-[#8e6a48]'
-                          : 'hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48]'
+                          : 'hover:bg-surface-hi'
                       )}
                     >
                       <span className={cn(
                         'shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors',
-                        inList ? 'bg-[#e2a53b] border-[#e2a53b]' : 'border-stone-300 dark:border-[#775544] warm:border-[#9e7860]'
+                        inList ? 'bg-accent border-accent' : 'border-stone-300 dark:border-[#775544] warm:border-[#9e7860]'
                       )}>
                         {inList && <Check size={9} strokeWidth={3} className="text-white" />}
                       </span>
-                      <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0] truncate">
+                      <span className="flex-1 text-sm text-ink-soft truncate">
                         {t.name}
                       </span>
-                      <span className="shrink-0 text-xs text-stone-500 dark:text-[#cc9a58]">
+                      <span className="shrink-0 text-xs text-muted">
                         {t.due_date}
                       </span>
                     </button>
@@ -235,10 +235,10 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] shrink-0">
+        <div className="px-5 py-3 border-t border-line shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-2 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] font-medium transition-colors"
+            className="w-full py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep font-medium transition-colors"
           >
             Done ({items.length} selected)
           </button>

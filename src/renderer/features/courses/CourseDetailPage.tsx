@@ -11,6 +11,7 @@ import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
 import ClassMeetingDialog from './ClassMeetingDialog';
 import QueryErrorState from '../../components/QueryErrorState';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -46,6 +47,7 @@ export default function CourseDetailPage() {
   const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
   const [meetingDialogOpen, setMeetingDialogOpen]       = useState(false);
   const [editingMeeting, setEditingMeeting]             = useState<ClassMeeting | undefined>();
+  const [deletingMeetingId, setDeletingMeetingId]       = useState<string | null>(null);
 
   const { data: course,      isLoading: courseLoading,      isError: courseError,      refetch: refetchCourse      } = useCourse(id ?? '');
   const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments(
@@ -74,12 +76,12 @@ export default function CourseDetailPage() {
   if (isLoading) {
     return (
       <div className="p-8 space-y-4 animate-pulse">
-        <div className="h-4 w-24 bg-stone-100 rounded" />
-        <div className="h-8 w-64 bg-stone-100 rounded" />
-        <div className="h-px bg-stone-100 mt-6" />
+        <div className="h-4 w-24 bg-surface rounded" />
+        <div className="h-8 w-64 bg-surface rounded" />
+        <div className="h-px bg-surface mt-6" />
         <div className="space-y-2 mt-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] rounded-lg" />
+            <div key={i} className="h-10 bg-surface rounded-lg" />
           ))}
         </div>
       </div>
@@ -103,7 +105,7 @@ export default function CourseDetailPage() {
     return (
       <div className="p-8">
         <p className="text-sm text-stone-500">Course not found.</p>
-        <Link to="/courses" className="mt-2 inline-block text-sm text-stone-500 dark:text-[#e0b870] underline hover:text-stone-600">
+        <Link to="/courses" className="mt-2 inline-block text-sm text-muted underline hover:text-stone-600">
           ← Back to Courses
         </Link>
       </div>
@@ -116,7 +118,7 @@ export default function CourseDetailPage() {
       {/* Back link */}
       <Link
         to="/courses"
-        className="inline-flex items-center gap-1.5 text-sm text-stone-500 dark:text-[#e0b870] hover:text-stone-600 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-stone-600 transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         Courses
@@ -130,7 +132,7 @@ export default function CourseDetailPage() {
         />
         <div className="min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] leading-tight">
+            <h1 className="text-2xl font-semibold text-ink leading-tight">
               {course.name}
             </h1>
             <span
@@ -144,19 +146,19 @@ export default function CourseDetailPage() {
             </span>
           </div>
           {course.building && (
-            <p className="mt-1 text-sm text-stone-500 dark:text-[#e0b870]">{course.building}</p>
+            <p className="mt-1 text-sm text-muted">{course.building}</p>
           )}
           {/* Semester selector — only shown when at least one term exists */}
           {terms.length > 0 && (
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs text-stone-500 dark:text-[#c4a882]">Semester:</span>
+              <span className="text-xs text-muted">Semester:</span>
               <select
                 value={course.term_id ?? ''}
                 onChange={e => updateCourse.mutate({
                   id: course.id,
                   input: { termId: e.target.value || null },
                 })}
-                className="text-xs px-2 py-1 rounded-md border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-600 dark:text-[#d4b896] focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+                className="text-xs px-2 py-1 rounded-md border border-line bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink-soft focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
               >
                 <option value="">— None —</option>
                 {terms.map(t => (
@@ -174,18 +176,18 @@ export default function CourseDetailPage() {
         {/* ── Assignments ──────────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-stone-700 dark:text-[#d4b896]">Assignments</h2>
+            <h2 className="text-base font-semibold text-ink-soft">Assignments</h2>
             <div className="flex items-center gap-2">
               <Link
                 to={`/courses/${id}/batch`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] text-stone-600 dark:text-[#c4a882] rounded-lg hover:bg-stone-50 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-stone-600 dark:text-[#c4a882] rounded-lg hover:bg-surface-hi transition-colors"
               >
                 <Rows3 size={14} />
                 Batch add
               </Link>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
               >
                 <Plus size={14} />
                 Add
@@ -193,7 +195,7 @@ export default function CourseDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 mb-5 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg w-fit">
+          <div className="flex items-center gap-1 mb-5 p-1 bg-inset rounded-lg w-fit">
             {DUE_FILTERS.map(f => (
               <button
                 key={f.value}
@@ -201,7 +203,7 @@ export default function CourseDetailPage() {
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
-                    ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                    ? 'bg-surface text-ink shadow-sm font-medium'
                     : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
                 )}
               >
@@ -210,7 +212,7 @@ export default function CourseDetailPage() {
             ))}
           </div>
 
-          <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
             {filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-stone-500 text-sm">
@@ -221,14 +223,14 @@ export default function CourseDetailPage() {
                 {allAssignments.length === 0 && (
                   <button
                     onClick={openAdd}
-                    className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
+                    className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
                   >
                     Add first assignment
                   </button>
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+              <div className="divide-y divide-line">
                 {filtered.map(a => (
                   <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
                 ))}
@@ -240,46 +242,46 @@ export default function CourseDetailPage() {
         {/* ── Class Schedule ───────────────────────────────────────────────── */}
         <div className="mt-10 lg:mt-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-stone-700 dark:text-[#d4b896]">Class Schedule</h2>
+            <h2 className="text-base font-semibold text-ink-soft">Class Schedule</h2>
             <button
               onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
             >
               <Plus size={14} />
               Add time
             </button>
           </div>
 
-          <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
           {(!meetings || meetings.length === 0) ? (
-            <p className="text-sm text-stone-500 dark:text-[#e0b870] py-4 px-4">No class times yet.</p>
+            <p className="text-sm text-muted py-4 px-4">No class times yet.</p>
           ) : (
-            <div className="divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+            <div className="divide-y divide-line">
               {meetings.map(m => (
                 <div
                   key={m.id}
-                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] rounded-lg transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors"
                 >
-                  <span className="w-8 text-xs font-semibold text-stone-500 dark:text-[#c4a882] shrink-0">
+                  <span className="w-8 text-xs font-semibold text-muted shrink-0">
                     {DAY_NAMES[m.day_of_week]}
                   </span>
-                  <span className="flex-1 text-sm text-stone-700 dark:text-[#e8d5c0]">
+                  <span className="flex-1 text-sm text-ink-soft">
                     {formatTime(m.start_time)} – {formatTime(m.end_time)}
                   </span>
-                  <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                     <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
-                      className="p-1 text-stone-500 dark:text-[#e0b870] hover:text-stone-600 rounded transition-colors"
+                      aria-label={`Edit ${DAY_NAMES[m.day_of_week]} class time`}
+                      className="p-1 text-muted hover:text-stone-600 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
                       title="Edit"
                     >
                       <Pencil size={13} />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm('Remove this class time?')) deleteMeeting.mutate(m.id);
-                      }}
+                      onClick={() => setDeletingMeetingId(m.id)}
                       disabled={deleteMeeting.isPending}
-                      className="p-1 text-stone-500 dark:text-[#e0b870] hover:text-red-500 rounded transition-colors disabled:opacity-50"
+                      aria-label={`Remove ${DAY_NAMES[m.day_of_week]} class time`}
+                      className="p-1 text-muted hover:text-red-500 rounded transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       title="Delete"
                     >
                       <Trash2 size={13} />
@@ -305,6 +307,13 @@ export default function CourseDetailPage() {
         meeting={editingMeeting}
         isOpen={meetingDialogOpen}
         onClose={() => setMeetingDialogOpen(false)}
+      />
+      <ConfirmDialog
+        isOpen={deletingMeetingId !== null}
+        title="Remove this class time?"
+        confirmLabel="Remove"
+        onConfirm={() => { if (deletingMeetingId) deleteMeeting.mutate(deletingMeetingId); }}
+        onClose={() => setDeletingMeetingId(null)}
       />
     </div>
   );

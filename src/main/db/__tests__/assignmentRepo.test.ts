@@ -13,6 +13,7 @@ import {
   listAssignments,
   getAssignment,
   createAssignment,
+  createAssignments,
   updateAssignment,
   deleteAssignment,
 } from '../repositories/assignmentRepo';
@@ -185,6 +186,31 @@ describe('assignmentRepo', () => {
     it('deletes assignments when the parent course is deleted', () => {
       createAssignment({ courseId, name: 'Will cascade', dueDate: '2026-09-01' });
       mockDb.current!.exec(`DELETE FROM courses WHERE id = '${courseId}'`);
+      expect(listAssignments({ courseId })).toHaveLength(0);
+    });
+  });
+
+  // ── createAssignments (batch) ───────────────────────────────────────────────
+
+  describe('createAssignments', () => {
+    it('inserts every row in one batch', () => {
+      const created = createAssignments([
+        { courseId, name: 'HW 1', dueDate: '2026-09-01' },
+        { courseId, name: 'HW 2', dueDate: '2026-09-08', type: 'Homework' },
+        { courseId, name: 'Quiz 1', dueDate: '2026-09-15', type: 'Quiz' },
+      ]);
+      expect(created).toHaveLength(3);
+      expect(listAssignments({ courseId })).toHaveLength(3);
+    });
+
+    it('is atomic — a failing row rolls back the whole batch', () => {
+      expect(() =>
+        createAssignments([
+          { courseId, name: 'Good row', dueDate: '2026-09-01' },
+          // NOT NULL violation on name — the insert of this row must fail
+          { courseId, name: null as unknown as string, dueDate: '2026-09-02' },
+        ])
+      ).toThrow();
       expect(listAssignments({ courseId })).toHaveLength(0);
     });
   });

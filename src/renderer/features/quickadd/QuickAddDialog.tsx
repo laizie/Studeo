@@ -20,7 +20,16 @@ const INPUT =
   'dark:bg-[#332211] warm:bg-[#3d2918] dark:border-[#221408] warm:border-[#423428] dark:text-[#f0e0cc] dark:placeholder:text-[#e0b870] dark:focus:ring-[#e0b870]';
 
 export default function QuickAddDialog({ isOpen, onClose }: Props) {
-  const [tab, setTab]         = useState<Tab>('assignment');
+  // Remember the last-used tab across sessions (the Settings tip promises this).
+  const [tab, setTab] = useState<Tab>(
+    () => (localStorage.getItem('studeo:quickAddTab') === 'task' ? 'task' : 'assignment')
+  );
+
+  function selectTab(t: Tab) {
+    localStorage.setItem('studeo:quickAddTab', t);
+    setTab(t);
+  }
+
   const [name, setName]       = useState('');
   const [type, setType]       = useState<AssignmentType>('Assignment');
   const [dueDate, setDueDate] = useState('');
@@ -83,21 +92,21 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     >
       <div className="absolute inset-0 bg-black/30" />
 
-      <div className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           {/* Tab switcher */}
-          <div className="flex items-center gap-0.5 p-0.5 bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] rounded-lg">
+          <div className="flex items-center gap-0.5 p-0.5 bg-inset rounded-lg">
             {(['assignment', 'task'] as Tab[]).map(t => (
               <button
                 key={t}
                 type="button"
-                onClick={() => setTab(t)}
+                onClick={() => selectTab(t)}
                 className={cn(
                   'px-3 py-1 text-xs rounded-md transition-colors capitalize',
                   tab === t
-                    ? 'bg-white dark:bg-[#775544] warm:bg-[#9e7860] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
-                    : 'text-stone-500 dark:text-[#c4a882] hover:text-stone-700 dark:hover:text-[#e8d5c0]'
+                    ? 'bg-white dark:bg-[#775544] warm:bg-[#9e7860] text-ink shadow-sm font-medium'
+                    : 'text-muted hover:text-stone-700 dark:hover:text-[#e8d5c0]'
                 )}
               >
                 {t}
@@ -107,7 +116,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
+            className="text-muted hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
           >
             <X size={16} />
           </button>
@@ -169,14 +178,14 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             <button
               type="submit"
               disabled={!canSubmit || isPending}
-              className="flex-1 py-2 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="flex-1 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {isPending ? 'Saving…' : `Add ${tab}`}
             </button>
           </div>
         </form>
 
-        <p className="mt-3 text-center text-[11px] text-stone-500 dark:text-[#cc9a58]">
+        <p className="mt-3 text-center text-[11px] text-muted">
           ⌘N to open · Esc to close
         </p>
       </div>

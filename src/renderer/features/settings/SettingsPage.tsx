@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check } from 'lucide-react';
+import { Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check, Bell } from 'lucide-react';
 import { useSettingsStore, type Theme } from '../../store/useSettingsStore';
-import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS } from '../../store/useTimerStore';
+import type { Term } from '../../../shared/types';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS, LONG_BREAK_OPTIONS } from '../../store/useTimerStore';
 import { useTerms, useCreateTerm, useDeleteTerm } from '../../lib/queries/useTerms';
 import { useSpotifyStatus } from '../../lib/queries/useSpotify';
 import { useAppleMusicStatus } from '../../lib/queries/useAppleMusic';
@@ -13,7 +15,7 @@ import { cn } from '../../lib/utils';
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xs font-semibold text-stone-500 dark:text-[#e0b870] uppercase tracking-wide mb-3">
+    <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
       {children}
     </h2>
   );
@@ -21,7 +23,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function SettingsCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+    <div className="bg-surface border border-line rounded-xl shadow-sm divide-y divide-line">
       {children}
     </div>
   );
@@ -36,11 +38,11 @@ function SettingsRow({ icon, label, description, children }: {
   return (
     <div className="flex items-center justify-between px-5 py-4">
       <div className="flex items-center gap-3">
-        <span className="text-stone-500 dark:text-[#c4a882] shrink-0">{icon}</span>
+        <span className="text-muted shrink-0">{icon}</span>
         <div>
-          <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{label}</p>
+          <p className="text-sm font-medium text-ink-soft">{label}</p>
           {description && (
-            <p className="text-xs text-stone-500 dark:text-[#e0b870] mt-0.5">{description}</p>
+            <p className="text-xs text-muted mt-0.5">{description}</p>
           )}
         </div>
       </div>
@@ -61,7 +63,7 @@ function PillGroup<T extends number>({
   suffix?: string;
 }) {
   return (
-    <div className="flex gap-1.5">
+    <div className="flex flex-wrap gap-1 p-1 bg-inset rounded-lg w-fit">
       {options.map(opt => (
         <button
           key={opt}
@@ -69,8 +71,8 @@ function PillGroup<T extends number>({
           className={cn(
             'px-3 py-1 text-sm rounded-md transition-colors',
             value === opt
-              ? 'bg-[#e2a53b] text-[#1e1208] font-medium'
-              : 'bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-500 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#775544] warm:hover:bg-[#9e7860]'
+              ? 'bg-surface text-ink shadow-sm font-medium'
+              : 'text-ink-soft hover:bg-surface-hi'
           )}
         >
           {opt}{suffix}
@@ -89,10 +91,10 @@ function TipCard({ icon, title, children }: {
 }) {
   return (
     <div className="flex gap-3 px-5 py-4">
-      <span className="text-[#e2a53b] shrink-0 mt-0.5">{icon}</span>
+      <span className="text-accent shrink-0 mt-0.5">{icon}</span>
       <div>
-        <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{title}</p>
-        <p className="text-xs text-stone-500 dark:text-[#e0b870] mt-1 leading-relaxed">{children}</p>
+        <p className="text-sm font-medium text-ink-soft">{title}</p>
+        <p className="text-xs text-muted mt-1 leading-relaxed">{children}</p>
       </div>
     </div>
   );
@@ -124,8 +126,8 @@ function MusicServiceCard({
           <Music size={14} style={{ color: accentColor }} />
         </div>
         <div>
-          <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{label}</p>
-          <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">{statusLine}</p>
+          <p className="text-sm font-medium text-ink-soft">{label}</p>
+          <p className="text-xs text-muted mt-0.5">{statusLine}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0 ml-4">
@@ -135,8 +137,8 @@ function MusicServiceCard({
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
             isDefault
-              ? 'bg-[#e2a53b] text-[#1e1208]'
-              : 'border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#442918] warm:hover:bg-[#6e4c30]'
+              ? 'bg-accent text-accent-ink'
+              : 'border border-line text-stone-600 dark:text-[#c4a882] hover:bg-surface-hi'
           )}
         >
           {isDefault && <Check size={11} />}
@@ -172,7 +174,7 @@ function MusicSection() {
   return (
     <div className="mb-8">
       <SectionHeading>Music</SectionHeading>
-      <p className="text-xs text-stone-500 dark:text-[#c4a882] mb-3 -mt-1">
+      <p className="text-xs text-muted mb-3 -mt-1">
         Choose which service shows in the sidebar and Study page. You can connect both and switch here anytime.
       </p>
       <SettingsCard>
@@ -186,7 +188,7 @@ function MusicSection() {
             <button
               onClick={() => disconnectSpotify.mutate()}
               disabled={disconnectSpotify.isPending}
-              className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] text-stone-500 dark:text-[#c4a882] hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs rounded-lg border border-line text-muted hover:border-red-300 hover:text-red-400 transition-colors disabled:opacity-50"
             >
               Disconnect
             </button>
@@ -217,6 +219,12 @@ function ThemePicker() {
       swatches: ['#f9f5f0', '#ffffff', '#e8ddd0', '#2c1f14'],
     },
     {
+      id:       'dark',
+      label:    'Dark',
+      desc:     'Deep espresso night mode',
+      swatches: ['#332211', '#553311', '#442918', '#e2a53b'],
+    },
+    {
       id:       'warm',
       label:    'Warm',
       desc:     'Rich warm browns',
@@ -225,7 +233,7 @@ function ThemePicker() {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-3 gap-3">
       {options.map(opt => (
         <button
           key={opt.id}
@@ -233,13 +241,13 @@ function ThemePicker() {
           className={cn(
             'relative text-left p-4 rounded-xl border-2 transition-all',
             theme === opt.id
-              ? 'border-[#e2a53b] bg-[#e2a53b]/5'
-              : 'border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] hover:border-stone-300 dark:hover:border-[#664433] warm:hover:border-[#8e6a48]'
+              ? 'border-accent bg-accent/5'
+              : 'border-line hover:border-stone-300 dark:hover:border-[#664433] warm:hover:border-[#8e6a48]'
           )}
         >
           {theme === opt.id && (
-            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#e2a53b] flex items-center justify-center">
-              <Check size={11} className="text-white" />
+            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+              <Check size={11} className="text-accent-ink" />
             </span>
           )}
           <div className="flex gap-1 mb-3">
@@ -251,19 +259,26 @@ function ThemePicker() {
               />
             ))}
           </div>
-          <p className="text-sm font-semibold text-stone-800 dark:text-[#f0e0cc]">{opt.label}</p>
-          <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">{opt.desc}</p>
+          <p className="text-sm font-semibold text-ink">{opt.label}</p>
+          <p className="text-xs text-muted mt-0.5">{opt.desc}</p>
         </button>
       ))}
     </div>
   );
 }
 
-export default function SettingsPage() {
-  const { focusSecs, breakSecs, setFocusMins, setBreakMins } = useTimerStore();
+const REMINDER_LEAD_OPTIONS = [5, 10, 15, 30] as const;
 
-  const focusMins = focusSecs / 60;
-  const breakMins = breakSecs / 60;
+export default function SettingsPage() {
+  const { focusSecs, breakSecs, longBreakSecs, setFocusMins, setBreakMins, setLongBreakMins } = useTimerStore();
+  const {
+    classRemindersEnabled, setClassRemindersEnabled,
+    reminderLeadMinutes, setReminderLeadMinutes,
+  } = useSettingsStore();
+
+  const focusMins     = focusSecs / 60;
+  const breakMins     = breakSecs / 60;
+  const longBreakMins = longBreakSecs / 60;
 
   const { data: terms = [] } = useTerms();
   const createTerm = useCreateTerm();
@@ -272,6 +287,7 @@ export default function SettingsPage() {
   const [newTermName,  setNewTermName]  = useState('');
   const [newTermStart, setNewTermStart] = useState('');
   const [newTermEnd,   setNewTermEnd]   = useState('');
+  const [deletingTerm, setDeletingTerm] = useState<Term | null>(null);
 
   async function handleAddTerm(e: React.FormEvent) {
     e.preventDefault();
@@ -288,8 +304,8 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 max-w-2xl">
-      <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc] mb-1">Settings</h1>
-      <p className="text-sm text-stone-500 dark:text-[#e0b870] mb-8">Preferences for Studeo</p>
+      <h1 className="text-2xl font-semibold text-ink mb-1">Settings</h1>
+      <p className="text-sm text-muted mb-8">Preferences for Studeo</p>
 
       {/* ── Appearance ────────────────────────────────────────────────────── */}
       <div className="mb-8">
@@ -332,6 +348,59 @@ export default function SettingsPage() {
               suffix=" min"
             />
           </SettingsRow>
+          <SettingsRow
+            icon={<Timer size={17} />}
+            label="Long break duration"
+            description="Every 4th focus session earns a long break"
+          >
+            <PillGroup
+              options={LONG_BREAK_OPTIONS}
+              value={longBreakMins}
+              onChange={setLongBreakMins}
+              suffix=" min"
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </div>
+
+      {/* ── Class reminders ───────────────────────────────────────────────── */}
+      <div className="mb-8">
+        <SectionHeading>Class reminders</SectionHeading>
+        <SettingsCard>
+          <SettingsRow
+            icon={<Bell size={17} />}
+            label="Remind me before class"
+            description="Desktop notification before each scheduled class time"
+          >
+            <button
+              role="switch"
+              aria-checked={classRemindersEnabled}
+              onClick={() => setClassRemindersEnabled(!classRemindersEnabled)}
+              className={cn(
+                'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+                classRemindersEnabled ? 'bg-accent' : 'bg-stone-300 dark:bg-[#553311] warm:bg-[#7e5a38]'
+              )}
+            >
+              <span className={cn(
+                'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
+                classRemindersEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+              )} />
+            </button>
+          </SettingsRow>
+          {classRemindersEnabled && (
+            <SettingsRow
+              icon={<Timer size={17} />}
+              label="Lead time"
+              description="How early the reminder fires"
+            >
+              <PillGroup
+                options={REMINDER_LEAD_OPTIONS}
+                value={reminderLeadMinutes}
+                onChange={setReminderLeadMinutes}
+                suffix=" min"
+              />
+            </SettingsRow>
+          )}
         </SettingsCard>
       </div>
 
@@ -341,27 +410,24 @@ export default function SettingsPage() {
         <SettingsCard>
           {/* Existing terms */}
           {terms.length === 0 && (
-            <div className="px-5 py-4 text-sm text-stone-500 dark:text-[#c4a882]">
+            <div className="px-5 py-4 text-sm text-muted">
               No semesters yet. Add one below.
             </div>
           )}
           {terms.map(t => (
             <div key={t.id} className="flex items-center justify-between px-5 py-3">
               <div>
-                <p className="text-sm font-medium text-stone-700 dark:text-[#e8d5c0]">{t.name}</p>
+                <p className="text-sm font-medium text-ink-soft">{t.name}</p>
                 {(t.start_date || t.end_date) && (
-                  <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {t.start_date ?? '?'} → {t.end_date ?? '?'}
                   </p>
                 )}
               </div>
               <button
-                onClick={() => {
-                  if (confirm(`Delete "${t.name}"? Courses assigned to it are kept — they just lose their semester grouping.`)) {
-                    deleteTerm.mutate(t.id);
-                  }
-                }}
-                className="ml-4 p-1.5 text-stone-500 dark:text-[#c4a882] hover:text-red-500 transition-colors rounded"
+                onClick={() => setDeletingTerm(t)}
+                aria-label={`Delete semester ${t.name}`}
+                className="ml-4 p-1.5 text-muted hover:text-red-500 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                 title="Delete semester"
               >
                 <Trash2 size={14} />
@@ -370,8 +436,8 @@ export default function SettingsPage() {
           ))}
 
           {/* Add term form */}
-          <form onSubmit={handleAddTerm} className="px-5 py-4 border-t border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30]">
-            <p className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+          <form onSubmit={handleAddTerm} className="px-5 py-4 border-t border-line">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
               Add semester
             </p>
             <div className="flex flex-col gap-2">
@@ -380,7 +446,7 @@ export default function SettingsPage() {
                 value={newTermName}
                 onChange={e => setNewTermName(e.target.value)}
                 placeholder="e.g. Fall 2026"
-                className="w-full px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] placeholder:text-stone-500 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink placeholder:text-stone-500 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
               />
               <div className="flex gap-2">
                 <input
@@ -388,20 +454,20 @@ export default function SettingsPage() {
                   value={newTermStart}
                   onChange={e => setNewTermStart(e.target.value)}
                   title="Start date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
                 />
                 <input
                   type="date"
                   value={newTermEnd}
                   onChange={e => setNewTermEnd(e.target.value)}
                   title="End date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-stone-200 dark:border-[#442918] warm:border-[#6e4c30] rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-stone-700 dark:text-[#f0e0cc] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
                 />
               </div>
               <button
                 type="submit"
                 disabled={!newTermName.trim() || createTerm.isPending}
-                className="flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus size={13} />
                 Add semester
@@ -429,9 +495,9 @@ export default function SettingsPage() {
             due dates automatically. Review and edit in the grid before saving.
           </TipCard>
           <TipCard icon={<BookOpen size={16} />} title="Mark progress with one click">
-            Click the circle icon on the left of any assignment or task row to cycle through
-            Not started → In progress → Done. Completed items fade and are hidden by default
-            to keep your lists clean.
+            Click the circle icon on the left of any assignment or task row to mark it done —
+            click again to undo. Completed items fade and are hidden by default to keep your
+            lists clean.
           </TipCard>
           <TipCard icon={<Timer size={16} />} title="Study with the Pomodoro timer">
             Head to Study, pick a focus length, and start. Paste a Spotify or Apple Music
@@ -458,6 +524,14 @@ export default function SettingsPage() {
           </TipCard>
         </SettingsCard>
       </div>
+
+      <ConfirmDialog
+        isOpen={deletingTerm !== null}
+        title={`Delete "${deletingTerm?.name}"?`}
+        message="Courses assigned to it are kept — they just lose their semester grouping."
+        onConfirm={() => { if (deletingTerm) deleteTerm.mutate(deletingTerm.id); }}
+        onClose={() => setDeletingTerm(null)}
+      />
     </div>
   );
 }

@@ -80,6 +80,12 @@ export interface StudySession {
 // Separate from the domain models so we never accidentally pass DB row shapes
 // as creation inputs (different fields, no id/created_at yet).
 
+export interface ReminderConfig {
+  enabled: boolean;
+  /** Minutes before a class meeting's start time to fire the notification. */
+  leadMinutes: number;
+}
+
 export interface CreateStudySessionInput {
   startedAt: string;        // ISO timestamp (UTC) — when the session began
   durationSeconds: number;
@@ -225,10 +231,11 @@ export const IPC = {
     DELETE: 'courses:delete',
   },
   ASSIGNMENTS: {
-    LIST:   'assignments:list',
-    CREATE: 'assignments:create',
-    UPDATE: 'assignments:update',
-    DELETE: 'assignments:delete',
+    LIST:        'assignments:list',
+    CREATE:      'assignments:create',
+    CREATE_MANY: 'assignments:create-many',
+    UPDATE:      'assignments:update',
+    DELETE:      'assignments:delete',
   },
   TASKS: {
     LIST:   'tasks:list',
@@ -251,6 +258,9 @@ export const IPC = {
   STUDY_SESSIONS: {
     LIST:   'study_sessions:list',
     CREATE: 'study_sessions:create',
+  },
+  REMINDERS: {
+    CONFIGURE: 'reminders:configure',
   },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
@@ -295,6 +305,8 @@ export interface WindowApi {
   assignments: {
     list(filters?: { courseId?: string; status?: AssignmentStatus }): Promise<Assignment[]>;
     create(input: CreateAssignmentInput): Promise<Assignment>;
+    /** Atomic batch insert — all rows save or none do (Day-One Setup). */
+    createMany(inputs: CreateAssignmentInput[]): Promise<Assignment[]>;
     update(id: string, input: UpdateAssignmentInput): Promise<Assignment>;
     delete(id: string): Promise<void>;
   };
@@ -319,6 +331,9 @@ export interface WindowApi {
   studySessions: {
     list(): Promise<StudySession[]>;
     create(input: CreateStudySessionInput): Promise<StudySession>;
+  };
+  reminders: {
+    configure(config: ReminderConfig): Promise<void>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;

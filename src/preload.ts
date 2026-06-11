@@ -22,6 +22,7 @@ import type {
   CreateTermInput,
   UpdateTermInput,
   CreateStudySessionInput,
+  ReminderConfig,
 } from './shared/types';
 
 const api: WindowApi = {
@@ -36,8 +37,9 @@ const api: WindowApi = {
   assignments: {
     list:   (filters?: { courseId?: string; status?: AssignmentStatus }) =>
       ipcRenderer.invoke(IPC.ASSIGNMENTS.LIST, filters),
-    create: (input: CreateAssignmentInput)      => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE, input),
-    update: (id, input: UpdateAssignmentInput)  => ipcRenderer.invoke(IPC.ASSIGNMENTS.UPDATE, id, input),
+    create:     (input: CreateAssignmentInput)      => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE, input),
+    createMany: (inputs: CreateAssignmentInput[])   => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE_MANY, inputs),
+    update:     (id, input: UpdateAssignmentInput)  => ipcRenderer.invoke(IPC.ASSIGNMENTS.UPDATE, id, input),
     delete: (id)                                => ipcRenderer.invoke(IPC.ASSIGNMENTS.DELETE, id),
   },
 
@@ -65,6 +67,10 @@ const api: WindowApi = {
   studySessions: {
     list:   ()                                  => ipcRenderer.invoke(IPC.STUDY_SESSIONS.LIST),
     create: (input: CreateStudySessionInput)    => ipcRenderer.invoke(IPC.STUDY_SESSIONS.CREATE, input),
+  },
+
+  reminders: {
+    configure: (config: ReminderConfig) => ipcRenderer.invoke(IPC.REMINDERS.CONFIGURE, config),
   },
 
   appleMusic: {

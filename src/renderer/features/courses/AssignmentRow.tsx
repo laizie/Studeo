@@ -1,4 +1,6 @@
-import { Circle, Clock3, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
+import { useState } from 'react';
+import { Circle, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
@@ -13,18 +15,13 @@ interface Props {
   course?: Course;
 }
 
-// Clicking the status icon cycles through the three states in order.
-const STATUS_CYCLE: AssignmentStatus[] = ['not_started', 'in_progress', 'completed'];
-
-function nextStatus(current: AssignmentStatus): AssignmentStatus {
-  const idx = STATUS_CYCLE.indexOf(current);
-  return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
-}
-
+// Status is a simple done / not-done toggle (PRD §11, resolved June 2026).
+// The schema keeps the 3-state enum, so legacy in_progress rows just render
+// as not-done and the decision is trivially reversible.
 function StatusIcon({ status }: { status: AssignmentStatus }) {
-  if (status === 'completed')   return <CheckCircle2 size={17} className="text-green-500" />;
-  if (status === 'in_progress') return <Clock3       size={17} className="text-blue-400"  />;
-  return                               <Circle       size={17} className="text-stone-500" />;
+  return status === 'completed'
+    ? <CheckCircle2 size={17} className="text-green-500" />
+    : <Circle       size={17} className="text-stone-500" />;
 }
 
 export default function AssignmentRow({ assignment, onEdit, course }: Props) {
@@ -32,6 +29,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const deleteAssignment = useDeleteAssignment();
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === assignment.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const deadline = computeDeadlineLabel(assignment.due_date);
   const isCompleted = assignment.status === 'completed';
@@ -39,14 +37,12 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   function handleStatusToggle() {
     updateAssignment.mutate({
       id: assignment.id,
-      input: { status: nextStatus(assignment.status) },
+      input: { status: isCompleted ? 'not_started' : 'completed' },
     });
   }
 
   function handleDelete() {
-    if (confirm(`Delete "${assignment.name}"?`)) {
-      deleteAssignment.mutate(assignment.id);
-    }
+    setConfirmOpen(true);
   }
 
   function handleFocusToggle(e: React.MouseEvent) {
@@ -65,13 +61,15 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-[#664433] warm:hover:bg-[#8e6a48] rounded-lg transition-colors">
-      {/* Status toggle — click to advance through not_started → in_progress → completed */}
+    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors">
+      {/* Status toggle — done / not done */}
       <button
         onClick={handleStatusToggle}
         disabled={updateAssignment.isPending}
-        className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50"
-        title={`Status: ${assignment.status} — click to advance`}
+        aria-pressed={isCompleted}
+        className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+        title={isCompleted ? 'Mark as not done' : 'Mark as done'}
+        aria-label={isCompleted ? `Mark ${assignment.name} as not done` : `Mark ${assignment.name} as done`}
       >
         <StatusIcon status={assignment.status} />
       </button>
@@ -89,19 +87,19 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
       {/* Name */}
       <span
         className={`flex-1 text-sm truncate ${
-          isCompleted ? 'line-through text-stone-500 dark:text-[#cc9a58]' : 'text-stone-800 dark:text-[#f0e0cc]'
+          isCompleted ? 'line-through text-muted' : 'text-ink'
         }`}
       >
         {assignment.name}
       </span>
 
       {/* Type badge */}
-      <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48]">
+      <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-muted bg-inset">
         {assignment.type}
       </span>
 
       {/* Due date */}
-      <span className="shrink-0 text-xs text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48] px-2 py-0.5 rounded hidden md:block">
+      <span className="shrink-0 text-xs text-muted bg-inset px-2 py-0.5 rounded hidden md:block">
         {formatDueDate(assignment.due_date)}
       </span>
 
@@ -109,7 +107,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
       <span
         className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded ${
           isCompleted
-            ? 'text-stone-500 dark:text-[#c4a882] bg-stone-100 dark:bg-[#664433] warm:bg-[#8e6a48]'
+            ? 'text-muted bg-inset'
             : URGENCY_CLASS[deadline.urgency]
         }`}
       >
@@ -119,22 +117,25 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
       {/* Focus list toggle */}
       <button
         onClick={handleFocusToggle}
-        className={cn(
-          'shrink-0 p-1 rounded transition-colors',
-          inFocusList
-            ? 'text-[#e2a53b]'
-            : 'opacity-0 group-hover:opacity-100 text-stone-500 dark:text-[#e0b870] hover:text-[#e2a53b]'
-        )}
+        aria-pressed={inFocusList}
+        aria-label={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
         title={inFocusList ? 'Remove from focus list' : 'Add to focus list'}
+        className={cn(
+          'shrink-0 p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          inFocusList
+            ? 'text-accent'
+            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent'
+        )}
       >
         <Target size={13} />
       </button>
 
-      {/* Edit + delete — revealed on row hover */}
-      <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Edit + delete — revealed on row hover or keyboard focus */}
+      <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(assignment)}
-          className="p-1 text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] rounded transition-colors"
+          aria-label={`Edit ${assignment.name}`}
+          className="p-1 text-muted hover:text-stone-600 dark:hover:text-[#d4b896] rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
           title="Edit"
         >
           <Pencil size={13} />
@@ -142,12 +143,20 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         <button
           onClick={handleDelete}
           disabled={deleteAssignment.isPending}
-          className="p-1 text-stone-500 hover:text-red-500 rounded transition-colors disabled:opacity-50"
+          aria-label={`Delete ${assignment.name}`}
+          className="p-1 text-stone-500 hover:text-red-500 rounded transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           title="Delete"
         >
           <Trash2 size={13} />
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title={`Delete "${assignment.name}"?`}
+        onConfirm={() => deleteAssignment.mutate(assignment.id)}
+        onClose={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

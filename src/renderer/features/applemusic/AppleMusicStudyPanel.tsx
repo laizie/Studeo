@@ -27,17 +27,17 @@ function PlaylistRow({ playlist, onPlay }: { playlist: AppleMusicPlaylist; onPla
   return (
     <button
       onClick={onPlay}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors text-left group"
     >
-      <div className="w-9 h-9 rounded-lg shrink-0 overflow-hidden bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
+      <div className="w-9 h-9 rounded-lg shrink-0 overflow-hidden bg-inset flex items-center justify-center">
         {playlist.artworkUrl
           ? <img src={playlist.artworkUrl} alt="" className="w-full h-full object-cover" />
           : <ListMusic size={14} className="text-stone-500 dark:text-[#775544]" />
         }
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">{playlist.name}</p>
-        <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">{playlist.trackCount} tracks</p>
+        <p className="text-sm text-ink truncate leading-tight">{playlist.name}</p>
+        <p className="text-xs text-muted mt-0.5">{playlist.trackCount} tracks</p>
       </div>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         <Play size={9} fill="white" className="text-white ml-0.5" />
@@ -52,14 +52,14 @@ function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => voi
   return (
     <button
       onClick={onPlay}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-stone-50 dark:hover:bg-[#2d1a08] warm:hover:bg-[#4c2e18] transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors text-left group"
     >
-      <div className="w-9 h-9 rounded-lg shrink-0 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] flex items-center justify-center">
+      <div className="w-9 h-9 rounded-lg shrink-0 bg-inset flex items-center justify-center">
         <Music size={14} className="text-stone-500 dark:text-[#775544]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-stone-800 dark:text-[#f0e0cc] truncate leading-tight">{track.name}</p>
-        <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5 truncate">
+        <p className="text-sm text-ink truncate leading-tight">{track.name}</p>
+        <p className="text-xs text-muted mt-0.5 truncate">
           {track.artistName}{track.albumName ? ` · ${track.albumName}` : ''}
         </p>
       </div>
@@ -91,7 +91,7 @@ function PlaybackControls() {
     <div className="flex flex-col items-center gap-4 pt-1 pb-2 shrink-0">
 
       {/* Album art */}
-      <div className="w-40 h-40 rounded-2xl bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] overflow-hidden flex items-center justify-center shadow-lg">
+      <div className="w-40 h-40 rounded-2xl bg-inset overflow-hidden flex items-center justify-center shadow-lg">
         {track?.artworkUrl
           ? <img src={track.artworkUrl} alt="" className="w-full h-full object-cover" />
           : <Music size={40} className="text-stone-200 dark:text-[#3d2318]" />
@@ -100,27 +100,27 @@ function PlaybackControls() {
 
       {/* Track info */}
       <div className="text-center w-full min-w-0 px-2">
-        <p className="text-base font-semibold text-stone-800 dark:text-[#f0e0cc] truncate leading-snug">
+        <p className="text-base font-semibold text-ink truncate leading-snug">
           {track?.name ?? 'Nothing playing'}
         </p>
-        <p className="text-sm text-stone-500 dark:text-[#c4a882] truncate mt-0.5">
+        <p className="text-sm text-muted truncate mt-0.5">
           {track?.artistName ?? '—'}
         </p>
       </div>
 
       {/* Progress bar + timestamps */}
       <div className="w-full px-1">
-        <div className="h-1.5 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-full overflow-hidden">
+        <div className="h-1.5 bg-inset rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[#fc3c44] to-[#ff6b6b] rounded-full transition-all duration-1000 ease-linear"
             style={{ width: `${pct}%` }}
           />
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[10px] tabular-nums text-stone-500 dark:text-[#c4a882]">
+          <span className="text-[10px] tabular-nums text-muted">
             {formatMs(progressMs)}
           </span>
-          <span className="text-[10px] tabular-nums text-stone-500 dark:text-[#c4a882]">
+          <span className="text-[10px] tabular-nums text-muted">
             {formatMs(durationMs)}
           </span>
         </div>
@@ -176,7 +176,7 @@ function SearchInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] text-stone-700 dark:text-[#f0e0cc] placeholder-stone-300 dark:placeholder-[#775544] outline-none focus:ring-1 focus:ring-[#fc3c44]/40"
+        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-inset text-ink placeholder-stone-300 dark:placeholder-[#775544] outline-none focus:ring-1 focus:ring-[#fc3c44]/40"
       />
     </div>
   );
@@ -206,16 +206,16 @@ export default function AppleMusicStudyPanel() {
   if (!status?.running) {
     return (
       <div className="w-full">
-        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
           Music
         </h2>
-        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] gap-3">
+        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-line gap-3">
           <div className="w-10 h-10 rounded-full bg-[#fc3c44]/10 flex items-center justify-center">
             <Music size={18} className="text-[#fc3c44]" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Open Music app</p>
-            <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-0.5">
+            <p className="text-sm font-medium text-ink-soft">Open Music app</p>
+            <p className="text-xs text-muted mt-0.5">
               Studeo controls Apple Music via the Music app — open it to get started
             </p>
           </div>
@@ -227,18 +227,18 @@ export default function AppleMusicStudyPanel() {
   if (!status.authorized) {
     return (
       <div className="w-full">
-        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
           Music
         </h2>
-        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-stone-200 dark:border-[#3d2b1f] warm:border-[#5d4b3f] gap-3 px-4">
+        <div className="flex flex-col items-center justify-center py-8 rounded-xl border-2 border-dashed border-line gap-3 px-4">
           <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
             <Music size={18} className="text-amber-500" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-stone-700 dark:text-[#d4b896]">Permission needed</p>
-            <p className="text-xs text-stone-500 dark:text-[#c4a882] mt-1 leading-relaxed">
+            <p className="text-sm font-medium text-ink-soft">Permission needed</p>
+            <p className="text-xs text-muted mt-1 leading-relaxed">
               Allow Studeo to control Music in{' '}
-              <span className="font-medium text-stone-600 dark:text-[#d4b896]">
+              <span className="font-medium text-ink-soft">
                 System Settings → Privacy &amp; Security → Automation
               </span>
               , then restart the app.
@@ -260,7 +260,7 @@ export default function AppleMusicStudyPanel() {
 
       {/* Section header */}
       <div className="flex items-center justify-between mb-4 shrink-0">
-        <h2 className="text-xs font-semibold text-stone-500 dark:text-[#c4a882] uppercase tracking-wide">Music</h2>
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">Music</h2>
         <span className="flex items-center gap-1 text-[10px] text-[#fc3c44]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#fc3c44]" />
           Apple Music
@@ -271,11 +271,11 @@ export default function AppleMusicStudyPanel() {
       <PlaybackControls />
 
       {/* Divider */}
-      <div className="border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18] my-4 shrink-0" />
+      <div className="border-t border-line my-4 shrink-0" />
 
       {/* Playlists */}
       <div>
-        <p className="text-xs font-medium text-stone-500 dark:text-[#c4a882] mb-2">Your playlists</p>
+        <p className="text-xs font-medium text-muted mb-2">Your playlists</p>
         <SearchInput
           value={playlistFilter}
           onChange={setPlaylistFilter}
@@ -285,11 +285,11 @@ export default function AppleMusicStudyPanel() {
           {playlistsLoading ? (
             <div className="space-y-1 px-1">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] animate-pulse" />
+                <div key={i} className="h-12 rounded-lg bg-inset animate-pulse" />
               ))}
             </div>
           ) : filteredPlaylists.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-stone-500 dark:text-[#c4a882] text-center">
+            <p className="px-3 py-4 text-sm text-muted text-center">
               {playlistFilter ? 'No matching playlists.' : 'No playlists found in Music app.'}
             </p>
           ) : (
@@ -305,11 +305,11 @@ export default function AppleMusicStudyPanel() {
       </div>
 
       {/* Divider */}
-      <div className="border-t border-stone-100 dark:border-[#2d1a08] warm:border-[#4c2e18] my-4 shrink-0" />
+      <div className="border-t border-line my-4 shrink-0" />
 
       {/* Library search */}
       <div>
-        <p className="text-xs font-medium text-stone-500 dark:text-[#c4a882] mb-2">Search library</p>
+        <p className="text-xs font-medium text-muted mb-2">Search library</p>
         <SearchInput
           value={libraryInput}
           onChange={setLibraryInput}
@@ -319,11 +319,11 @@ export default function AppleMusicStudyPanel() {
           {libraryFetching ? (
             <div className="space-y-1 px-1">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] animate-pulse" />
+                <div key={i} className="h-12 rounded-lg bg-inset animate-pulse" />
               ))}
             </div>
           ) : libraryQuery && libraryResults.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-stone-500 dark:text-[#c4a882] text-center">
+            <p className="px-3 py-4 text-sm text-muted text-center">
               No results for "{libraryQuery}"
             </p>
           ) : (

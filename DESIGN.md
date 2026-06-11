@@ -180,6 +180,8 @@ Deadline badges map urgency to a warm→cool ramp (text / tint): **overdue & tod
 `dark` mode: bg `#332211`, surfaces `#553311`/`#664433`, borders `#442918`, text `#f0e0cc`, muted `#e0b870`. `warm` mode: bg `#3d2918`, surfaces `#7e5a38`/`#8e6a48`, borders `#6e4c30`. Both keep Lamplight Amber unchanged. Switched via `.dark` class and `html[data-theme="warm"]`.
 
 ### Named Rules
+**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark` and `html[data-theme="warm"]`, so a component writes **one class, never a light/dark/warm hex trio**. Writing an inline theme hex in a component is prohibited — add or reuse a token.
+
 **The One Lamp Rule.** Lamplight Amber appears only where the user should act, what is currently selected, or a live state indicator. If amber is on screen as decoration, it is wrong. Its rarity is what makes it read as "look here."
 
 **The Color-Is-Data Rule.** Per-course colors encode *which class* and nothing else. They are dots, pills, and 2px strips — never a card background, never a full-width fill. Status and urgency get their own semantic ramp; course color never doubles as either.
@@ -273,6 +275,7 @@ Components are **warm and tactile**: gentle radii, hairline sand borders, the am
 - **Do** use skeletons (`animate-pulse`) for loading and a friendly, encouraging empty state with a primary action on every screen.
 - **Do** use `tabular-nums` on every number that updates in place (counts, %, timers, stat chips).
 - **Do** reuse the shared `INPUT_CLASS` and existing row/card patterns instead of re-spelling Tailwind strings.
+- **Do** use the token utilities (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`) for any theme-dependent color — see The Token Rule. New colors are added to the token block in `src/index.css`, never as inline hexes.
 
 ### Don't:
 - **Don't** build a **corporate SaaS dashboard** — no metric-tile cockpit, no enterprise-blue chrome, no charts-for-decoration. Studeo answers "what's due / what now?", it is not a BI tool.

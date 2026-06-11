@@ -8,6 +8,8 @@ import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
 import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
 import { registerStudySessionHandlers } from './main/ipc/registerStudySessionHandlers';
+import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
+import { startReminderScheduler } from './main/reminders';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
@@ -23,6 +25,7 @@ function registerIpcHandlers(): void {
   registerClassMeetingHandlers();
   registerTermHandlers();
   registerStudySessionHandlers();
+  registerReminderHandlers();
   registerSpotifyHandlers();
   registerAppleMusicHandlers();
 }
@@ -68,6 +71,7 @@ app.on('ready', () => {
 
   initDb();
   registerIpcHandlers();
+  startReminderScheduler(); // after initDb — the scheduler reads class meetings
   createWindow();
 });
 

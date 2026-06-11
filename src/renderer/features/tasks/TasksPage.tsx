@@ -83,8 +83,8 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">Tasks</h1>
-          <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">
+          <h1 className="text-2xl font-semibold text-ink">Tasks</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {remainingCount > 0
               ? `${remainingCount} remaining`
               : allTasks.length > 0
@@ -94,16 +94,16 @@ export default function TasksPage() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
         >
-          <Plus size={14} />
+          <Plus size={15} />
           Add task
         </button>
       </div>
 
       {/* Filter bar */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-1 p-1 bg-stone-100 dark:bg-[#2d1a08] warm:bg-[#4c2e18] rounded-lg w-fit">
+        <div className="flex items-center gap-1 p-1 bg-inset rounded-lg w-fit">
           {FILTERS.map(f => (
             <button
               key={f.value}
@@ -111,7 +111,7 @@ export default function TasksPage() {
               className={cn(
                 'px-3 py-1 text-sm rounded-md transition-colors',
                 filter === f.value
-                  ? 'bg-white dark:bg-[#664433] warm:bg-[#8e6a48] text-stone-800 dark:text-[#f0e0cc] shadow-sm font-medium'
+                  ? 'bg-surface text-ink shadow-sm font-medium'
                   : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
               )}
             >
@@ -127,7 +127,7 @@ export default function TasksPage() {
             onChange={e => setShowCompleted(e.target.checked)}
             className="accent-stone-600"
           />
-          <span className="text-sm text-stone-500 dark:text-[#c4a882]">Show completed</span>
+          <span className="text-sm text-muted">Show completed</span>
         </label>
       </div>
 
@@ -140,7 +140,7 @@ export default function TasksPage() {
       {isLoading && (
         <div className="space-y-2 animate-pulse">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-10 bg-stone-100 dark:bg-[#553311] warm:bg-[#7e5a38] rounded-lg" />
+            <div key={i} className="h-10 bg-surface rounded-lg" />
           ))}
         </div>
       )}
@@ -158,7 +158,7 @@ export default function TasksPage() {
           {allTasks.length === 0 && (
             <button
               onClick={openAdd}
-              className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"
+              className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
             >
               Add your first task
             </button>
@@ -166,7 +166,7 @@ export default function TasksPage() {
           {allTasks.length > 0 && !showCompleted && completedCount > 0 && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-stone-500 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-muted underline hover:text-stone-600 transition-colors"
             >
               Show {completedCount} completed
             </button>
@@ -176,7 +176,7 @@ export default function TasksPage() {
 
       {/* Task list */}
       {!isLoading && filtered.length > 0 && (
-        <div className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden divide-y divide-[#e8ddd0] dark:divide-[#442918] warm:divide-[#6e4c30]">
+        <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden divide-y divide-line">
           {filtered.map(t => (
             <TaskRow key={t.id} task={t} onEdit={openEdit} />
           ))}
@@ -185,7 +185,7 @@ export default function TasksPage() {
 
       {/* Footer stats */}
       {!isLoading && allTasks.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] flex gap-4 text-xs text-stone-500 dark:text-[#e0b870]">
+        <div className="mt-6 pt-4 border-t border-line flex gap-4 text-xs text-muted">
           <span>{completedCount} completed</span>
           <span>{remainingCount} remaining</span>
           {!showCompleted && completedCount > 0 && (

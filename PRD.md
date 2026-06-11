@@ -151,9 +151,11 @@ The home screen. A grid of **course cards**, each showing:
 Clicking a card → Course Detail. Includes an "Add course" action and an empty state.
 
 ### 8.2 Course Detail
-Opened from a course card. Two stacked sections:
-1. **Assignment list** with a filter: **"show assignments due within"** → `7 days` / `14 days` / `30 days` / `all`. Each row: name, type (or "Assignment"), status, due date, deadline label. Inline status toggle and add/edit/delete.
-2. **Month calendar** scoped to this course, with this course's assignments plotted and color-coded.
+Opened from a course card. Two columns (stacking on narrow windows):
+1. **Assignment list** with a filter: **"show assignments due within"** → `7 days` / `14 days` / `30 days` / `all`. Each row: name, type (or "Assignment"), status, due date, deadline label. Inline status toggle and add/edit/delete. Batch-add entry point lives here too.
+2. **Class schedule** — the course's recurring meeting times (day, start–end), with add/edit/delete.
+
+> **Amended June 2026:** the originally-specced per-course month calendar was deliberately dropped. The global Calendar (§8.5) already shows every course color-coded, and a second calendar on this page added bulk without answering "what's due" any faster. The class-schedule column replaced it.
 
 ### 8.3 This Week (Weekly Assignments)
 A cross-course list of assignments due in the current week. Columns, in order:
@@ -217,9 +219,10 @@ Owning real playback is heavier than it looks and depends on the user's subscrip
 - **Business logic** lives in `shared/` (platform-agnostic, unit-testable).
 - **Fast entry:** Quick Add + Day-One batch grid in v1 (§8.7); AI syllabus parsing deliberately deferred.
 - **Project intent:** this is a learning project — see `CLAUDE.md` → "Learning mode."
+- **Status model (June 2026):** simplified to **done / not-done** in the UI — one click toggles, instantly discoverable. The DB schema keeps the 3-state enum so legacy `in_progress` rows render as not-done and the decision is trivially reversible.
+- **Course Detail calendar (June 2026):** dropped in favor of the class-schedule column — see the amendment note in §8.2.
 
 **Open**
 1. **Stack:** proceeding with **Electron + React** unless near-term mobile makes Flutter preferable — confirm before scaffolding.
 2. **Music MVP:** embed-only for v1 (recommended) vs full OAuth playback now.
 3. **Semester/term:** keep the `Term` concept in v1, or add it later?
-4. **Status model:** three states (not started / in progress / completed), or just done / not-done for v1?

@@ -22,7 +22,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex h-full text-stone-800 dark:text-[#f0e0cc]">
+    <div className="flex h-full text-ink">
       <Sidebar onOpenQuickAdd={() => setQuickAddOpen(true)} />
       <main className="flex-1 overflow-auto min-w-0">
         <Outlet />

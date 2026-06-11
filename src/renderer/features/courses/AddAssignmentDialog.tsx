@@ -93,19 +93,19 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     >
       <div className="absolute inset-0 bg-black/30" />
 
-      <div className="relative bg-white dark:bg-[#553311] warm:bg-[#7e5a38] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-stone-800 dark:text-[#f0e0cc]">
+          <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit assignment' : 'New assignment'}
           </h2>
-          <button onClick={onClose} className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-[#d4b896] mb-1">Name</label>
+            <label className="block text-sm font-medium text-ink-soft mb-1">Name</label>
             <input
               ref={nameRef}
               type="text"
@@ -118,7 +118,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-[#d4b896] mb-1">Type</label>
+            <label className="block text-sm font-medium text-ink-soft mb-1">Type</label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as AssignmentType)}
@@ -131,7 +131,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-[#d4b896] mb-1">Due date</label>
+            <label className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
             <input
               type="date"
               value={dueDate}
@@ -142,7 +142,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 dark:text-[#d4b896] mb-1">
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Notes
               <span className="ml-1 text-stone-500 font-normal">(optional)</span>
             </label>
@@ -170,7 +170,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             <button
               type="submit"
               disabled={!name.trim() || !dueDate || isPending}
-              className="px-4 py-2 text-sm bg-[#e2a53b] text-[#1e1208] rounded-lg hover:bg-[#d49530] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add assignment'}
             </button>

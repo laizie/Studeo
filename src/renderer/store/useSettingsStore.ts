@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type Theme = 'light' | 'warm';
+export type Theme = 'light' | 'dark' | 'warm';
 export type MusicService = 'spotify' | 'apple_music';
 
 interface SettingsState {
@@ -9,6 +9,11 @@ interface SettingsState {
 
   defaultMusicService: MusicService | null;
   setDefaultMusicService: (s: MusicService | null) => void;
+
+  classRemindersEnabled: boolean;
+  setClassRemindersEnabled: (v: boolean) => void;
+  reminderLeadMinutes: number;
+  setReminderLeadMinutes: (m: number) => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -16,7 +21,10 @@ function applyTheme(theme: Theme) {
   html.classList.remove('dark');
   html.removeAttribute('data-theme');
 
-  if (theme === 'warm') {
+  if (theme === 'dark') {
+    // Pure dark: the deep-espresso layer defined under the dark: variant.
+    html.classList.add('dark');
+  } else if (theme === 'warm') {
     // Apply .dark so all dark: text/color utilities resolve (light text, warm accents).
     // Apply data-theme="warm" so warm: bg utilities override dark: bg utilities.
     html.classList.add('dark');
@@ -34,7 +42,18 @@ const storedMusic = localStorage.getItem('studeo:defaultMusicService');
 const initMusic: MusicService | null =
   storedMusic === 'spotify' || storedMusic === 'apple_music' ? storedMusic : null;
 
-export const useSettingsStore = create<SettingsState>()((set) => ({
+const initRemindersEnabled = localStorage.getItem('studeo:classRemindersEnabled') === 'true';
+const storedLead = parseInt(localStorage.getItem('studeo:reminderLeadMinutes') ?? '', 10);
+const initLeadMinutes = isNaN(storedLead) ? 10 : storedLead;
+
+// The reminder scheduler lives in the main process, which can't read
+// localStorage — push the saved preference over IPC on startup and on change.
+function pushReminderConfig(enabled: boolean, leadMinutes: number): void {
+  window.api.reminders.configure({ enabled, leadMinutes }).catch(() => { /* best-effort */ });
+}
+pushReminderConfig(initRemindersEnabled, initLeadMinutes);
+
+export const useSettingsStore = create<SettingsState>()((set, get) => ({
   theme: initTheme,
 
   setTheme: (t) => {
@@ -49,5 +68,19 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     if (s === null) localStorage.removeItem('studeo:defaultMusicService');
     else localStorage.setItem('studeo:defaultMusicService', s);
     set({ defaultMusicService: s });
+  },
+
+  classRemindersEnabled: initRemindersEnabled,
+  setClassRemindersEnabled: (v) => {
+    localStorage.setItem('studeo:classRemindersEnabled', String(v));
+    pushReminderConfig(v, get().reminderLeadMinutes);
+    set({ classRemindersEnabled: v });
+  },
+
+  reminderLeadMinutes: initLeadMinutes,
+  setReminderLeadMinutes: (m) => {
+    localStorage.setItem('studeo:reminderLeadMinutes', String(m));
+    pushReminderConfig(get().classRemindersEnabled, m);
+    set({ reminderLeadMinutes: m });
   },
 }));
