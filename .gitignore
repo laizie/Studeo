@@ -90,3 +90,6 @@ typings/
 
 # Electron-Forge
 out/
+
+# Local working notes (not for version control)
+REVIEW.md

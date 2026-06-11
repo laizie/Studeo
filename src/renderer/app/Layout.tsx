@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import QuickAddDialog from '../features/quickadd/QuickAddDialog';
+import { useTimerDriver } from '../lib/useTimerDriver';
 
 export default function Layout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+
+  // Keep the Pomodoro timer running app-wide, independent of the current route.
+  useTimerDriver();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

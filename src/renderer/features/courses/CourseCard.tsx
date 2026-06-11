@@ -46,7 +46,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
 
         {/* Building */}
         {course.building && (
-          <p className="mt-1 text-xs text-stone-400 dark:text-[#e0b870] truncate">{course.building}</p>
+          <p className="mt-1 text-xs text-stone-500 dark:text-[#e0b870] truncate">{course.building}</p>
         )}
 
         {/* Progress */}
@@ -70,7 +70,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
               </div>
             </>
           ) : (
-            <p className="text-xs text-stone-300 dark:text-[#cc9a58]">No assignments yet</p>
+            <p className="text-xs text-stone-500 dark:text-[#cc9a58]">No assignments yet</p>
           )}
         </div>
       </div>
@@ -79,7 +79,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
       <button
         onClick={handleDelete}
         disabled={deleteCourse.isPending}
-        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 p-1 text-stone-300 dark:text-[#cc9a58] hover:text-red-500 rounded transition-all disabled:opacity-50"
+        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 p-1 text-stone-500 dark:text-[#cc9a58] hover:text-red-500 rounded transition-all disabled:opacity-50"
         title="Delete course"
       >
         <Trash2 size={13} />

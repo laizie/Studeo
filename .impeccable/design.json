@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-10T00:00:00.000Z",
+  "title": "Design System: Studeo",
+  "extensions": {
+    "colorMeta": {
+      "lamplight-amber": { "role": "primary", "displayName": "Lamplight Amber", "canonical": "#e2a53b", "tonalRamp": ["#3a2a0c", "#5c4413", "#8a661c", "#b8862a", "#e2a53b", "#ecc070", "#f3d79f", "#f9eccd"] },
+      "amber-deep": { "role": "primary", "displayName": "Amber Deep", "canonical": "#d49530", "tonalRamp": ["#362507", "#583c12", "#85591b", "#b07a26", "#d49530", "#e2b362", "#eed096", "#f7ebcd"] },
+      "cream-bg": { "role": "neutral", "displayName": "Cream BG", "canonical": "#f9f5f0", "tonalRamp": ["#2c261d", "#4a4234", "#6e6451", "#998c74", "#c4b8a2", "#e0d6c5", "#f0e9de", "#f9f5f0"] },
+      "espresso-ink": { "role": "neutral", "displayName": "Espresso Ink", "canonical": "#292524", "tonalRamp": ["#1a1716", "#292524", "#44403c", "#57534e", "#78716c", "#a8a29e", "#d6d3d1", "#f5f5f4"] },
+      "espresso-sidebar": { "role": "neutral", "displayName": "Espresso Sidebar", "canonical": "#2c1f14", "tonalRamp": ["#1e1208", "#2c1f14", "#3d2b1f", "#5a4230", "#7c5e44", "#a3856a", "#c4a882", "#e8d5c0"] },
+      "sand-border": { "role": "neutral", "displayName": "Sand Border", "canonical": "#e8ddd0", "tonalRamp": ["#3a3327", "#5c5141", "#857758", "#b0a07e", "#d4c8b8", "#e8ddd0", "#f1e9df", "#faf6f0"] },
+      "task-violet": { "role": "secondary", "displayName": "Task Violet", "canonical": "#7c6abf", "tonalRamp": ["#241d3c", "#372c5c", "#4f4080", "#6857a3", "#7c6abf", "#9f90d2", "#c2b8e4", "#e6e0f4"] },
+      "danger-ink": { "role": "semantic", "displayName": "Overdue Red", "canonical": "#b91c1c", "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fee2e2"] },
+      "success-ink": { "role": "semantic", "displayName": "Clear Green", "canonical": "#15803d", "tonalRamp": ["#052e16", "#14532d", "#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac", "#dcfce7"] }
+    },
+    "typographyMeta": {
+      "page-title": { "displayName": "Page Title", "purpose": "The single h1 per screen; pair with a muted subtitle." },
+      "card-title": { "displayName": "Card Title", "purpose": "Course names, dialog headings; truncates in tight columns." },
+      "stat": { "displayName": "Stat", "purpose": "Big stat-chip number; always tabular-nums." },
+      "body": { "displayName": "Body", "purpose": "Default list-row and description text; prose caps at 65-75ch." },
+      "label": { "displayName": "Label", "purpose": "Form labels, meta, pill and badge text." },
+      "section-label": { "displayName": "Section Label", "purpose": "Uppercase tracked label for data groups inside cards only." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Standing state of every card, stat chip, and list container." },
+      { "name": "hover", "value": "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)", "purpose": "Interactive cards only (dashboard course cards) on hover, with a border shift." },
+      { "name": "dialog", "value": "0 25px 50px -12px rgba(0,0,0,0.25)", "purpose": "Modals lifting over the bg-black/30 scrim." }
+    ],
+    "motion": [
+      { "name": "transition-colors", "value": "color/background-color/border-color 150ms ease", "purpose": "Default for hover/active state on buttons, nav, rows." },
+      { "name": "transition-progress", "value": "all 300ms ease", "purpose": "Progress-bar fill width changes." },
+      { "name": "transition-toggle", "value": "transform 200ms ease", "purpose": "Toggle-switch knob slide." }
+    ],
+    "breakpoints": [
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single loudest element per screen; primary action only.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Add course</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 6px; background: #e2a53b; color: #1e1208; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-primary:hover { background: #d49530; } .ds-btn-primary:focus-visible { outline: 2px solid #d49530; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action beside a primary (e.g. dialog Cancel).",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #44403c; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; transition: color 150ms ease; } .ds-btn-ghost:hover { color: #292524; } .ds-btn-ghost:focus-visible { outline: 2px solid #a8a29e; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard text/select/textarea field with a calm gray focus ring.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"e.g. Introduction to Computer Science\" />",
+      "css": ".ds-input { width: 100%; background: #ffffff; color: #292524; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; padding: 8px 12px; border: 1px solid #d6d3d1; border-radius: 8px; outline: none; transition: box-shadow 150ms ease, border-color 150ms ease; } .ds-input::placeholder { color: #a8a29e; } .ds-input:focus { border-color: transparent; box-shadow: 0 0 0 2px #a8a29e; }"
+    },
+    {
+      "name": "Course Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Dashboard course card: 2px course-color top strip, abbreviation pill, progress bar. Lifts on hover.",
+      "html": "<a class=\"ds-course-card\"><span class=\"ds-course-strip\"></span><div class=\"ds-course-body\"><div class=\"ds-course-head\"><h3 class=\"ds-course-name\">Programming Concepts</h3><span class=\"ds-course-pill\">CSC216</span></div><p class=\"ds-course-loc\">EB2 1231</p><div class=\"ds-course-meta\"><span>4 / 9 done</span><span>44%</span></div><div class=\"ds-progress-track\"><div class=\"ds-progress-fill\"></div></div></div></a>",
+      "css": ".ds-course-card { display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border: 1px solid #e8ddd0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-decoration: none; cursor: pointer; transition: box-shadow 150ms ease, border-color 150ms ease; font-family: 'DM Sans', system-ui, sans-serif; } .ds-course-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); border-color: #d4c8b8; } .ds-course-strip { height: 8px; width: 100%; background: #6393e1; } .ds-course-body { padding: 20px; } .ds-course-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; } .ds-course-name { margin: 0; font-size: 1rem; font-weight: 600; color: #292524; line-height: 1.375; } .ds-course-pill { flex-shrink: 0; font-size: 0.75rem; font-weight: 500; padding: 2px 6px; border-radius: 4px; background: rgba(99,147,225,0.25); color: #6393e1; } .ds-course-loc { margin: 4px 0 0; font-size: 0.75rem; color: #a8a29e; } .ds-course-meta { display: flex; justify-content: space-between; margin: 16px 0 6px; font-size: 0.75rem; color: #a8a29e; font-variant-numeric: tabular-nums; } .ds-progress-track { width: 100%; height: 6px; background: #f5f5f4; border-radius: 9999px; overflow: hidden; } .ds-progress-fill { width: 44%; height: 100%; background: #6393e1; border-radius: 9999px; transition: width 300ms ease; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Espresso sidebar nav row; amber background when active.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"/></svg>Dashboard</a><a class=\"ds-nav-item\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20\"/></svg>Courses</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 2px; width: 224px; padding: 12px 8px; background: #2c1f14; font-family: 'DM Sans', system-ui, sans-serif; } .ds-nav-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; font-size: 0.875rem; color: #c4a882; text-decoration: none; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; } .ds-nav-item:hover { background: #3d2b1f; color: #e8d5c0; } .ds-nav-item--active, .ds-nav-item--active:hover { background: #e2a53b; color: #1e1208; font-weight: 600; }"
+    },
+    {
+      "name": "Deadline Badge",
+      "kind": "chip",
+      "refersTo": "course-pill",
+      "description": "Urgency badge beside the human deadline word; semantic tint + text.",
+      "html": "<div class=\"ds-badge-row\"><span class=\"ds-badge ds-badge--overdue\">Overdue</span><span class=\"ds-badge ds-badge--tomorrow\">Tomorrow</span><span class=\"ds-badge ds-badge--week\">3 days</span></div>",
+      "css": ".ds-badge-row { display: flex; gap: 8px; font-family: 'DM Sans', system-ui, sans-serif; } .ds-badge { font-size: 0.75rem; font-weight: 500; padding: 2px 8px; border-radius: 4px; } .ds-badge--overdue { color: #b91c1c; background: #fee2e2; } .ds-badge--tomorrow { color: #c2410c; background: #ffedd5; } .ds-badge--week { color: #15803d; background: #dcfce7; }"
+    },
+    {
+      "name": "Tab Switcher",
+      "kind": "custom",
+      "refersTo": "button-ghost",
+      "description": "Segmented control; active tab gets a white pill with shadow.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab ds-tab--active\">This week</button><button class=\"ds-tab\">2 weeks</button><button class=\"ds-tab\">This month</button></div>",
+      "css": ".ds-tabs { display: inline-flex; align-items: center; gap: 4px; padding: 4px; background: #f5f5f4; border-radius: 8px; font-family: 'DM Sans', system-ui, sans-serif; } .ds-tab { font-size: 0.875rem; padding: 6px 12px; border: none; border-radius: 6px; background: transparent; color: #57534e; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; } .ds-tab:hover { background: rgba(231,229,228,0.7); } .ds-tab--active { background: #ffffff; color: #292524; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Warm Desk Lamp",
+    "overview": "Studeo is a dark espresso room with a single amber glow, and light falls only where the work is. The chrome — the sidebar, the divider lines, the muted labels — recedes into warm shadow. The content surface is a clean cream page, and the one accent color, Lamplight Amber, appears exactly where the student should act or look. Everything else is deliberately quiet. The feeling is calm, focused, and intentional: the app should lower a student's stress, not compete for their attention. The palette is committed to warmth without flooding it — warmth lives in the espresso sidebar, the amber accent, and the per-course color dots, never in a saturated background wash. Three themes (light cream, deep-brown dark, mid-brown warm) share one espresso-and-amber identity. Density is comfortable, carried entirely by one humanist sans (DM Sans) in three weights. The system rejects the corporate SaaS dashboard, the generic gray to-do app, loud gamified productivity, and the cluttered institutional LMS.",
+    "keyCharacteristics": [
+      "One accent (Lamplight Amber) used only for action, selection, and state — never decoration.",
+      "Cream content + espresso chrome + amber glow: a committed warm identity, not a tinted-neutral wash.",
+      "Single type family (DM Sans), tight rem scale, hierarchy by weight and size.",
+      "Per-course color is data, encoded as dots/pills/strips — it identifies a class, it never floods.",
+      "Flat surfaces with hairline borders and one soft shadow; depth comes from tonal layering.",
+      "Comfortable density with soft divide-y row separators; warm and tactile to use."
+    ],
+    "rules": [
+      { "name": "The One Lamp Rule", "body": "Lamplight Amber appears only where the user should act, what is currently selected, or a live state indicator. If amber is on screen as decoration, it is wrong. Its rarity is what makes it read as 'look here.'", "section": "colors" },
+      { "name": "The Color-Is-Data Rule", "body": "Per-course colors encode which class and nothing else. They are dots, pills, and 2px strips — never a card background, never a full-width fill. Status and urgency get their own semantic ramp; course color never doubles as either.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "DM Sans does every job. Introducing a second typeface — especially a display or serif face for 'personality' — breaks the calm and is prohibited. Personality comes from weight, spacing, and the amber accent.", "section": "typography" },
+      { "name": "The Tabular Numbers Rule", "body": "Any number that updates in place (counts, progress %, stat chips, timers) uses tabular-nums. Misaligned digits read as a bug in a tracking app.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest with at most shadow-sm. A stronger shadow is a response to state (hover on a clickable card, a modal lifting over the scrim) — never ambient decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep Lamplight Amber (#e2a53b) to one job per screen — the primary action or the active selection. Text on amber is always Amber Ink (#1e1208).",
+      "Do keep body text at the ink end of the ramp (espresso-ink / stone-body). The warm cream background makes muted browns the single likeliest contrast failure — hold body text to ≥4.5:1.",
+      "Do import every per-course color from src/renderer/lib/colors.ts. Never hardcode a course hex in a component.",
+      "Do carry one identity across all three themes (light / dark / warm) — same amber, same structure, only the browns shift.",
+      "Do use skeletons (animate-pulse) for loading and a friendly, encouraging empty state with a primary action on every screen.",
+      "Do use tabular-nums on every number that updates in place (counts, %, timers, stat chips).",
+      "Do reuse the shared INPUT_CLASS and existing row/card patterns instead of re-spelling Tailwind strings."
+    ],
+    "donts": [
+      "Don't build a corporate SaaS dashboard — no metric-tile cockpit, no enterprise-blue chrome, no charts-for-decoration.",
+      "Don't let it read as a generic gray to-do app — keep the warmth and considered hierarchy.",
+      "Don't add loud or gamified flourishes: no streaks, confetti, badges, or bright competing primaries.",
+      "Don't recreate a cluttered institutional LMS — keep it scannable, calm, and personal.",
+      "Don't flood any surface with a course color or use it as a card background. Color is data: dots, pills, and the single 2px card top-strip only.",
+      "Don't introduce a second typeface or a display/serif face. DM Sans does every job.",
+      "Don't use amber for input focus rings, decorative borders, or large fills — focus rings are the calm gray ring-stone-400.",
+      "Don't ship gradient text, decorative glassmorphism, a hero-metric template, or spinners-in-content.",
+      "Don't put shadow-md+ on static, non-interactive elements. Heavy shadow is a response to state only."
+    ]
+  }
+}

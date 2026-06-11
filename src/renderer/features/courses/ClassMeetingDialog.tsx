@@ -88,7 +88,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
           <h2 className="text-base font-semibold text-stone-800 dark:text-[#f0e0cc]">
             {isEditing ? 'Edit class time' : 'Add class time'}
           </h2>
-          <button onClick={onClose} className="text-stone-400 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
+          <button onClick={onClose} className="text-stone-500 dark:text-[#e0b870] hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
             <X size={18} />
           </button>
         </div>

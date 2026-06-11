@@ -6,10 +6,11 @@ import { useTerms } from '../../lib/queries/useTerms';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import CourseCard from './CourseCard';
 import CreateCourseDialog from './CreateCourseDialog';
+import QueryErrorState from '../../components/QueryErrorState';
 
 export default function CoursesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { data: courses, isLoading, isError } = useCourses();
+  const { data: courses, isLoading, isError, refetch } = useCourses();
   const { data: assignments } = useAssignments();
   const { data: terms = [] } = useTerms();
 
@@ -96,15 +97,13 @@ export default function CoursesPage() {
 
       {/* Error */}
       {isError && (
-        <p className="text-sm text-red-500">
-          Failed to load courses. Restart the app and try again.
-        </p>
+        <QueryErrorState title="Couldn't load your courses" onRetry={() => refetch()} />
       )}
 
       {/* Empty state */}
       {!isLoading && !isError && count === 0 && (
         <div className="text-center py-24">
-          <p className="text-stone-400 text-sm">No courses yet.</p>
+          <p className="text-stone-500 text-sm">No courses yet.</p>
           <button
             onClick={() => setIsDialogOpen(true)}
             className="mt-3 text-sm text-stone-500 dark:text-[#c4a882] underline hover:text-stone-700 transition-colors"

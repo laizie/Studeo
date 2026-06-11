@@ -37,7 +37,7 @@ export default function DashboardCourseCard({ course, total, completed }: Props)
 
         {/* Building */}
         {course.building && (
-          <p className="mt-1 text-xs text-stone-400 truncate">{course.building}</p>
+          <p className="mt-1 text-xs text-stone-500 truncate">{course.building}</p>
         )}
 
         {/* Progress section */}
@@ -45,10 +45,10 @@ export default function DashboardCourseCard({ course, total, completed }: Props)
           {total > 0 ? (
             <>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-stone-400">
+                <span className="text-xs text-stone-500">
                   {completed} / {total} done
                 </span>
-                <span className="text-xs text-stone-400">{pct}%</span>
+                <span className="text-xs text-stone-500">{pct}%</span>
               </div>
               {/* Progress bar */}
               <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
@@ -62,7 +62,7 @@ export default function DashboardCourseCard({ course, total, completed }: Props)
               </div>
             </>
           ) : (
-            <p className="text-xs text-stone-300">No assignments yet</p>
+            <p className="text-xs text-stone-500">No assignments yet</p>
           )}
         </div>
       </div>

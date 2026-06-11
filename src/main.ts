@@ -7,6 +7,7 @@ import { registerAssignmentHandlers } from './main/ipc/registerAssignmentHandler
 import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
 import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
+import { registerStudySessionHandlers } from './main/ipc/registerStudySessionHandlers';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
@@ -21,6 +22,7 @@ function registerIpcHandlers(): void {
   registerTaskHandlers();
   registerClassMeetingHandlers();
   registerTermHandlers();
+  registerStudySessionHandlers();
   registerSpotifyHandlers();
   registerAppleMusicHandlers();
 }

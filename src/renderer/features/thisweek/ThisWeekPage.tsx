@@ -9,6 +9,7 @@ import AssignmentRow from '../courses/AssignmentRow';
 import TaskRow from '../tasks/TaskRow';
 import AddAssignmentDialog from '../courses/AddAssignmentDialog';
 import AddTaskDialog from '../tasks/AddTaskDialog';
+import QueryErrorState from '../../components/QueryErrorState';
 import { usePageFiltersStore, type ThisWeekWindow } from '../../store/usePageFiltersStore';
 
 // ── Window types + bounds ─────────────────────────────────────────────────────
@@ -84,8 +85,8 @@ type DueItem =
 
 export default function ThisWeekPage() {
   const { data: courses } = useCourses();
-  const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
-  const { data: tasks,       isLoading: tasksLoading       } = useTasks();
+  const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
+  const { data: tasks,       isLoading: tasksLoading,       isError: tasksError,       refetch: refetchTasks       } = useTasks();
 
   const activeWindow        = usePageFiltersStore(s => s.thisWeekWindow);
   const setActiveWindow     = usePageFiltersStore(s => s.setThisWeekWindow);
@@ -165,7 +166,7 @@ export default function ThisWeekPage() {
           <h1 className="text-2xl font-semibold text-stone-800 dark:text-[#f0e0cc]">
             {windowConfig.title}
           </h1>
-          <p className="mt-0.5 text-sm text-stone-400 dark:text-[#e0b870]">
+          <p className="mt-0.5 text-sm text-stone-500 dark:text-[#e0b870]">
             {windowConfig.subtitle}
           </p>
         </div>
@@ -194,7 +195,7 @@ export default function ThisWeekPage() {
               onChange={e => setShowCompleted(e.target.checked)}
               className="accent-stone-600"
             />
-            <span className="text-sm text-stone-500">Show completed</span>
+            <span className="text-sm text-stone-500 dark:text-[#c4a882]">Show completed</span>
           </label>
         </div>
       </div>
@@ -217,6 +218,14 @@ export default function ThisWeekPage() {
         ))}
       </div>
 
+      {/* Error — must never render as the empty state */}
+      {(assignmentsError || (showTasks && tasksError)) && (
+        <QueryErrorState
+          title="Couldn't load this week"
+          onRetry={() => { refetchAssignments(); refetchTasks(); }}
+        />
+      )}
+
       {/* Loading */}
       {isLoading && (
         <div className="space-y-2 animate-pulse">
@@ -227,9 +236,9 @@ export default function ThisWeekPage() {
       )}
 
       {/* Empty */}
-      {!isLoading && relevant.length === 0 && (
+      {!isLoading && !assignmentsError && !(showTasks && tasksError) && relevant.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-stone-400 text-sm">
+          <p className="text-stone-500 text-sm">
             {showCompleted
               ? `Nothing due ${windowConfig.title.toLowerCase()}.`
               : `Nothing due ${windowConfig.title.toLowerCase()} — or everything is done.`}
@@ -237,7 +246,7 @@ export default function ThisWeekPage() {
           {!showCompleted && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-stone-400 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-stone-500 dark:text-[#e0b870] underline hover:text-stone-600 transition-colors"
             >
               Show completed
             </button>
@@ -252,7 +261,7 @@ export default function ThisWeekPage() {
             <div key={label} className="bg-white dark:bg-[#553311] warm:bg-[#7e5a38] border border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
                 'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-[#e8ddd0] dark:border-[#442918] warm:border-[#6e4c30] bg-stone-50 dark:bg-[#664433] warm:bg-[#8e6a48]',
-                label === 'Overdue' ? 'text-red-400' : 'text-stone-400 dark:text-[#c4a882]'
+                label === 'Overdue' ? 'text-red-400' : 'text-stone-500 dark:text-[#c4a882]'
               )}>
                 {label}
               </div>
@@ -281,7 +290,7 @@ export default function ThisWeekPage() {
 
       {/* Stats footer */}
       {!isLoading && relevant.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] flex gap-4 text-xs text-stone-400 dark:text-[#e0b870]">
+        <div className="mt-6 pt-4 border-t border-stone-100 dark:border-[#442918] warm:border-[#6e4c30] flex gap-4 text-xs text-stone-500 dark:text-[#e0b870]">
           <span>{completedCount} completed</span>
           <span>{remainingCount} remaining</span>
           {!showCompleted && (

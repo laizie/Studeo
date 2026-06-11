@@ -12,6 +12,8 @@ import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useTasks } from '../../lib/queries/useTasks';
 import { parseDateLocal } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task } from '../../../shared/types';
+import { contrastTextColor } from '../../lib/colors';
+import QueryErrorState from '../../components/QueryErrorState';
 import { cn } from '../../lib/utils';
 
 // ── Localizer ────────────────────────────────────────────────────────────────
@@ -101,10 +103,12 @@ type Mode = CalendarMode;
 
 export default function CalendarPage() {
   const navigate = useNavigate();
-  const { data: courses }     = useCourses();
-  const { data: assignments }  = useAssignments();
-  const { data: allMeetings }  = useClassMeetings();
+  const { data: courses,     isError: coursesError,     refetch: refetchCourses     } = useCourses();
+  const { data: assignments, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
+  const { data: allMeetings, isError: meetingsError,    refetch: refetchMeetings    } = useClassMeetings();
   const { data: tasks }        = useTasks();
+
+  const hasError = coursesError || assignmentsError || meetingsError;
 
   const mode                = usePageFiltersStore(s => s.calendarMode);
   const setMode             = usePageFiltersStore(s => s.setCalendarMode);
@@ -197,11 +201,14 @@ export default function CalendarPage() {
   const eventPropGetter = useCallback((event: CalEvent) => {
     if (event.resource.type === 'task') {
       const done = event.resource.task.status === 'completed';
+      const bg = done ? '#d6d3d1' : '#7c6abf';
       return {
         style: {
-          backgroundColor: done ? '#d6d3d1' : '#7c6abf',
+          backgroundColor: bg,
           borderColor:     done ? '#a8a29e' : '#6b59b0',
-          color: 'white',
+          // Text color follows the chip background — pastel course colors and
+          // the completed gray are unreadable with hard-coded white.
+          color: contrastTextColor(bg),
           borderRadius: '4px',
           opacity: done ? 0.65 : 1,
           fontSize: '0.75rem',
@@ -212,11 +219,12 @@ export default function CalendarPage() {
     const isCompleted =
       event.resource.type === 'assignment' &&
       event.resource.assignment.status === 'completed';
+    const bg = isCompleted ? '#d6d3d1' : color;
     return {
       style: {
-        backgroundColor: isCompleted ? '#d6d3d1' : color,
+        backgroundColor: bg,
         borderColor:     isCompleted ? '#a8a29e' : color,
-        color: 'white',
+        color: contrastTextColor(bg),
         borderRadius: '4px',
         opacity: isCompleted ? 0.65 : 1,
         fontSize: '0.75rem',
@@ -274,7 +282,16 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* Error — a failed load must not render as an empty calendar */}
+      {hasError && (
+        <QueryErrorState
+          title="Couldn't load your calendar"
+          onRetry={() => { refetchCourses(); refetchAssignments(); refetchMeetings(); }}
+        />
+      )}
+
       {/* Calendar — flex-1 so it fills the remaining height */}
+      {!hasError && (
       <div className="flex-1 min-h-0">
         <Calendar<CalEvent>
           localizer={localizer}
@@ -293,6 +310,7 @@ export default function CalendarPage() {
           showMultiDayTimes
         />
       </div>
+      )}
     </div>
   );
 }

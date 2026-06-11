@@ -54,6 +54,8 @@ interface TimerState {
   autoAdvance: boolean;
   focusSecs: number;
   breakSecs: number;
+  /** Wall-clock ms when the running phase ends; null when paused/stopped. */
+  endsAt: number | null;
 
   setPhase: (phase: Phase) => void;
   start: () => void;
@@ -75,45 +77,62 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   autoAdvance: false,
   focusSecs:   initFocusSecs,
   breakSecs:   initBreakSecs,
+  endsAt:      null,
 
   setPhase: (phase) => {
     const { focusSecs, breakSecs } = get();
-    set({ phase, isRunning: false, timeLeft: phaseSecs(phase, focusSecs, breakSecs) });
+    set({ phase, isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs) });
   },
 
-  start: () => set({ isRunning: true }),
-  pause: () => set({ isRunning: false }),
+  // Anchor a wall-clock end time so the countdown survives navigation and
+  // self-corrects after the OS throttles background timers (no drift).
+  start: () => set({ isRunning: true, endsAt: Date.now() + get().timeLeft * 1000 }),
+  pause: () => {
+    const { endsAt, timeLeft } = get();
+    const remaining = endsAt != null ? Math.max(0, Math.round((endsAt - Date.now()) / 1000)) : timeLeft;
+    set({ isRunning: false, timeLeft: remaining, endsAt: null });
+  },
 
   reset: () => {
     const { phase, focusSecs, breakSecs } = get();
-    set({ isRunning: false, timeLeft: phaseSecs(phase, focusSecs, breakSecs) });
+    set({ isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs) });
   },
 
   toggleAutoAdvance: () => set(s => ({ autoAdvance: !s.autoAdvance })),
 
+  // Driven once a second from the app shell. Remaining time is derived from
+  // endsAt rather than decremented, so a missed tick can't accumulate drift.
   tick: () => {
-    const { timeLeft, phase, autoAdvance, focusSecs, breakSecs } = get();
-    if (timeLeft <= 1) {
-      playChime();
-      sendNotification(phase);
-      const next: Phase = phase === 'focus' ? 'short_break' : 'focus';
-      set({ phase: next, timeLeft: phaseSecs(next, focusSecs, breakSecs), isRunning: autoAdvance });
-    } else {
-      set({ timeLeft: timeLeft - 1 });
+    const { isRunning, endsAt, phase, autoAdvance, focusSecs, breakSecs } = get();
+    if (!isRunning || endsAt == null) return;
+    const remaining = Math.round((endsAt - Date.now()) / 1000);
+    if (remaining > 0) {
+      set({ timeLeft: remaining });
+      return;
     }
+    playChime();
+    sendNotification(phase);
+    const next: Phase = phase === 'focus' ? 'short_break' : 'focus';
+    const nextSecs = phaseSecs(next, focusSecs, breakSecs);
+    set({
+      phase: next,
+      timeLeft: nextSecs,
+      isRunning: autoAdvance,
+      endsAt: autoAdvance ? Date.now() + nextSecs * 1000 : null,
+    });
   },
 
   setFocusMins: (mins) => {
     localStorage.setItem('studeo:focusMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
-    set({ focusSecs: secs, ...(phase === 'focus' ? { timeLeft: secs, isRunning: false } : {}) });
+    set({ focusSecs: secs, ...(phase === 'focus' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
 
   setBreakMins: (mins) => {
     localStorage.setItem('studeo:breakMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
-    set({ breakSecs: secs, ...(phase === 'short_break' ? { timeLeft: secs, isRunning: false } : {}) });
+    set({ breakSecs: secs, ...(phase === 'short_break' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
 }));

@@ -80,6 +80,13 @@ export interface StudySession {
 // Separate from the domain models so we never accidentally pass DB row shapes
 // as creation inputs (different fields, no id/created_at yet).
 
+export interface CreateStudySessionInput {
+  startedAt: string;        // ISO timestamp (UTC) — when the session began
+  durationSeconds: number;
+  kind: 'focus' | 'short_break' | 'long_break';
+  courseId?: string;
+}
+
 export interface CreateCourseInput {
   name: string;
   abbreviation: string;
@@ -241,6 +248,10 @@ export const IPC = {
     UPDATE: 'terms:update',
     DELETE: 'terms:delete',
   },
+  STUDY_SESSIONS: {
+    LIST:   'study_sessions:list',
+    CREATE: 'study_sessions:create',
+  },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
     PLAYBACK:       'apple_music:playback',
@@ -304,6 +315,10 @@ export interface WindowApi {
     create(input: CreateTermInput): Promise<Term>;
     update(id: string, input: UpdateTermInput): Promise<Term>;
     delete(id: string): Promise<void>;
+  };
+  studySessions: {
+    list(): Promise<StudySession[]>;
+    create(input: CreateStudySessionInput): Promise<StudySession>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;
