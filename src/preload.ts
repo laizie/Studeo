@@ -17,8 +17,11 @@ import type {
   UpdateAssignmentInput,
   CreateTaskInput,
   UpdateTaskInput,
+  CreateSubtaskInput,
+  UpdateSubtaskInput,
   CreateClassMeetingInput,
   UpdateClassMeetingInput,
+  CreateMeetingExceptionInput,
   CreateTermInput,
   UpdateTermInput,
   CreateStudySessionInput,
@@ -50,11 +53,24 @@ const api: WindowApi = {
     delete: (id)                           => ipcRenderer.invoke(IPC.TASKS.DELETE, id),
   },
 
+  subtasks: {
+    list:   (filters?: { assignmentId?: string })  => ipcRenderer.invoke(IPC.SUBTASKS.LIST, filters),
+    create: (input: CreateSubtaskInput)            => ipcRenderer.invoke(IPC.SUBTASKS.CREATE, input),
+    update: (id, input: UpdateSubtaskInput)        => ipcRenderer.invoke(IPC.SUBTASKS.UPDATE, id, input),
+    delete: (id)                                   => ipcRenderer.invoke(IPC.SUBTASKS.DELETE, id),
+  },
+
   classMeetings: {
     list:   (filters?: { courseId?: string })            => ipcRenderer.invoke(IPC.CLASS_MEETINGS.LIST, filters),
     create: (input: CreateClassMeetingInput)             => ipcRenderer.invoke(IPC.CLASS_MEETINGS.CREATE, input),
     update: (id, input: UpdateClassMeetingInput)         => ipcRenderer.invoke(IPC.CLASS_MEETINGS.UPDATE, id, input),
     delete: (id)                                         => ipcRenderer.invoke(IPC.CLASS_MEETINGS.DELETE, id),
+  },
+
+  meetingExceptions: {
+    list:   (filters?: { meetingId?: string })       => ipcRenderer.invoke(IPC.MEETING_EXCEPTIONS.LIST, filters),
+    create: (input: CreateMeetingExceptionInput)     => ipcRenderer.invoke(IPC.MEETING_EXCEPTIONS.CREATE, input),
+    delete: (id)                                     => ipcRenderer.invoke(IPC.MEETING_EXCEPTIONS.DELETE, id),
   },
 
   terms: {

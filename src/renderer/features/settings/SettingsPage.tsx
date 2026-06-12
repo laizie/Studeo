@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Keyboard, BookOpen, Timer, Layers, ListTodo, Brain, GraduationCap, Trash2, Plus, Music, Check, Bell } from 'lucide-react';
+import { Sun, Keyboard, Timer, Layers, ListTodo, GraduationCap, Trash2, Plus, Music, Check, Bell } from 'lucide-react';
 import { useSettingsStore, type Theme } from '../../store/useSettingsStore';
 import type { Term } from '../../../shared/types';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -8,7 +8,15 @@ import { useTerms, useCreateTerm, useDeleteTerm } from '../../lib/queries/useTer
 import { useSpotifyStatus } from '../../lib/queries/useSpotify';
 import { useAppleMusicStatus } from '../../lib/queries/useAppleMusic';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { parseDateLocal } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
+
+// Semester ranges span months and often years — show "Aug 18, 2026", never raw ISO.
+function formatTermDate(dateStr: string): string {
+  return parseDateLocal(dateStr).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
+}
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
@@ -33,7 +41,7 @@ function SettingsRow({ icon, label, description, children }: {
   icon: React.ReactNode;
   label: string;
   description?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between px-5 py-4">
@@ -46,7 +54,7 @@ function SettingsRow({ icon, label, description, children }: {
           )}
         </div>
       </div>
-      <div className="shrink-0 ml-4">{children}</div>
+      {children && <div className="shrink-0 ml-4">{children}</div>}
     </div>
   );
 }
@@ -68,8 +76,9 @@ function PillGroup<T extends number>({
         <button
           key={opt}
           onClick={() => onChange(opt)}
+          aria-pressed={value === opt}
           className={cn(
-            'px-3 py-1 text-sm rounded-md transition-colors',
+            'px-3 py-1 text-sm rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted',
             value === opt
               ? 'bg-surface text-ink shadow-sm font-medium'
               : 'text-ink-soft hover:bg-surface-hi'
@@ -79,6 +88,27 @@ function PillGroup<T extends number>({
         </button>
       ))}
     </div>
+  );
+}
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+        // Off track must contrast with the card it sits on — bg-surface here
+        // would vanish against the bg-surface card in dark/warm themes.
+        checked ? 'bg-accent' : 'bg-stone-300 dark:bg-inset'
+      )}
+    >
+      <span className={cn(
+        'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
+        checked ? 'translate-x-[18px]' : 'translate-x-0.5'
+      )} />
+    </button>
   );
 }
 
@@ -238,8 +268,9 @@ function ThemePicker() {
         <button
           key={opt.id}
           onClick={() => setTheme(opt.id)}
+          aria-pressed={theme === opt.id}
           className={cn(
-            'relative text-left p-4 rounded-xl border-2 transition-all',
+            'relative text-left p-4 rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted',
             theme === opt.id
               ? 'border-accent bg-accent/5'
               : 'border-line hover:border-stone-300 dark:hover:border-line'
@@ -274,6 +305,8 @@ export default function SettingsPage() {
   const {
     classRemindersEnabled, setClassRemindersEnabled,
     reminderLeadMinutes, setReminderLeadMinutes,
+    dueDigestEnabled, setDueDigestEnabled,
+    dueDigestTime, setDueDigestTime,
   } = useSettingsStore();
 
   const focusMins     = focusSecs / 60;
@@ -289,14 +322,21 @@ export default function SettingsPage() {
   const [newTermEnd,   setNewTermEnd]   = useState('');
   const [deletingTerm, setDeletingTerm] = useState<Term | null>(null);
 
+  // ISO date strings compare correctly as plain strings.
+  const termDatesInvalid = !!newTermStart && !!newTermEnd && newTermEnd < newTermStart;
+
   async function handleAddTerm(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTermName.trim()) return;
-    await createTerm.mutateAsync({
-      name:      newTermName.trim(),
-      startDate: newTermStart || undefined,
-      endDate:   newTermEnd   || undefined,
-    });
+    if (!newTermName.trim() || termDatesInvalid) return;
+    try {
+      await createTerm.mutateAsync({
+        name:      newTermName.trim(),
+        startDate: newTermStart || undefined,
+        endDate:   newTermEnd   || undefined,
+      });
+    } catch {
+      return; // keep the user's input; createTerm.isError renders the message
+    }
     setNewTermName('');
     setNewTermStart('');
     setNewTermEnd('');
@@ -311,10 +351,8 @@ export default function SettingsPage() {
       <div className="mb-8">
         <SectionHeading>Appearance</SectionHeading>
         <SettingsCard>
-          <SettingsRow icon={<Sun size={17} />} label="Theme" description="Choose your preferred color theme">
-            <span />
-          </SettingsRow>
-          <div className="px-4 pb-4">
+          <SettingsRow icon={<Sun size={17} />} label="Theme" description="Choose your preferred color theme" />
+          <div className="px-5 pb-4">
             <ThemePicker />
           </div>
         </SettingsCard>
@@ -363,29 +401,16 @@ export default function SettingsPage() {
         </SettingsCard>
       </div>
 
-      {/* ── Class reminders ───────────────────────────────────────────────── */}
+      {/* ── Reminders ─────────────────────────────────────────────────────── */}
       <div className="mb-8">
-        <SectionHeading>Class reminders</SectionHeading>
+        <SectionHeading>Reminders</SectionHeading>
         <SettingsCard>
           <SettingsRow
             icon={<Bell size={17} />}
             label="Remind me before class"
             description="Desktop notification before each scheduled class time"
           >
-            <button
-              role="switch"
-              aria-checked={classRemindersEnabled}
-              onClick={() => setClassRemindersEnabled(!classRemindersEnabled)}
-              className={cn(
-                'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
-                classRemindersEnabled ? 'bg-accent' : 'bg-stone-300 dark:bg-surface'
-              )}
-            >
-              <span className={cn(
-                'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
-                classRemindersEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
-              )} />
-            </button>
+            <Toggle checked={classRemindersEnabled} onChange={setClassRemindersEnabled} />
           </SettingsRow>
           {classRemindersEnabled && (
             <SettingsRow
@@ -398,6 +423,28 @@ export default function SettingsPage() {
                 value={reminderLeadMinutes}
                 onChange={setReminderLeadMinutes}
                 suffix=" min"
+              />
+            </SettingsRow>
+          )}
+          <SettingsRow
+            icon={<Bell size={17} />}
+            label="Daily due-date digest"
+            description="One notification listing what's due today and tomorrow"
+          >
+            <Toggle checked={dueDigestEnabled} onChange={setDueDigestEnabled} />
+          </SettingsRow>
+          {dueDigestEnabled && (
+            <SettingsRow
+              icon={<Timer size={17} />}
+              label="Digest time"
+              description="When the daily digest arrives"
+            >
+              <input
+                type="time"
+                value={dueDigestTime}
+                onChange={e => setDueDigestTime(e.target.value)}
+                aria-label="Daily digest time"
+                className="px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted"
               />
             </SettingsRow>
           )}
@@ -420,7 +467,11 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-ink-soft">{t.name}</p>
                 {(t.start_date || t.end_date) && (
                   <p className="text-xs text-muted mt-0.5">
-                    {t.start_date ?? '?'} → {t.end_date ?? '?'}
+                    {t.start_date && t.end_date
+                      ? `${formatTermDate(t.start_date)} – ${formatTermDate(t.end_date)}`
+                      : t.start_date
+                        ? `From ${formatTermDate(t.start_date)}`
+                        : `Until ${formatTermDate(t.end_date!)}`}
                   </p>
                 )}
               </div>
@@ -446,31 +497,46 @@ export default function SettingsPage() {
                 value={newTermName}
                 onChange={e => setNewTermName(e.target.value)}
                 placeholder="e.g. Fall 2026"
-                className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink placeholder:text-stone-500 dark:placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
+                aria-label="Semester name"
+                className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink placeholder:text-stone-500 dark:placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted"
               />
               <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={newTermStart}
-                  onChange={e => setNewTermStart(e.target.value)}
-                  title="Start date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
-                />
-                <input
-                  type="date"
-                  value={newTermEnd}
-                  onChange={e => setNewTermEnd(e.target.value)}
-                  title="End date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
-                />
+                <label className="flex-1">
+                  <span className="block text-xs text-muted mb-1">Starts (optional)</span>
+                  <input
+                    type="date"
+                    value={newTermStart}
+                    onChange={e => setNewTermStart(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted"
+                  />
+                </label>
+                <label className="flex-1">
+                  <span className="block text-xs text-muted mb-1">Ends (optional)</span>
+                  <input
+                    type="date"
+                    value={newTermEnd}
+                    onChange={e => setNewTermEnd(e.target.value)}
+                    className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted"
+                  />
+                </label>
               </div>
+              {termDatesInvalid && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  The end date is before the start date.
+                </p>
+              )}
+              {createTerm.isError && (
+                <p className="text-xs text-red-500 dark:text-red-400">
+                  Something went wrong — your semester wasn't saved. Please try again.
+                </p>
+              )}
               <button
                 type="submit"
-                disabled={!newTermName.trim() || createTerm.isPending}
+                disabled={!newTermName.trim() || termDatesInvalid || createTerm.isPending}
                 className="flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus size={13} />
-                Add semester
+                {createTerm.isPending ? 'Adding…' : 'Add semester'}
               </button>
             </div>
           </form>
@@ -489,32 +555,17 @@ export default function SettingsPage() {
             leaving what you're doing. The dialog remembers which tab (Assignment vs Task) you
             last used.
           </TipCard>
-          <TipCard icon={<Layers size={16} />} title="Batch import from your syllabus">
-            On any course's detail page, click <strong>Batch add</strong> next to the Add button.
-            Paste your full syllabus text — Studeo will extract assignment names, types, and
-            due dates automatically. Review and edit in the grid before saving.
+          <TipCard icon={<Layers size={16} />} title="Enter a whole semester in minutes">
+            On any course's detail page, click <strong>Batch add</strong>. Paste your syllabus
+            text to extract names, types, and due dates automatically — or type one row like
+            "Homework 1" and use the <strong>repeat</strong> button to generate the weekly
+            series through the end of the term.
           </TipCard>
-          <TipCard icon={<BookOpen size={16} />} title="Mark progress with one click">
-            Click the circle icon on the left of any assignment or task row to mark it done —
-            click again to undo. Completed items fade and are hidden by default to keep your
-            lists clean.
-          </TipCard>
-          <TipCard icon={<Timer size={16} />} title="Study with the Pomodoro timer">
-            Head to Study, pick a focus length, and start. Paste a Spotify or Apple Music
-            playlist URL to have music alongside your timer. When a session ends you'll get
-            a desktop notification — make sure to allow notifications when prompted.
-          </TipCard>
-          <TipCard icon={<Brain size={16} />} title="Try different study techniques">
-            The Technique selector on the Study page offers three research-backed methods:
-            <strong> Pomodoro</strong> (25/5 — great for everyday tasks),
-            <strong> 52/17</strong> (longer deep focus — ideal for complex problems), and
-            <strong> Deep Work</strong> (90/20 — full ultradian rhythm blocks for serious study).
-            Switch to <strong>Custom</strong> to set your own durations.
-          </TipCard>
-          <TipCard icon={<GraduationCap size={16} />} title="Organise courses by semester">
-            Create semesters in the <strong>Semesters</strong> section above, then assign each course to one when creating it.
-            The Dashboard and Courses pages will auto-select the current semester (matched by date) and only show relevant courses.
-            Switch to <strong>All</strong> any time to see every course across all semesters.
+          <TipCard icon={<GraduationCap size={16} />} title="Track your grade as scores come back">
+            Edit an assignment to record what you earned ("18 out of 20"), and set per-type
+            weights in the <strong>Grade weights</strong> card on the course page. Your current
+            standing shows on the course card and header. Big assignment? Use the checklist
+            icon on its row to break it into steps.
           </TipCard>
           <TipCard icon={<ListTodo size={16} />} title="Build a Focus List for your session">
             On the Study page, click <strong>Add</strong> next to "Today's Focus List" to pick

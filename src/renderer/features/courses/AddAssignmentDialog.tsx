@@ -25,6 +25,9 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const [type, setType]       = useState<AssignmentType>('Assignment');
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes]     = useState('');
+  // Kept as strings so the inputs can be empty; parsed on submit.
+  const [score, setScore]           = useState('');
+  const [pointsPossible, setPointsPossible] = useState('');
 
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
@@ -38,11 +41,15 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
       setType(assignment.type);
       setDueDate(assignment.due_date.slice(0, 10)); // strip any time component → YYYY-MM-DD
       setNotes(assignment.notes ?? '');
+      setScore(assignment.score?.toString() ?? '');
+      setPointsPossible(assignment.points_possible?.toString() ?? '');
     } else {
       setName('');
       setType('Assignment');
       setDueDate('');
       setNotes('');
+      setScore('');
+      setPointsPossible('');
     }
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, assignment]);
@@ -54,9 +61,19 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // A grade needs both halves ("18 out of 20"); one half alone is ignored.
+  const gradeComplete = score !== '' && pointsPossible !== '';
+  const gradeInvalid =
+    gradeComplete && (Number(score) < 0 || Number(pointsPossible) <= 0 || isNaN(Number(score)) || isNaN(Number(pointsPossible)));
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !dueDate) return;
+    if (!name.trim() || !dueDate || gradeInvalid) return;
+
+    const gradeFields = {
+      score:          gradeComplete ? Number(score) : null,
+      pointsPossible: gradeComplete ? Number(pointsPossible) : null,
+    };
 
     if (isEditing) {
       await updateAssignment.mutateAsync({
@@ -66,6 +83,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           type,
           dueDate,
           notes: notes.trim() || null,
+          ...gradeFields,
         },
       });
     } else {
@@ -75,6 +93,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
         type,
         dueDate,
         notes: notes.trim() || undefined,
+        ...gradeFields,
       });
     }
 
@@ -143,6 +162,41 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1">
+              Grade
+              <span className="ml-1 text-stone-500 font-normal">(optional — once it's returned)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={score}
+                onChange={(e) => setScore(e.target.value)}
+                placeholder="Earned"
+                min={0}
+                step="any"
+                aria-label="Points earned"
+                className={INPUT_CLASS}
+              />
+              <span className="text-sm text-muted shrink-0">out of</span>
+              <input
+                type="number"
+                value={pointsPossible}
+                onChange={(e) => setPointsPossible(e.target.value)}
+                placeholder="Possible"
+                min={0}
+                step="any"
+                aria-label="Points possible"
+                className={INPUT_CLASS}
+              />
+            </div>
+            {gradeInvalid && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                Points possible must be more than 0 (and earned can't be negative).
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink-soft mb-1">
               Notes
               <span className="ml-1 text-stone-500 font-normal">(optional)</span>
             </label>
@@ -169,7 +223,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             </button>
             <button
               type="submit"
-              disabled={!name.trim() || !dueDate || isPending}
+              disabled={!name.trim() || !dueDate || gradeInvalid || isPending}
               className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add assignment'}

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ChevronDown, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ChevronDown, FileText, Repeat } from 'lucide-react';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useCreateAssignments } from '../../lib/queries/useAssignments';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { parseSyllabus } from '../../../shared/syllabusParser';
+import { generateRepeats } from '../../../shared/repeat';
 import { cn } from '../../lib/utils';
 
 // ── Row type ──────────────────────────────────────────────────────────────────
@@ -45,6 +46,11 @@ export default function BatchAddPage() {
   const [saving, setSaving]         = useState(false);
   const [saveError, setSaveError]   = useState('');
 
+  // Repeat panel: which row it's open for, and its settings.
+  const [repeatFor, setRepeatFor]     = useState<string | null>(null);
+  const [repeatUntil, setRepeatUntil] = useState('');
+  const [repeatWeeks, setRepeatWeeks] = useState(1);
+
   // Map of row id → name input element, used for keyboard focus management.
   const nameRefs = useRef<Record<string, HTMLInputElement | null>>({});
   // When non-null, focus this row's name input on the next render.
@@ -76,6 +82,7 @@ export default function BatchAddPage() {
   }
 
   function removeRow(id: string) {
+    if (repeatFor === id) setRepeatFor(null);
     setRows(prev => {
       if (prev.length === 1) {
         // Reset to one blank row rather than leaving an empty grid.
@@ -85,6 +92,25 @@ export default function BatchAddPage() {
       }
       return prev.filter(r => r.id !== id);
     });
+  }
+
+  // ── Repeat ────────────────────────────────────────────────────────────────
+
+  function toggleRepeat(id: string) {
+    setRepeatFor(prev => (prev === id ? null : id));
+  }
+
+  function handleGenerateRepeats(row: Row) {
+    const extra = generateRepeats(row.name, row.dueDate, repeatUntil, repeatWeeks);
+    if (extra.length === 0) return;
+    setRows(prev => {
+      const idx = prev.findIndex(r => r.id === row.id);
+      const next = [...prev];
+      next.splice(idx + 1, 0, ...extra.map(o => makeRow(o.name, row.type, o.dueDate)));
+      return next;
+    });
+    setRepeatFor(null);
+    setRepeatUntil('');
   }
 
   // ── Keyboard navigation ───────────────────────────────────────────────────
@@ -261,7 +287,7 @@ export default function BatchAddPage() {
       {/* ── Grid ───────────────────────────────────────────────────────── */}
       <div className="border border-line rounded-xl overflow-hidden mb-4">
         {/* Column headers */}
-        <div className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 bg-inset border-b border-line px-4 py-2.5">
+        <div className="grid grid-cols-[1fr_150px_160px_64px] gap-x-2 bg-inset border-b border-line px-4 py-2.5">
           <span className="text-xs font-medium text-muted">Assignment name</span>
           <span className="text-xs font-medium text-muted">Type</span>
           <span className="text-xs font-medium text-muted">Due date</span>
@@ -270,46 +296,101 @@ export default function BatchAddPage() {
 
         {/* Data rows */}
         <div className="divide-y divide-line">
-          {rows.map((row, idx) => (
-            <div
-              key={row.id}
-              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-inset hover:bg-surface-hi/60 transition-colors"
-            >
-              <input
-                ref={el => { nameRefs.current[row.id] = el; }}
-                type="text"
-                value={row.name}
-                onChange={e => updateRow(row.id, 'name', e.target.value)}
-                onKeyDown={e => handleNameKey(e, row.id)}
-                placeholder={`Assignment ${idx + 1}`}
-                className={INPUT}
-              />
-              <select
-                value={row.type}
-                onChange={e => updateRow(row.id, 'type', e.target.value as AssignmentType)}
-                className={INPUT}
-              >
-                {ASSIGNMENT_TYPES.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-              <input
-                type="date"
-                value={row.dueDate}
-                onChange={e => updateRow(row.id, 'dueDate', e.target.value)}
-                onKeyDown={e => handleDateKey(e, row.id)}
-                className={cn(INPUT, !row.dueDate && row.name && 'border-amber-300 dark:border-amber-700')}
-              />
-              <button
-                onClick={() => removeRow(row.id)}
-                className="p-1 text-muted hover:text-red-400 dark:hover:text-red-400 rounded transition-colors"
-                title="Remove row"
-                tabIndex={-1}
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
+          {rows.map((row, idx) => {
+            const repeatOpen = repeatFor === row.id;
+            const repeatPreview = repeatOpen
+              ? generateRepeats(row.name, row.dueDate, repeatUntil, repeatWeeks)
+              : [];
+            return (
+              <div key={row.id}>
+                <div className="grid grid-cols-[1fr_150px_160px_64px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-inset hover:bg-surface-hi/60 transition-colors">
+                  <input
+                    ref={el => { nameRefs.current[row.id] = el; }}
+                    type="text"
+                    value={row.name}
+                    onChange={e => updateRow(row.id, 'name', e.target.value)}
+                    onKeyDown={e => handleNameKey(e, row.id)}
+                    placeholder={`Assignment ${idx + 1}`}
+                    className={INPUT}
+                  />
+                  <select
+                    value={row.type}
+                    onChange={e => updateRow(row.id, 'type', e.target.value as AssignmentType)}
+                    className={INPUT}
+                  >
+                    {ASSIGNMENT_TYPES.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={row.dueDate}
+                    onChange={e => updateRow(row.id, 'dueDate', e.target.value)}
+                    onKeyDown={e => handleDateKey(e, row.id)}
+                    className={cn(INPUT, !row.dueDate && row.name && 'border-amber-300 dark:border-amber-700')}
+                  />
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => toggleRepeat(row.id)}
+                      className={cn(
+                        'p-1 rounded transition-colors',
+                        repeatOpen ? 'text-accent' : 'text-muted hover:text-accent'
+                      )}
+                      title="Repeat this assignment weekly"
+                      aria-expanded={repeatOpen}
+                      tabIndex={-1}
+                    >
+                      <Repeat size={13} />
+                    </button>
+                    <button
+                      onClick={() => removeRow(row.id)}
+                      className="p-1 text-muted hover:text-red-400 dark:hover:text-red-400 rounded transition-colors"
+                      title="Remove row"
+                      tabIndex={-1}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Repeat panel — expands the row into a series */}
+                {repeatOpen && (
+                  <div className="flex items-center gap-3 flex-wrap px-4 py-3 bg-inset border-t border-line">
+                    <span className="text-xs text-muted">Repeat</span>
+                    <select
+                      value={repeatWeeks}
+                      onChange={e => setRepeatWeeks(Number(e.target.value))}
+                      className={cn(INPUT, 'w-auto')}
+                    >
+                      <option value={1}>every week</option>
+                      <option value={2}>every 2 weeks</option>
+                    </select>
+                    <span className="text-xs text-muted">until</span>
+                    <input
+                      type="date"
+                      value={repeatUntil}
+                      onChange={e => setRepeatUntil(e.target.value)}
+                      className={cn(INPUT, 'w-auto')}
+                    />
+                    <button
+                      onClick={() => handleGenerateRepeats(row)}
+                      disabled={repeatPreview.length === 0}
+                      className="px-3 py-1.5 text-xs bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {repeatPreview.length > 0
+                        ? `Add ${repeatPreview.length} more`
+                        : 'Add repeats'}
+                    </button>
+                    {(!row.name.trim() || !row.dueDate) && (
+                      <span className="text-xs text-amber-600 dark:text-amber-400">
+                        Fill in this row's name and due date first.
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Add row */}

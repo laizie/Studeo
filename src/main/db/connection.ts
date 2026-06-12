@@ -5,6 +5,9 @@ import { app } from 'electron';
 // Vite inlines these .sql files as strings at build time (?raw suffix).
 // This means the SQL always travels with the bundle — no separate file copying needed.
 import migration001 from './migrations/001_initial.sql?raw';
+import migration002 from './migrations/002_meeting_exceptions.sql?raw';
+import migration003 from './migrations/003_subtasks.sql?raw';
+import migration004 from './migrations/004_grades.sql?raw';
 
 let db: DatabaseSync | null = null;
 
@@ -34,6 +37,9 @@ export function initDb(): void {
 
 const MIGRATIONS: { name: string; sql: string }[] = [
   { name: '001_initial.sql', sql: migration001 },
+  { name: '002_meeting_exceptions.sql', sql: migration002 },
+  { name: '003_subtasks.sql', sql: migration003 },
+  { name: '004_grades.sql', sql: migration004 },
 ];
 
 function runMigrations(database: DatabaseSync): void {

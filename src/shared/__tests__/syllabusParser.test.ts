@@ -166,7 +166,7 @@ describe('parseSyllabus', () => {
 
   it('strips leading bullet / dash punctuation', () => {
     const [row] = parseSyllabus('• Homework 1 1/15', YEAR);
-    expect(row.name).not.toMatch(/^[•·*\-]/);
+    expect(row.name).not.toMatch(/^[•·*-]/);
   });
 
   it('removes leftover "due" and "due date" words', () => {

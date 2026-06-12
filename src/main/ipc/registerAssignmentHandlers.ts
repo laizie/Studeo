@@ -13,6 +13,17 @@ import {
   deleteAssignment,
 } from '../db/repositories/assignmentRepo';
 
+// score/pointsPossible: absent or null = "no grade recorded"; otherwise both
+// must be sane non-negative numbers and you can't earn points out of nothing.
+function validateGradeFields(input: { score?: number | null; pointsPossible?: number | null }): void {
+  if (input.score != null && (!Number.isFinite(input.score) || input.score < 0)) {
+    throw new Error('score must be a non-negative number');
+  }
+  if (input.pointsPossible != null && (!Number.isFinite(input.pointsPossible) || input.pointsPossible <= 0)) {
+    throw new Error('pointsPossible must be a positive number');
+  }
+}
+
 export function registerAssignmentHandlers(): void {
   ipcMain.handle(
     IPC.ASSIGNMENTS.LIST,
@@ -24,6 +35,7 @@ export function registerAssignmentHandlers(): void {
     if (!input.courseId)      throw new Error('courseId is required');
     if (!input.name?.trim())  throw new Error('Assignment name is required');
     if (!input.dueDate)       throw new Error('dueDate is required');
+    validateGradeFields(input);
     return createAssignment(input);
   });
 
@@ -40,6 +52,7 @@ export function registerAssignmentHandlers(): void {
 
   ipcMain.handle(IPC.ASSIGNMENTS.UPDATE, (_event, id: string, input: UpdateAssignmentInput) => {
     if (!id) throw new Error('Assignment id is required');
+    validateGradeFields(input);
     return updateAssignment(id, input);
   });
 

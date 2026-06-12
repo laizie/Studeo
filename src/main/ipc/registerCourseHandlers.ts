@@ -23,6 +23,16 @@ export function registerCourseHandlers(): void {
 
   ipcMain.handle(IPC.COURSES.UPDATE, (_event, id: string, input: UpdateCourseInput) => {
     if (!id) throw new Error('Course id is required');
+    if (input.gradeWeights !== undefined && input.gradeWeights !== null) {
+      if (typeof input.gradeWeights !== 'object' || Array.isArray(input.gradeWeights)) {
+        throw new Error('gradeWeights must be an object of type → percent');
+      }
+      for (const [key, value] of Object.entries(input.gradeWeights)) {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) {
+          throw new Error(`gradeWeights.${key} must be a number between 0 and 100`);
+        }
+      }
+    }
     return updateCourse(id, input);
   });
 

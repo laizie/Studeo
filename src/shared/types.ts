@@ -15,6 +15,8 @@ export interface Course {
   color: string;
   building: string | null;
   term_id: string | null;
+  /** JSON: {"Homework": 30, "Exam": 40} — parse with parseGradeWeights() in shared/grades.ts. */
+  grade_weights: string | null;
   created_at: string;
 }
 
@@ -48,6 +50,19 @@ export interface Assignment {
   status: AssignmentStatus;
   due_date: string;
   notes: string | null;
+  /** Grade earned ("18 out of 20"). Both null until the user records one. */
+  score: number | null;
+  points_possible: number | null;
+  created_at: string;
+}
+
+// A checklist step inside an assignment ("Essay" → outline, draft, revise).
+export interface Subtask {
+  id: string;
+  assignment_id: string;
+  name: string;
+  completed: 0 | 1; // SQLite has no boolean type
+  sort_order: number;
   created_at: string;
 }
 
@@ -68,6 +83,21 @@ export interface ClassMeeting {
   location: string | null;
 }
 
+// A one-off change to a recurring class meeting: "no class Nov 26" (cancelled)
+// or "moved to 2 PM in Room 110 that day" (moved). The recurring rule stays
+// untouched; exceptions override single occurrences by date.
+export type MeetingExceptionKind = 'cancelled' | 'moved';
+
+export interface MeetingException {
+  id: string;
+  meeting_id: string;
+  date: string; // YYYY-MM-DD of the affected occurrence
+  kind: MeetingExceptionKind;
+  new_start_time: string | null; // "HH:MM" — only set when kind = 'moved'
+  new_end_time: string | null;
+  new_location: string | null;
+}
+
 export interface StudySession {
   id: string;
   started_at: string;
@@ -84,6 +114,10 @@ export interface ReminderConfig {
   enabled: boolean;
   /** Minutes before a class meeting's start time to fire the notification. */
   leadMinutes: number;
+  /** Daily due-date digest: one notification listing what's due today & tomorrow. */
+  dueDigestEnabled: boolean;
+  /** Local time ("HH:MM", 24h) at which the daily due digest fires. */
+  dueDigestTime: string;
 }
 
 export interface CreateStudySessionInput {
@@ -107,6 +141,8 @@ export interface UpdateCourseInput {
   color?: string;
   building?: string | null;
   termId?: string | null;
+  /** Map of assignment type → weight percent; null clears the scheme. */
+  gradeWeights?: Record<string, number> | null;
 }
 
 export interface CreateAssignmentInput {
@@ -116,6 +152,8 @@ export interface CreateAssignmentInput {
   status?: AssignmentStatus;
   dueDate: string;
   notes?: string;
+  score?: number | null;
+  pointsPossible?: number | null;
 }
 
 export interface UpdateAssignmentInput {
@@ -124,6 +162,18 @@ export interface UpdateAssignmentInput {
   status?: AssignmentStatus;
   dueDate?: string;
   notes?: string | null;
+  score?: number | null;
+  pointsPossible?: number | null;
+}
+
+export interface CreateSubtaskInput {
+  assignmentId: string;
+  name: string;
+}
+
+export interface UpdateSubtaskInput {
+  name?: string;
+  completed?: boolean;
 }
 
 export interface CreateTaskInput {
@@ -136,6 +186,15 @@ export interface UpdateTaskInput {
   name?: string;
   status?: AssignmentStatus;
   dueDate?: string;
+}
+
+export interface CreateMeetingExceptionInput {
+  meetingId: string;
+  date: string; // YYYY-MM-DD
+  kind: MeetingExceptionKind;
+  newStartTime?: string;
+  newEndTime?: string;
+  newLocation?: string;
 }
 
 export interface CreateClassMeetingInput {
@@ -237,6 +296,12 @@ export const IPC = {
     UPDATE:      'assignments:update',
     DELETE:      'assignments:delete',
   },
+  SUBTASKS: {
+    LIST:   'subtasks:list',
+    CREATE: 'subtasks:create',
+    UPDATE: 'subtasks:update',
+    DELETE: 'subtasks:delete',
+  },
   TASKS: {
     LIST:   'tasks:list',
     CREATE: 'tasks:create',
@@ -248,6 +313,11 @@ export const IPC = {
     CREATE: 'class_meetings:create',
     UPDATE: 'class_meetings:update',
     DELETE: 'class_meetings:delete',
+  },
+  MEETING_EXCEPTIONS: {
+    LIST:   'meeting_exceptions:list',
+    CREATE: 'meeting_exceptions:create',
+    DELETE: 'meeting_exceptions:delete',
   },
   TERMS: {
     LIST:   'terms:list',
@@ -261,6 +331,7 @@ export const IPC = {
   },
   REMINDERS: {
     CONFIGURE: 'reminders:configure',
+    TEST:      'reminders:test',
   },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
@@ -310,6 +381,12 @@ export interface WindowApi {
     update(id: string, input: UpdateAssignmentInput): Promise<Assignment>;
     delete(id: string): Promise<void>;
   };
+  subtasks: {
+    list(filters?: { assignmentId?: string }): Promise<Subtask[]>;
+    create(input: CreateSubtaskInput): Promise<Subtask>;
+    update(id: string, input: UpdateSubtaskInput): Promise<Subtask>;
+    delete(id: string): Promise<void>;
+  };
   tasks: {
     list(): Promise<Task[]>;
     create(input: CreateTaskInput): Promise<Task>;
@@ -320,6 +397,12 @@ export interface WindowApi {
     list(filters?: { courseId?: string }): Promise<ClassMeeting[]>;
     create(input: CreateClassMeetingInput): Promise<ClassMeeting>;
     update(id: string, input: UpdateClassMeetingInput): Promise<ClassMeeting>;
+    delete(id: string): Promise<void>;
+  };
+  meetingExceptions: {
+    list(filters?: { meetingId?: string }): Promise<MeetingException[]>;
+    /** Creating a second exception for the same meeting+date replaces the first. */
+    create(input: CreateMeetingExceptionInput): Promise<MeetingException>;
     delete(id: string): Promise<void>;
   };
   terms: {
@@ -334,6 +417,8 @@ export interface WindowApi {
   };
   reminders: {
     configure(config: ReminderConfig): Promise<void>;
+    /** Fire a sample desktop notification so the user can verify permissions. */
+    test(): Promise<{ supported: boolean }>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;

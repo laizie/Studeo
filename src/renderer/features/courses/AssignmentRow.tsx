@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Circle, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
+import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import SubtaskChecklist from './SubtaskChecklist';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
+import { useSubtasks } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
@@ -30,6 +32,11 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === assignment.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [stepsOpen, setStepsOpen] = useState(false);
+
+  const { data: allSubtasks } = useSubtasks();
+  const subtasks = (allSubtasks ?? []).filter(s => s.assignment_id === assignment.id);
+  const doneSteps = subtasks.filter(s => s.completed === 1).length;
 
   const deadline = computeDeadlineLabel(assignment.due_date);
   const isCompleted = assignment.status === 'completed';
@@ -61,6 +68,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   }
 
   return (
+    <div>
     <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors">
       {/* Status toggle — done / not done */}
       <button
@@ -114,6 +122,25 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         {isCompleted ? 'Done' : deadline.label}
       </span>
 
+      {/* Steps toggle — always visible once steps exist, hover-revealed before */}
+      <button
+        onClick={() => setStepsOpen(v => !v)}
+        aria-expanded={stepsOpen}
+        aria-label={subtasks.length > 0
+          ? `Show steps (${doneSteps} of ${subtasks.length} done)`
+          : 'Break into steps'}
+        title={subtasks.length > 0 ? 'Show steps' : 'Break into steps'}
+        className={cn(
+          'shrink-0 flex items-center gap-1 p-1 rounded text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+          subtasks.length > 0
+            ? (stepsOpen ? 'text-accent' : 'text-muted hover:text-accent')
+            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent'
+        )}
+      >
+        <ListTodo size={13} />
+        {subtasks.length > 0 && <span>{doneSteps}/{subtasks.length}</span>}
+      </button>
+
       {/* Focus list toggle */}
       <button
         onClick={handleFocusToggle}
@@ -157,6 +184,11 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         onConfirm={() => deleteAssignment.mutate(assignment.id)}
         onClose={() => setConfirmOpen(false)}
       />
+    </div>
+
+    {stepsOpen && (
+      <SubtaskChecklist assignmentId={assignment.id} subtasks={subtasks} />
+    )}
     </div>
   );
 }
