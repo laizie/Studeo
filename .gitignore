@@ -100,3 +100,11 @@ REVIEW.md
 
 # impeccable critique snapshots (local design-review archive)
 .impeccable/
+
+# Claude Code local tooling (skills are installed per-machine, not project code)
+.claude/
+.github/skills/
+skills-lock.json
+
+# Stray empty file accidentally created at repo root
+/node
