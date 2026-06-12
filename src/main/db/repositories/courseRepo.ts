@@ -40,6 +40,10 @@ export function updateCourse(id: string, input: UpdateCourseInput): Course {
   if (input.color !== undefined)        { fields.push('color = ?');        values.push(input.color); }
   if (input.building !== undefined)     { fields.push('building = ?');     values.push(input.building ?? null); }
   if (input.termId !== undefined)       { fields.push('term_id = ?');      values.push(input.termId ?? null); }
+  if (input.gradeWeights !== undefined) {
+    fields.push('grade_weights = ?');
+    values.push(input.gradeWeights === null ? null : JSON.stringify(input.gradeWeights));
+  }
 
   if (fields.length > 0) {
     values.push(id);

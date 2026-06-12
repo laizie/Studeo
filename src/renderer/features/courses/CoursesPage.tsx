@@ -5,6 +5,7 @@ import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTerms } from '../../lib/queries/useTerms';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import CourseCard from './CourseCard';
+import { computeCourseStanding } from '../../../shared/grades';
 import CreateCourseDialog from './CreateCourseDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 
@@ -40,6 +41,15 @@ export default function CoursesPage() {
       if (!s) continue;
       s.total += 1;
       if (a.status === 'completed') s.completed += 1;
+    }
+    return map;
+  }, [filtered, assignments]);
+
+  const standingByCourse = useMemo(() => {
+    const map = new Map<string, number | null>();
+    for (const c of filtered) {
+      const courseAssignments = (assignments ?? []).filter(a => a.course_id === c.id);
+      map.set(c.id, computeCourseStanding(courseAssignments, c.grade_weights).percent);
     }
     return map;
   }, [filtered, assignments]);
@@ -124,6 +134,7 @@ export default function CoursesPage() {
                 course={course}
                 total={stats.total}
                 completed={stats.completed}
+                gradePercent={standingByCourse.get(course.id) ?? null}
               />
             );
           })}

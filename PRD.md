@@ -77,6 +77,7 @@ These map directly to SQLite tables. Times stored as ISO 8601 strings (or epoch 
 | color | text | hex or token id, drives all color-coding |
 | building | text? | e.g., "EB2 1231" |
 | term_id | text? | FK → Term **[ADDED]** |
+| grade_weights | text? | JSON: {"Homework": 30, "Exam": 40} **[ADDED June 2026]** |
 | created_at | text | |
 
 ### Assignment
@@ -89,11 +90,13 @@ These map directly to SQLite tables. Times stored as ISO 8601 strings (or epoch 
 | status | text | enum: `not_started` \| `in_progress` \| `completed` **[ADDED enum]** |
 | due_date | text | date or datetime |
 | notes | text? | optional |
+| score | real? | grade earned, e.g. 18 **[ADDED June 2026]** |
+| points_possible | real? | e.g. 20 — both null until graded **[ADDED June 2026]** |
 | created_at | text | |
 
 > **Assignment types (fixed list):** `Assignment` (default catch-all) · `Homework` · `Quiz` · `Exam` · `Project` · `Lab` · `Reading` · `Paper`. Stored as an enum defined once in `shared/types.ts`, so the list is trivial to edit. A fixed list keeps filtering clean and enables per-type icons/colors later.
 >
-> **Derived (not stored):** `deadline` label ("today", "tomorrow", "2 days", "Overdue") is computed from `due_date` vs now. Course **progress** = completed assignments ÷ total assignments.
+> **Derived (not stored):** `deadline` label ("today", "tomorrow", "2 days", "Overdue") is computed from `due_date` vs now. Course **progress** = completed assignments ÷ total assignments. Course **standing** (current grade %) is computed in `shared/grades.ts` from scores + the course's weight scheme: per-type percent pooled by points, combined by weights normalized over graded categories; straight points when no scheme is set.
 
 ### Task
 | Field | Type | Notes |
@@ -116,6 +119,34 @@ Recurring lecture/lab times — needed for the calendar's "lecture schedule" vie
 | start_time | text | "09:35" |
 | end_time | text | "10:50" |
 | location | text? | room/building |
+
+### Subtask **[ADDED June 2026]**
+Checklist steps inside an assignment ("Essay" → outline, draft, revise).
+Independent of the assignment's own status — finishing all steps does not
+auto-complete the assignment.
+| Field | Type | Notes |
+|---|---|---|
+| id | text (uuid) | PK |
+| assignment_id | text | FK → Assignment, cascade delete |
+| name | text | |
+| completed | integer | 0/1 |
+| sort_order | integer | entry order |
+| created_at | text | |
+
+### MeetingException **[ADDED June 2026]**
+One-off overrides to a recurring ClassMeeting: "no class Nov 26" (cancelled) or
+"moved to 2 PM in Room 110 that day" (moved). Calendar and class reminders
+consult these per date; the recurring rule stays untouched. One exception max
+per meeting + date (unique pair; creating again replaces).
+| Field | Type | Notes |
+|---|---|---|
+| id | text (uuid) | PK |
+| meeting_id | text | FK → ClassMeeting, cascade delete |
+| date | text | YYYY-MM-DD of the affected occurrence |
+| kind | text | 'cancelled' \| 'moved' |
+| new_start_time | text? | only when moved |
+| new_end_time | text? | only when moved |
+| new_location | text? | only when moved |
 
 ### Term **[ADDED]**
 Lets courses be grouped/archived per semester.

@@ -9,6 +9,8 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
+import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
+import { buildExceptionIndex, resolveOccurrence, type ExceptionIndex } from '../../../shared/meetingExceptions';
 import { useTasks } from '../../lib/queries/useTasks';
 import { parseDateLocal } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task } from '../../../shared/types';
@@ -54,9 +56,17 @@ type CalEvent = AssignmentEvent | MeetingEvent | TaskEvent;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function expandMeetingsForRange(
   meetings: ClassMeeting[],
   courseMap: Map<string, Course>,
+  exceptionIndex: ExceptionIndex,
   rangeStart: Date,
   rangeEnd: Date,
 ): MeetingEvent[] {
@@ -76,13 +86,17 @@ function expandMeetingsForRange(
         weekSunday.getDate() + m.day_of_week,
       );
       if (eventDay >= rangeStart && eventDay <= rangeEnd) {
-        const [sh, sm] = m.start_time.split(':').map(Number);
-        const [eh, em] = m.end_time.split(':').map(Number);
+        // Exceptions override single occurrences: skip cancelled dates,
+        // use the moved time/room when one applies.
+        const occ = resolveOccurrence(m, toDateStr(eventDay), exceptionIndex);
+        if (occ.cancelled) continue;
+
+        const [sh, sm] = occ.startTime.split(':').map(Number);
+        const [eh, em] = occ.endTime.split(':').map(Number);
         const course = courseMap.get(m.course_id);
+        const abbr = course?.abbreviation ?? '?';
         events.push({
-          title: m.location
-            ? `${course?.abbreviation ?? '?'} — ${m.location}`
-            : (course?.abbreviation ?? '?'),
+          title: (occ.location ? `${abbr} — ${occ.location}` : abbr) + (occ.moved ? ' (moved)' : ''),
           start: new Date(eventDay.getFullYear(), eventDay.getMonth(), eventDay.getDate(), sh, sm),
           end:   new Date(eventDay.getFullYear(), eventDay.getMonth(), eventDay.getDate(), eh, em),
           allDay: false,
@@ -106,6 +120,7 @@ export default function CalendarPage() {
   const { data: courses,     isError: coursesError,     refetch: refetchCourses     } = useCourses();
   const { data: assignments, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
   const { data: allMeetings, isError: meetingsError,    refetch: refetchMeetings    } = useClassMeetings();
+  const { data: exceptions }   = useMeetingExceptions();
   const { data: tasks }        = useTasks();
 
   const hasError = coursesError || assignmentsError || meetingsError;
@@ -148,8 +163,9 @@ export default function CalendarPage() {
 
   const lectureEvents = useMemo((): MeetingEvent[] => {
     if (!allMeetings) return [];
-    return expandMeetingsForRange(allMeetings, courseMap, visibleRange.start, visibleRange.end);
-  }, [allMeetings, courseMap, visibleRange]);
+    const index = buildExceptionIndex(exceptions ?? []);
+    return expandMeetingsForRange(allMeetings, courseMap, index, visibleRange.start, visibleRange.end);
+  }, [allMeetings, exceptions, courseMap, visibleRange]);
 
   const taskEvents = useMemo((): TaskEvent[] => {
     if (!tasks) return [];

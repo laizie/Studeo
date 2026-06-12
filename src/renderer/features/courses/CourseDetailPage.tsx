@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Pencil, Trash2, Rows3 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Rows3, CalendarOff } from 'lucide-react';
 import { useCourse, useUpdateCourse } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useClassMeetings, useDeleteClassMeeting } from '../../lib/queries/useClassMeetings';
@@ -9,7 +9,10 @@ import type { Assignment, ClassMeeting } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
+import GradeWeightsCard from './GradeWeightsCard';
+import { computeCourseStanding, formatPercent } from '../../../shared/grades';
 import ClassMeetingDialog from './ClassMeetingDialog';
+import MeetingExceptionDialog from './MeetingExceptionDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
@@ -48,6 +51,7 @@ export default function CourseDetailPage() {
   const [meetingDialogOpen, setMeetingDialogOpen]       = useState(false);
   const [editingMeeting, setEditingMeeting]             = useState<ClassMeeting | undefined>();
   const [deletingMeetingId, setDeletingMeetingId]       = useState<string | null>(null);
+  const [exceptionMeeting, setExceptionMeeting]         = useState<ClassMeeting | undefined>();
 
   const { data: course,      isLoading: courseLoading,      isError: courseError,      refetch: refetchCourse      } = useCourse(id ?? '');
   const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments(
@@ -61,6 +65,8 @@ export default function CourseDetailPage() {
   const isLoading  = courseLoading || assignmentsLoading;
   const allAssignments = assignments ?? [];
   const filtered   = applyDueFilter(allAssignments, dueFilter);
+  // Derived, never stored: recomputed from scores + the course's weight scheme.
+  const standing = computeCourseStanding(allAssignments, course?.grade_weights ?? null);
 
   function openAdd() {
     setEditingAssignment(undefined);
@@ -147,6 +153,15 @@ export default function CourseDetailPage() {
           </div>
           {course.building && (
             <p className="mt-1 text-sm text-muted">{course.building}</p>
+          )}
+          {standing.percent !== null && (
+            <p className="mt-1 text-sm text-ink-soft">
+              Current grade:{' '}
+              <span className="font-semibold tabular-nums" style={{ color: course.color }}>
+                {formatPercent(standing.percent)}
+              </span>
+              <span className="text-muted"> · {standing.gradedCount} graded</span>
+            </p>
           )}
           {/* Semester selector — only shown when at least one term exists */}
           {terms.length > 0 && (
@@ -270,6 +285,14 @@ export default function CourseDetailPage() {
                   </span>
                   <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                     <button
+                      onClick={() => setExceptionMeeting(m)}
+                      aria-label={`Cancel or move a ${DAY_NAMES[m.day_of_week]} class date`}
+                      className="p-1 text-muted hover:text-stone-600 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                      title="Cancel or move a date"
+                    >
+                      <CalendarOff size={13} />
+                    </button>
+                    <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
                       aria-label={`Edit ${DAY_NAMES[m.day_of_week]} class time`}
                       className="p-1 text-muted hover:text-stone-600 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
@@ -292,6 +315,8 @@ export default function CourseDetailPage() {
             </div>
           )}
           </div>
+
+          <GradeWeightsCard course={course} />
         </div>
 
       </div>
@@ -307,6 +332,11 @@ export default function CourseDetailPage() {
         meeting={editingMeeting}
         isOpen={meetingDialogOpen}
         onClose={() => setMeetingDialogOpen(false)}
+      />
+      <MeetingExceptionDialog
+        meeting={exceptionMeeting}
+        isOpen={exceptionMeeting !== undefined}
+        onClose={() => setExceptionMeeting(undefined)}
       />
       <ConfirmDialog
         isOpen={deletingMeetingId !== null}

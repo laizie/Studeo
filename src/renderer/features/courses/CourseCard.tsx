@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import type { Course } from '../../../shared/types';
 import { useDeleteCourse } from '../../lib/queries/useCourses';
+import { formatPercent } from '../../../shared/grades';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface Props {
   course: Course;
   total?: number;
   completed?: number;
+  /** Current weighted grade (0–100), or null when nothing is graded yet. */
+  gradePercent?: number | null;
 }
 
-export default function CourseCard({ course, total = 0, completed = 0 }: Props) {
+export default function CourseCard({ course, total = 0, completed = 0, gradePercent = null }: Props) {
   const deleteCourse = useDeleteCourse();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -42,9 +45,17 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
           </span>
         </div>
 
-        {/* Building */}
-        {course.building && (
-          <p className="mt-1 text-xs text-muted truncate">{course.building}</p>
+        {/* Building · current grade */}
+        {(course.building || gradePercent !== null) && (
+          <p className="mt-1 text-xs text-muted truncate">
+            {course.building}
+            {course.building && gradePercent !== null && ' · '}
+            {gradePercent !== null && (
+              <span className="font-medium text-ink-soft">
+                Grade: {formatPercent(gradePercent)}
+              </span>
+            )}
+          </p>
         )}
 
         {/* Progress */}
