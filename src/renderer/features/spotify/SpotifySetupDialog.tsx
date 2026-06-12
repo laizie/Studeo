@@ -40,7 +40,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-[#2c1f14] rounded-2xl shadow-2xl border border-line overflow-hidden">
+      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-line">
@@ -80,7 +80,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   },
                   {
                     n: '3',
-                    text: <>Under <strong className="text-ink">Redirect URIs</strong>, add exactly: <code className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] text-xs font-mono">studeo://spotify-callback</code></>,
+                    text: <>Under <strong className="text-ink">Redirect URIs</strong>, add exactly: <code className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-surface text-xs font-mono">studeo://spotify-callback</code></>,
                   },
                   {
                     n: '4',
@@ -88,7 +88,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   },
                 ].map(({ n, text }) => (
                   <div key={n} className="flex gap-3">
-                    <span className="shrink-0 w-5 h-5 rounded-full bg-stone-100 dark:bg-[#442918] warm:bg-[#6e4c30] text-xs font-semibold flex items-center justify-center text-muted mt-0.5">
+                    <span className="shrink-0 w-5 h-5 rounded-full bg-stone-100 dark:bg-surface text-xs font-semibold flex items-center justify-center text-muted mt-0.5">
                       {n}
                     </span>
                     <p className="text-sm text-ink-soft leading-relaxed">{text}</p>
@@ -108,7 +108,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 </a>
                 <button
                   onClick={() => setStep('connect')}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-line text-stone-600 dark:text-[#c4a882] hover:bg-stone-50 dark:hover:bg-[#3d2b1f] warm:hover:bg-[#5d4b3f] transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-line text-stone-600 dark:text-muted hover:bg-stone-50 dark:hover:bg-surface-hi transition-colors"
                 >
                   I have my Client ID →
                 </button>
@@ -128,9 +128,9 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 placeholder="e.g. 3a8d2f1c4b6e9d7a5c2f8b4e1d6a9c3f"
                 className={cn(
                   'w-full px-3 py-2 text-sm border rounded-lg mb-4',
-                  'font-mono placeholder:font-sans placeholder:text-stone-500 dark:placeholder:text-[#775544]',
+                  'font-mono placeholder:font-sans placeholder:text-stone-500 dark:placeholder:text-muted',
                   'border-line',
-                  'bg-white dark:bg-[#332211] warm:bg-[#3d2918]',
+                  'bg-white dark:bg-inset',
                   'text-ink',
                   'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
                 )}

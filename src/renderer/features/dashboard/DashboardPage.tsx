@@ -62,7 +62,7 @@ function SectionLabel({ title, count, urgent }: {
       {count !== undefined && count > 0 && (
         <span className={cn(
           'text-xs px-1.5 py-0.5 rounded-full font-medium',
-          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-surface text-stone-600 dark:text-[#c4a882]',
+          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-surface text-stone-600 dark:text-muted',
         )}>
           {count}
         </span>
@@ -109,7 +109,7 @@ function AssignmentItem({ assignment, course }: {
           star button — no interactive element nested inside another (valid + a11y). */}
       <Link
         to={course ? `/courses/${course.id}` : '#'}
-        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
+        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
       >
         {assignment.name}
       </Link>
@@ -154,7 +154,7 @@ function TaskItem({ task }: { task: Task }) {
       <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
       <Link
         to="/tasks"
-        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-[#e0b870]"
+        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
       >
         {task.name}
       </Link>
@@ -371,7 +371,7 @@ export default function DashboardPage() {
           <select
             value={termFilter ?? ''}
             onChange={e => setTermFilter(e.target.value || null)}
-            className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+            className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi cursor-pointer"
           >
             {terms.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>

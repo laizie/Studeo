@@ -16,35 +16,43 @@
 :root {
   --bg:          #f9f5f0;  /* app body */
   --surface:     #ffffff;  /* cards, dialogs, list containers */
-  --surface-hi:  #fafaf9;  /* hovered rows, active tabs' raised pill */
-  --inset:       #f5f5f4;  /* tab tracks, input wells, skeletons' base */
+  --surface-hi:  #f6f1e9;  /* hovered rows — warm-tinted so hover is visible on white */
+  --inset:       #f1ebe1;  /* tab tracks, input wells — cream-family, not cool stone */
   --line:        #e8ddd0;  /* hairline borders + row dividers */
   --ink:         #292524;  /* primary text */
   --ink-soft:    #44403c;  /* secondary text, labels */
-  --muted:       #78716c;  /* meta text — the AA floor, never lighter */
+  --muted:       #6d655c;  /* meta text — warm-tinted, AA even on inset wells */
   --accent:      #e2a53b;  /* Lamplight Amber — actions & selection only */
   --accent-deep: #d49530;  /* accent hover/pressed */
   --accent-ink:  #1e1208;  /* text ON accent */
 }
 
+/* Dark = "the espresso room at night" (DESIGN.md North Star): near-neutral
+   roasted darks (low chroma, like Gruvbox's approach) so the warmth is carried
+   by the cream text and the amber lamp — not by saturated brown surfaces. */
 .dark {
-  --bg:         #332211;
-  --surface:    #553311;
-  --surface-hi: #664433;
-  --inset:      #2d1a08;
-  --line:       #442918;
+  --bg:         #211a13;
+  --surface:    #2c241b;
+  --surface-hi: #3a3128;
+  --inset:      #1a1410;
+  --line:       #423627;
   --ink:        #f0e0cc;
   --ink-soft:   #e8d5c0;
-  --muted:      #e0b870;
+  --muted:      #c9b594;  /* calm warm tan — the old gold (#e0b870) made meta text shout */
 }
 
+/* Warm keeps its committed mid-brown identity, but one notch deeper and
+   quieter: the old surfaces put cream text at ~4.3:1 and gold muted at ~3:1
+   (both under AA). Darker surfaces fix contrast and harshness in one move. */
 html[data-theme="warm"] {
   --bg:         #3d2918;
-  --surface:    #7e5a38;
-  --surface-hi: #8e6a48;
-  --inset:      #4c2e18;
-  --line:       #6e4c30;
-  /* ink / ink-soft / muted inherit the .dark values */
+  --surface:    #6a4b2f;
+  --surface-hi: #7a5a3c;
+  --inset:      #452f1c;
+  --line:       #5c4128;
+  /* ink / ink-soft inherit the .dark creams (now ≥5.4:1 on surface);
+     muted brightened so it clears AA on the brown surfaces */
+  --muted:      #ecca8a;
 }
 
 /* Expose the tokens as Tailwind utilities (bg-surface, text-ink, border-line,
@@ -92,128 +100,97 @@ html[data-theme="warm"] {
   }
 }
 
-/* ── react-big-calendar dark mode overrides ─────────────────────────────────── */
+/* ── react-big-calendar dark-theme overrides ────────────────────────────────────
+   Token-based, so they track the theme variables — this one block covers both
+   Dark and Warm (Warm applies .dark and overrides the variables). */
 
 .dark .rbc-calendar {
-  background-color: #332211;
-  color: #f0e0cc;
+  background-color: var(--bg);
+  color: var(--ink);
 }
 
 /* Toolbar */
 .dark .rbc-toolbar {
-  color: #f0e0cc;
+  color: var(--ink);
 }
 .dark .rbc-toolbar button {
-  color: #c4a882;
-  border-color: #442918;
+  color: var(--muted);
+  border-color: var(--line);
   background: transparent;
 }
 .dark .rbc-toolbar button:hover {
-  background-color: #553311;
-  color: #f0e0cc;
+  background-color: var(--surface);
+  color: var(--ink);
 }
 .dark .rbc-toolbar button.rbc-active,
 .dark .rbc-toolbar button.rbc-active:hover {
-  background-color: #664433;
-  color: #f0e0cc;
-  border-color: #442918;
+  background-color: var(--surface-hi);
+  color: var(--ink);
+  border-color: var(--line);
   box-shadow: none;
 }
 
 /* Month view */
 .dark .rbc-month-view {
-  border-color: #442918;
+  border-color: var(--line);
 }
 .dark .rbc-header {
-  background-color: #553311;
-  color: #c4a882;
-  border-color: #442918;
+  background-color: var(--surface);
+  color: var(--muted);
+  border-color: var(--line);
 }
 .dark .rbc-header + .rbc-header {
-  border-color: #442918;
+  border-color: var(--line);
 }
 .dark .rbc-day-bg {
-  background-color: #332211;
+  background-color: var(--bg);
 }
 .dark .rbc-day-bg + .rbc-day-bg {
-  border-color: #442918;
+  border-color: var(--line);
 }
 .dark .rbc-off-range-bg {
-  background-color: #3d2810;
+  background-color: var(--inset);
 }
 .dark .rbc-off-range .rbc-date-cell a,
-.dark .rbc-off-range .rbc-button-link {
-  color: #cc9a58;
-}
+.dark .rbc-off-range .rbc-button-link,
 .dark .rbc-date-cell a,
 .dark .rbc-date-cell .rbc-button-link {
-  color: #c4a882;
+  color: var(--muted);
 }
 .dark .rbc-today {
-  background-color: rgba(226, 165, 59, 0.14);
+  background-color: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 .dark .rbc-month-row + .rbc-month-row {
-  border-color: #442918;
+  border-color: var(--line);
 }
 .dark .rbc-show-more {
-  color: #e2a53b;
+  color: var(--accent);
 }
 
 /* Week / day view */
-.dark .rbc-time-view {
-  border-color: #442918;
+.dark .rbc-time-view,
+.dark .rbc-time-header-content,
+.dark .rbc-time-header-cell .rbc-header,
+.dark .rbc-timeslot-group {
+  border-color: var(--line);
 }
 .dark .rbc-time-header {
-  background-color: #553311;
-  border-color: #442918;
-}
-.dark .rbc-time-header-content {
-  border-color: #442918;
-}
-.dark .rbc-time-header-cell .rbc-header {
-  border-color: #442918;
+  background-color: var(--surface);
+  border-color: var(--line);
 }
 .dark .rbc-time-content {
-  background-color: #332211;
-  border-color: #442918;
+  background-color: var(--bg);
+  border-color: var(--line);
 }
 .dark .rbc-time-content > .rbc-time-column {
-  border-color: #442918;
-}
-.dark .rbc-timeslot-group {
-  border-color: #442918;
+  border-color: var(--line);
 }
 .dark .rbc-time-slot {
-  color: #cc9a58;
+  color: var(--muted);
 }
 .dark .rbc-day-slot .rbc-time-slot {
-  border-color: #553311;
+  border-color: var(--surface);
 }
 .dark .rbc-current-time-indicator {
-  background-color: #e2a53b;
+  background-color: var(--accent);
 }
-
-/* ── Warm theme: react-big-calendar overrides ───────────────────────────────── */
-
-html[data-theme="warm"] .rbc-calendar  { background-color: #3d2918; }
-html[data-theme="warm"] .rbc-toolbar button { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-toolbar button:hover { background-color: #7e5a38; }
-html[data-theme="warm"] .rbc-toolbar button.rbc-active,
-html[data-theme="warm"] .rbc-toolbar button.rbc-active:hover { background-color: #8e6a48; border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-month-view  { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-header      { background-color: #4e3424; border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-header + .rbc-header { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-day-bg      { background-color: #3d2918; }
-html[data-theme="warm"] .rbc-day-bg + .rbc-day-bg { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-off-range-bg { background-color: #472f1e; }
-html[data-theme="warm"] .rbc-today       { background-color: rgba(226,165,59,0.14); }
-html[data-theme="warm"] .rbc-month-row + .rbc-month-row { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-time-view   { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-time-header { background-color: #4e3424; border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-time-header-content { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-time-header-cell .rbc-header { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-time-content { background-color: #3d2918; border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-time-content > .rbc-time-column { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-timeslot-group { border-color: #6e4c30; }
-html[data-theme="warm"] .rbc-day-slot .rbc-time-slot { border-color: #4e3424; }
-html[data-theme="warm"] .rbc-current-time-indicator { background-color: #e2a53b; }

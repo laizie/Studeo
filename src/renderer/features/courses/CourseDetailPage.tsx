@@ -158,7 +158,7 @@ export default function CourseDetailPage() {
                   id: course.id,
                   input: { termId: e.target.value || null },
                 })}
-                className="text-xs px-2 py-1 rounded-md border border-line bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink-soft focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+                className="text-xs px-2 py-1 rounded-md border border-line bg-transparent dark:bg-inset text-ink-soft focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-surface-hi cursor-pointer"
               >
                 <option value="">— None —</option>
                 {terms.map(t => (
@@ -180,7 +180,7 @@ export default function CourseDetailPage() {
             <div className="flex items-center gap-2">
               <Link
                 to={`/courses/${id}/batch`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-stone-600 dark:text-[#c4a882] rounded-lg hover:bg-surface-hi transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
               >
                 <Rows3 size={14} />
                 Batch add
@@ -204,7 +204,7 @@ export default function CourseDetailPage() {
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
                     ? 'bg-surface text-ink shadow-sm font-medium'
-                    : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
+                    : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
                 )}
               >
                 {f.label}

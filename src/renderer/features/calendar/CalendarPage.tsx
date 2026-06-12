@@ -245,11 +245,11 @@ export default function CalendarPage() {
           {mode === 'assignments' && (
             <button
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-[#c4a882] hover:bg-surface-hi transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors"
             >
               <span className={cn(
                 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-                calendarShowTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-[#553311] warm:bg-[#7e5a38]'
+                calendarShowTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-surface'
               )}>
                 <span className={cn(
                   'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
@@ -273,7 +273,7 @@ export default function CalendarPage() {
                   'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                   mode === m
                     ? 'bg-surface text-ink shadow-sm font-medium'
-                    : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
+                    : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
                 )}
               >
                 {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}

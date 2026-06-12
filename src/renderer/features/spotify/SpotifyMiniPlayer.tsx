@@ -125,7 +125,7 @@ export default function SpotifyMiniPlayer({ borderless }: Props = {}) {
 
   return (
     <>
-      <div className={borderless ? undefined : 'border-t border-[#3d2b1f] dark:border-[#1e140c] warm:border-[#3e342c]'}>
+      <div className={borderless ? undefined : 'border-t border-[#3d2b1f]'}>
         {!status ? (
           // Loading — show nothing
           null

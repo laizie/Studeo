@@ -135,7 +135,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         <button
           onClick={() => onEdit(assignment)}
           aria-label={`Edit ${assignment.name}`}
-          className="p-1 text-muted hover:text-stone-600 dark:hover:text-[#d4b896] rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="p-1 text-muted hover:text-stone-600 dark:hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
           title="Edit"
         >
           <Pencil size={13} />

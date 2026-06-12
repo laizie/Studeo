@@ -174,11 +174,11 @@ export default function ThisWeekPage() {
           {/* Tasks toggle */}
           <button
             onClick={() => setShowTasks(!showTasks)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-[#c4a882] hover:bg-surface-hi transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors"
           >
             <span className={cn(
               'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-              showTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-[#553311] warm:bg-[#7e5a38]'
+              showTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-surface'
             )}>
               <span className={cn(
                 'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
@@ -210,7 +210,7 @@ export default function ThisWeekPage() {
               'px-3 py-1.5 text-sm rounded-md transition-colors',
               activeWindow === t.value
                 ? 'bg-surface text-ink shadow-sm font-medium'
-                : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
+                : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
             )}
           >
             {t.label}
@@ -260,7 +260,7 @@ export default function ThisWeekPage() {
           {Array.from(grouped.entries()).map(([label, items]) => (
             <div key={label} className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
-                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-stone-50 dark:bg-[#664433] warm:bg-[#8e6a48]',
+                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-stone-50 dark:bg-surface-hi',
                 label === 'Overdue' ? 'text-red-400' : 'text-muted'
               )}>
                 {label}

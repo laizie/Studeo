@@ -76,7 +76,7 @@ export default function CoursesPage() {
           <select
             value={termFilter ?? ''}
             onChange={e => setTermFilter(e.target.value || null)}
-            className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433] cursor-pointer"
+            className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi cursor-pointer"
           >
             {terms.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
