@@ -95,8 +95,11 @@ dist/
 # Electron-Forge
 out/
 
-# Local working notes (not for version control)
+# Local working notes + AI assistant instructions (not for version control)
 REVIEW.md
+IDEAS.md
+STUDEO_AUDIT_CHECKLIST.md
+CLAUDE.md
 
 # impeccable critique snapshots (local design-review archive)
 .impeccable/
