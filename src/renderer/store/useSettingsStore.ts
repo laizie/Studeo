@@ -19,6 +19,10 @@ interface SettingsState {
   setDueDigestEnabled: (v: boolean) => void;
   dueDigestTime: string; // "HH:MM" 24h local
   setDueDigestTime: (t: string) => void;
+
+  /** Soft chime when a focus/break phase ends (the timer reads this directly). */
+  timerSoundEnabled: boolean;
+  setTimerSoundEnabled: (v: boolean) => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -118,5 +122,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const s = get();
     pushReminderConfig(s.classRemindersEnabled, s.reminderLeadMinutes, s.dueDigestEnabled, t);
     set({ dueDigestTime: t });
+  },
+
+  // Default ON — the chime has always played; absence of the key means "keep it".
+  timerSoundEnabled: localStorage.getItem('studeo:timerSound') !== 'false',
+  setTimerSoundEnabled: (v) => {
+    localStorage.setItem('studeo:timerSound', String(v));
+    set({ timerSoundEnabled: v });
   },
 }));

@@ -11,6 +11,7 @@ import { registerMeetingExceptionHandlers } from './main/ipc/registerMeetingExce
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
 import { registerStudySessionHandlers } from './main/ipc/registerStudySessionHandlers';
 import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
+import { registerAppHandlers } from './main/ipc/registerAppHandlers';
 import { startReminderScheduler } from './main/reminders';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
@@ -30,6 +31,7 @@ function registerIpcHandlers(): void {
   registerTermHandlers();
   registerStudySessionHandlers();
   registerReminderHandlers();
+  registerAppHandlers();
   registerSpotifyHandlers();
   registerAppleMusicHandlers();
 }

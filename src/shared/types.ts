@@ -333,6 +333,10 @@ export const IPC = {
     CONFIGURE: 'reminders:configure',
     TEST:      'reminders:test',
   },
+  APP: {
+    REVEAL_DATA: 'app:reveal-data',
+    BACKUP_DATA: 'app:backup-data',
+  },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
     PLAYBACK:       'apple_music:playback',
@@ -419,6 +423,12 @@ export interface WindowApi {
     configure(config: ReminderConfig): Promise<void>;
     /** Fire a sample desktop notification so the user can verify permissions. */
     test(): Promise<{ supported: boolean }>;
+  };
+  app: {
+    /** Highlight the database file in Finder / Explorer. */
+    revealData(): Promise<void>;
+    /** Save-dialog + consistent snapshot of the database. saved=false means canceled. */
+    backupData(): Promise<{ saved: boolean; path?: string; error?: string }>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;

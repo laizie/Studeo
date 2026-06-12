@@ -87,6 +87,12 @@ const api: WindowApi = {
 
   reminders: {
     configure: (config: ReminderConfig) => ipcRenderer.invoke(IPC.REMINDERS.CONFIGURE, config),
+    test:      ()                       => ipcRenderer.invoke(IPC.REMINDERS.TEST),
+  },
+
+  app: {
+    revealData: () => ipcRenderer.invoke(IPC.APP.REVEAL_DATA),
+    backupData: () => ipcRenderer.invoke(IPC.APP.BACKUP_DATA),
   },
 
   appleMusic: {
