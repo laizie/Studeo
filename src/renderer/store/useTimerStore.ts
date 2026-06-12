@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useSettingsStore } from './useSettingsStore';
 
 export type Phase = 'focus' | 'short_break' | 'long_break';
 
@@ -33,6 +34,7 @@ export function formatClock(totalSeconds: number): string {
 let audioCtx: AudioContext | null = null;
 
 function playChime(): void {
+  if (!useSettingsStore.getState().timerSoundEnabled) return;
   try {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();

@@ -20,4 +20,6 @@ export function registerReminderHandlers(): void {
       dueDigestTime: cfg.dueDigestTime,
     });
   });
+
+  ipcMain.handle(IPC.REMINDERS.TEST, () => sendTestNotification());
 }

@@ -10,17 +10,23 @@ import migration003 from './migrations/003_subtasks.sql?raw';
 import migration004 from './migrations/004_grades.sql?raw';
 
 let db: DatabaseSync | null = null;
+let dbPath: string | null = null;
 
 export function getDb(): DatabaseSync {
   if (!db) throw new Error('[DB] Database not initialized — call initDb() first');
   return db;
 }
 
+export function getDbPath(): string {
+  if (!dbPath) throw new Error('[DB] Database not initialized — call initDb() first');
+  return dbPath;
+}
+
 export function initDb(): void {
   // app.getPath('userData') resolves to the OS-appropriate app data folder:
   //   macOS:   ~/Library/Application Support/Studeo
   //   Windows: %APPDATA%\Studeo
-  const dbPath = path.join(app.getPath('userData'), 'studeo.db');
+  dbPath = path.join(app.getPath('userData'), 'studeo.db');
 
   db = new DatabaseSync(dbPath, { enableForeignKeyConstraints: true });
 
