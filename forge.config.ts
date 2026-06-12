@@ -20,8 +20,8 @@ const config: ForgeConfig = {
       osxSign: {
         identity: `Developer ID Application: ${process.env.APPLE_TEAM_NAME ?? ''} (${process.env.APPLE_TEAM_ID})`,
       },
+      // notarytool is the only notarization tool now, so the old `tool` field is gone
       osxNotarize: {
-        tool: 'notarytool' as const,
         appleId: process.env.APPLE_ID!,
         appleIdPassword: process.env.APPLE_APP_PASSWORD!,
         teamId: process.env.APPLE_TEAM_ID!,
