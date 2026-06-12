@@ -138,7 +138,7 @@ function MusicServiceCard({
             'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
             isDefault
               ? 'bg-accent text-accent-ink'
-              : 'border border-line text-stone-600 dark:text-[#c4a882] hover:bg-surface-hi'
+              : 'border border-line text-stone-600 dark:text-muted hover:bg-surface-hi'
           )}
         >
           {isDefault && <Check size={11} />}
@@ -222,13 +222,13 @@ function ThemePicker() {
       id:       'dark',
       label:    'Dark',
       desc:     'Deep espresso night mode',
-      swatches: ['#332211', '#553311', '#442918', '#e2a53b'],
+      swatches: ['#211a13', '#2c241b', '#423627', '#e2a53b'],
     },
     {
       id:       'warm',
       label:    'Warm',
       desc:     'Rich warm browns',
-      swatches: ['#5c3c22', '#7e5a38', '#8e6a48', '#2c1f14'],
+      swatches: ['#3d2918', '#6a4b2f', '#5c4128', '#e2a53b'],
     },
   ];
 
@@ -242,7 +242,7 @@ function ThemePicker() {
             'relative text-left p-4 rounded-xl border-2 transition-all',
             theme === opt.id
               ? 'border-accent bg-accent/5'
-              : 'border-line hover:border-stone-300 dark:hover:border-[#664433] warm:hover:border-[#8e6a48]'
+              : 'border-line hover:border-stone-300 dark:hover:border-line'
           )}
         >
           {theme === opt.id && (
@@ -378,7 +378,7 @@ export default function SettingsPage() {
               onClick={() => setClassRemindersEnabled(!classRemindersEnabled)}
               className={cn(
                 'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
-                classRemindersEnabled ? 'bg-accent' : 'bg-stone-300 dark:bg-[#553311] warm:bg-[#7e5a38]'
+                classRemindersEnabled ? 'bg-accent' : 'bg-stone-300 dark:bg-surface'
               )}
             >
               <span className={cn(
@@ -446,7 +446,7 @@ export default function SettingsPage() {
                 value={newTermName}
                 onChange={e => setNewTermName(e.target.value)}
                 placeholder="e.g. Fall 2026"
-                className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink placeholder:text-stone-500 dark:placeholder:text-[#cc9a58] focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                className="w-full px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink placeholder:text-stone-500 dark:placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
               />
               <div className="flex gap-2">
                 <input
@@ -454,14 +454,14 @@ export default function SettingsPage() {
                   value={newTermStart}
                   onChange={e => setNewTermStart(e.target.value)}
                   title="Start date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
                 />
                 <input
                   type="date"
                   value={newTermEnd}
                   onChange={e => setNewTermEnd(e.target.value)}
                   title="End date (optional)"
-                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-[#332211] warm:bg-[#3d2918] text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]"
+                  className="flex-1 px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
                 />
               </div>
               <button

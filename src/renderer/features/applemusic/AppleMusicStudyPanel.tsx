@@ -32,7 +32,7 @@ function PlaylistRow({ playlist, onPlay }: { playlist: AppleMusicPlaylist; onPla
       <div className="w-9 h-9 rounded-lg shrink-0 overflow-hidden bg-inset flex items-center justify-center">
         {playlist.artworkUrl
           ? <img src={playlist.artworkUrl} alt="" className="w-full h-full object-cover" />
-          : <ListMusic size={14} className="text-stone-500 dark:text-[#775544]" />
+          : <ListMusic size={14} className="text-stone-500 dark:text-muted" />
         }
       </div>
       <div className="flex-1 min-w-0">
@@ -55,7 +55,7 @@ function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => voi
       className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors text-left group"
     >
       <div className="w-9 h-9 rounded-lg shrink-0 bg-inset flex items-center justify-center">
-        <Music size={14} className="text-stone-500 dark:text-[#775544]" />
+        <Music size={14} className="text-stone-500 dark:text-muted" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm text-ink truncate leading-tight">{track.name}</p>
@@ -63,7 +63,7 @@ function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => voi
           {track.artistName}{track.albumName ? ` · ${track.albumName}` : ''}
         </p>
       </div>
-      <span className="text-[10px] tabular-nums text-stone-500 dark:text-[#775544] shrink-0 mr-1 group-hover:hidden">
+      <span className="text-[10px] tabular-nums text-stone-500 dark:text-muted shrink-0 mr-1 group-hover:hidden">
         {formatMs(track.durationMs)}
       </span>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:flex">
@@ -94,7 +94,7 @@ function PlaybackControls() {
       <div className="w-40 h-40 rounded-2xl bg-inset overflow-hidden flex items-center justify-center shadow-lg">
         {track?.artworkUrl
           ? <img src={track.artworkUrl} alt="" className="w-full h-full object-cover" />
-          : <Music size={40} className="text-stone-200 dark:text-[#3d2318]" />
+          : <Music size={40} className="text-stone-200 dark:text-line" />
         }
       </div>
 
@@ -131,7 +131,7 @@ function PlaybackControls() {
         <button
           onClick={() => previous.mutate()}
           disabled={previous.isPending}
-          className="p-2 text-stone-500 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
+          className="p-2 text-stone-500 hover:text-stone-700 dark:hover:text-ink-soft transition-colors disabled:opacity-40"
         >
           <SkipBack size={20} />
         </button>
@@ -148,7 +148,7 @@ function PlaybackControls() {
         <button
           onClick={() => next.mutate()}
           disabled={next.isPending}
-          className="p-2 text-stone-500 hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors disabled:opacity-40"
+          className="p-2 text-stone-500 hover:text-stone-700 dark:hover:text-ink-soft transition-colors disabled:opacity-40"
         >
           <SkipForward size={20} />
         </button>
@@ -170,13 +170,13 @@ function SearchInput({
 }) {
   return (
     <div className="relative mb-2">
-      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500 dark:text-[#775544] pointer-events-none" />
+      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500 dark:text-muted pointer-events-none" />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-inset text-ink placeholder-stone-300 dark:placeholder-[#775544] outline-none focus:ring-1 focus:ring-[#fc3c44]/40"
+        className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-inset text-ink placeholder-stone-300 dark:placeholder:text-muted outline-none focus:ring-1 focus:ring-[#fc3c44]/40"
       />
     </div>
   );

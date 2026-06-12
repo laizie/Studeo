@@ -7,8 +7,15 @@ function offsetDate(days: number): Date {
   return d;
 }
 
+// Format using LOCAL date components, matching how the app stores and parses
+// due dates (parseDateLocal). toISOString() gives the UTC date, which is
+// already "tomorrow" during evening hours west of UTC — that mismatch made
+// these tests fail every night after 8 PM Eastern.
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // ── parseDateLocal ─────────────────────────────────────────────────────────────

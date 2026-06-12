@@ -117,10 +117,10 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
               className={cn(
                 'w-full pl-8 pr-3 py-2 text-sm rounded-lg',
                 'border border-line',
-                'bg-transparent dark:bg-[#332211] warm:bg-[#3d2918]',
+                'bg-transparent dark:bg-inset',
                 'text-ink',
-                'placeholder:text-stone-500 dark:placeholder:text-[#cc9a58]',
-                'focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-[#664433]',
+                'placeholder:text-stone-500 dark:placeholder:text-muted',
+                'focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi',
               )}
             />
           </div>
@@ -136,7 +136,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                 'px-3 py-1 text-xs rounded-md capitalize transition-colors',
                 tab === t
                   ? 'bg-inset text-ink font-medium'
-                  : 'text-muted hover:text-stone-600 dark:hover:text-[#e8d5c0]'
+                  : 'text-muted hover:text-stone-600 dark:hover:text-ink-soft'
               )}
             >
               {t} ({t === 'assignments' ? pendingAssignments.length : pendingTasks.length})
@@ -163,13 +163,13 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                       className={cn(
                         'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
                         inList
-                          ? 'bg-amber-50 dark:bg-[#664433] warm:bg-[#8e6a48]'
+                          ? 'bg-amber-50 dark:bg-surface-hi'
                           : 'hover:bg-surface-hi'
                       )}
                     >
                       <span className={cn(
                         'shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors',
-                        inList ? 'bg-accent border-accent' : 'border-stone-300 dark:border-[#775544] warm:border-[#9e7860]'
+                        inList ? 'bg-accent border-accent' : 'border-stone-300 dark:border-line'
                       )}>
                         {inList && <Check size={9} strokeWidth={3} className="text-white" />}
                       </span>
@@ -210,13 +210,13 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                       className={cn(
                         'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors',
                         inList
-                          ? 'bg-amber-50 dark:bg-[#664433] warm:bg-[#8e6a48]'
+                          ? 'bg-amber-50 dark:bg-surface-hi'
                           : 'hover:bg-surface-hi'
                       )}
                     >
                       <span className={cn(
                         'shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors',
-                        inList ? 'bg-accent border-accent' : 'border-stone-300 dark:border-[#775544] warm:border-[#9e7860]'
+                        inList ? 'bg-accent border-accent' : 'border-stone-300 dark:border-line'
                       )}>
                         {inList && <Check size={9} strokeWidth={3} className="text-white" />}
                       </span>

@@ -87,7 +87,7 @@ function ActivePlayer() {
 export default function AppleMusicMiniPlayer({ borderless }: Props = {}) {
   const { data: status } = useAppleMusicStatus();
 
-  const borderClass = borderless ? undefined : 'border-t border-[#3d2b1f] dark:border-[#1e140c] warm:border-[#3e342c]';
+  const borderClass = borderless ? undefined : 'border-t border-[#3d2b1f]';
 
   if (!status?.running) {
     return (

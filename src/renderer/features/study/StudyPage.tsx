@@ -91,7 +91,7 @@ function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: 
     <svg viewBox="0 0 200 200" className="-rotate-90 w-[200px] h-[200px] lg:w-[220px] lg:h-[220px]">
       <circle cx={100} cy={100} r={RADIUS}
         fill="none" stroke="currentColor" strokeWidth={7}
-        className="text-stone-100 dark:text-[#2d1a08]"
+        className="text-stone-100 dark:text-line"
       />
       <circle cx={100} cy={100} r={RADIUS}
         fill="none" stroke={color} strokeWidth={7}
@@ -160,17 +160,17 @@ function FocusListPanel() {
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="w-full py-8 text-center border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-[#664433] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+          className="w-full py-8 text-center border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
         >
           <p className="text-sm text-muted">
             No assignments or tasks added yet.
           </p>
-          <p className="text-xs text-stone-500 dark:text-[#bb8c50] mt-1">
+          <p className="text-xs text-stone-500 dark:text-muted mt-1">
             Click to pick what you're working on today
           </p>
         </button>
       ) : (
-        <div className="bg-stone-50 dark:bg-[#2d1a08] warm:bg-[#4c2e18] border border-line rounded-xl overflow-hidden divide-y divide-line">
+        <div className="bg-stone-50 dark:bg-inset border border-line rounded-xl overflow-hidden divide-y divide-line">
           {items.map(item => (
             <div
               key={item.id}
@@ -183,7 +183,7 @@ function FocusListPanel() {
               >
                 {item.done
                   ? <CheckCircle2 size={17} className="text-green-500" />
-                  : <Circle size={17} className="text-stone-500 dark:text-[#775544]" />
+                  : <Circle size={17} className="text-stone-500 dark:text-muted" />
                 }
               </button>
 
@@ -219,7 +219,7 @@ function FocusListPanel() {
                 onClick={() => removeItem(item.id)}
                 aria-label={`Remove ${item.name} from focus list`}
                 title="Remove from focus list"
-                className="shrink-0 p-1 rounded text-muted hover:text-stone-700 dark:hover:text-[#e8d5c0] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
+                className="shrink-0 p-1 rounded text-muted hover:text-stone-700 dark:hover:text-ink-soft opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
               >
                 <X size={13} />
               </button>
@@ -329,7 +329,7 @@ export default function StudyPage() {
         <div className="flex flex-col lg:flex-row gap-5">
 
           {/* ── Timer card ───────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-line rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
+          <div className="bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
 
             {/* Card header */}
             <div className="flex items-center gap-2 mb-5 self-start">
@@ -414,7 +414,7 @@ export default function StudyPage() {
               <button
                 onClick={reset}
                 title="Reset"
-                className="p-2.5 text-stone-500 hover:text-stone-600 dark:hover:text-[#d4b896] rounded-full hover:bg-surface-hi transition-colors"
+                className="p-2.5 text-stone-500 hover:text-stone-600 dark:hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
               >
                 <RotateCcw size={17} />
               </button>
@@ -431,9 +431,9 @@ export default function StudyPage() {
 
             {/* Keyboard hint */}
             <p className="text-xs text-muted mb-4">
-              <kbd className="px-1.5 py-0.5 rounded border border-stone-200 dark:border-[#3d2b1f] font-sans">Space</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">Space</kbd>
               <span className="mx-1.5">start / pause</span>·
-              <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-[#3d2b1f] font-sans">R</kbd>
+              <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">R</kbd>
               <span className="ml-1.5">reset</span>
             </p>
 
@@ -476,14 +476,14 @@ export default function StudyPage() {
           </div>
 
           {/* ── Music card ────────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-line rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
+          <div className="bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
             <MusicStudyColumn />
           </div>
 
         </div>
 
         {/* ── Focus list card ───────────────────────────────────────────────── */}
-        <div className="mt-5 bg-white dark:bg-[#1e1008] warm:bg-[#3e2818] border border-line rounded-2xl shadow-sm p-6">
+        <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
           <FocusListPanel />
         </div>
 

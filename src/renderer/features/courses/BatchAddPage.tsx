@@ -24,9 +24,9 @@ function makeRow(name = '', type: AssignmentType = 'Assignment', dueDate = ''): 
 
 const INPUT =
   'w-full px-2.5 py-1.5 text-sm border border-line rounded-lg ' +
-  'bg-white dark:bg-[#332211] warm:bg-[#3d2918] text-ink ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-[#e0b870] focus:border-transparent ' +
-  'placeholder:text-stone-500 dark:placeholder:text-[#cc9a58]';
+  'bg-white dark:bg-inset text-ink ' +
+  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted focus:border-transparent ' +
+  'placeholder:text-stone-500 dark:placeholder:text-muted';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -164,7 +164,7 @@ export default function BatchAddPage() {
       {/* Back link */}
       <Link
         to={courseId ? `/courses/${courseId}` : '/courses'}
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         {course?.name ?? 'Course'}
@@ -205,7 +205,7 @@ export default function BatchAddPage() {
         </button>
 
         {importOpen && (
-          <div className="p-5 border-t border-line bg-white dark:bg-[#332211] warm:bg-[#3d2918] space-y-4">
+          <div className="p-5 border-t border-line bg-white dark:bg-inset space-y-4">
             <p className="text-xs text-muted">
               Each line is treated as one assignment. Dates like "Jan 15", "2/14", or "March 1st"
               are extracted automatically. Lines with no date will appear in the grid with an empty
@@ -249,7 +249,7 @@ export default function BatchAddPage() {
 
               <button
                 onClick={() => { setImportOpen(false); setSyllabusText(''); }}
-                className="text-sm text-muted hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors"
+                className="text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors"
               >
                 Cancel
               </button>
@@ -273,7 +273,7 @@ export default function BatchAddPage() {
           {rows.map((row, idx) => (
             <div
               key={row.id}
-              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-[#332211] warm:bg-[#3d2918] hover:bg-surface-hi/60 transition-colors"
+              className="grid grid-cols-[1fr_150px_160px_36px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-inset hover:bg-surface-hi/60 transition-colors"
             >
               <input
                 ref={el => { nameRefs.current[row.id] = el; }}
@@ -315,7 +315,7 @@ export default function BatchAddPage() {
         {/* Add row */}
         <button
           onClick={() => addRowAfter()}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-muted hover:text-stone-600 dark:hover:text-[#d4b896] hover:bg-surface-hi transition-colors border-t border-line"
+          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft hover:bg-surface-hi transition-colors border-t border-line"
         >
           <Plus size={14} />
           Add row
@@ -345,7 +345,7 @@ export default function BatchAddPage() {
         </button>
         <Link
           to={courseId ? `/courses/${courseId}` : '/courses'}
-          className="px-4 py-2 text-sm text-muted hover:text-stone-700 dark:hover:text-[#e8d5c0] transition-colors"
+          className="px-4 py-2 text-sm text-muted hover:text-stone-700 dark:hover:text-ink-soft transition-colors"
         >
           Cancel
         </Link>

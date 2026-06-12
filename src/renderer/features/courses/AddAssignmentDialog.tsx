@@ -16,7 +16,7 @@ const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
   'placeholder:text-stone-500 ' +
-  'dark:bg-[#332211] warm:bg-[#3d2918] dark:border-[#221408] warm:border-[#423428] dark:text-[#f0e0cc] dark:placeholder:text-[#e0b870] dark:focus:ring-[#e0b870]';
+  'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function AddAssignmentDialog({ courseId, assignment, isOpen, onClose }: Props) {
   const isEditing = !!assignment;
@@ -98,7 +98,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit assignment' : 'New assignment'}
           </h2>
-          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-[#d4b896] transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -163,7 +163,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 dark:text-[#c4a882] hover:text-stone-800 dark:hover:text-[#e8d5c0] transition-colors"
+              className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft transition-colors"
             >
               Cancel
             </button>

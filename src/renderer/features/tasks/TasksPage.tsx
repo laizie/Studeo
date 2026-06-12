@@ -112,7 +112,7 @@ export default function TasksPage() {
                 'px-3 py-1 text-sm rounded-md transition-colors',
                 filter === f.value
                   ? 'bg-surface text-ink shadow-sm font-medium'
-                  : 'bg-stone-200/70 dark:bg-[#442918] warm:bg-[#6e4c30] text-stone-600 dark:text-[#c4a882] hover:bg-stone-200 dark:hover:bg-[#553311] warm:hover:bg-[#7e5a38]'
+                  : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
               )}
             >
               {f.label}

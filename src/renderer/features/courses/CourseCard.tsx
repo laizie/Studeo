@@ -17,7 +17,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-stone-600 transition-all group">
+    <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-line transition-all group">
       {/* Color accent strip */}
       <div className="h-2 shrink-0 w-full" style={{ backgroundColor: course.color }} />
 
@@ -60,7 +60,7 @@ export default function CourseCard({ course, total = 0, completed = 0 }: Props) 
                   {pct}%
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-stone-200 dark:bg-[#443322] warm:bg-[#6e5342] rounded-full">
+              <div className="w-full h-2.5 bg-stone-200 dark:bg-surface-hi rounded-full">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${pct}%`, backgroundColor: course.color }}
