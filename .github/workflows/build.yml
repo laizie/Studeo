@@ -63,11 +63,16 @@ jobs:
         run: |
           security delete-keychain "$RUNNER_TEMP/build.keychain" || true
 
+      # Give the DMG a stable filename so the README's
+      # releases/latest/download/Studeo-macOS.dmg link works for every version.
+      - name: Rename DMG to stable name
+        run: mv out/make/*.dmg out/make/Studeo-macOS.dmg
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Studeo-macOS
-          path: out/make/**
+          path: out/make/Studeo-macOS.dmg
 
   build-windows:
     runs-on: windows-latest
@@ -89,4 +94,26 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Studeo-Windows
-          path: out/make/**
+          path: out/make/squirrel.windows/**/StudeoSetup.exe
+
+  # Fan-in job: waits for both builds, downloads their installers, and
+  # attaches them to a draft release for the pushed tag. Draft means
+  # nothing goes public until you click Publish on the Releases page.
+  release:
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: installers/**

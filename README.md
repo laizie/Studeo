@@ -6,6 +6,17 @@ Built with Electron, React, TypeScript, and SQLite.
 
 ---
 
+## Download
+
+- **[Download for macOS](https://github.com/laizie/classtrack/releases/latest/download/Studeo-macOS.dmg)** — Apple Silicon
+- **[Download for Windows](https://github.com/laizie/classtrack/releases/latest/download/StudeoSetup.exe)**
+
+All versions are on the [Releases page](https://github.com/laizie/classtrack/releases).
+
+> **Windows note:** the installer isn't code-signed, so SmartScreen may warn on first run — click **More info → Run anyway**.
+
+---
+
 ## Tech stack
 
 | Layer | Technology |
@@ -147,7 +158,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The workflow (`.github/workflows/build.yml`) runs macOS and Windows builds in parallel and uploads installers as artifacts. You can also trigger it manually from the Actions tab.
+The workflow (`.github/workflows/build.yml`) runs macOS and Windows builds in parallel, then attaches the installers to a **draft GitHub Release** for that tag. Review the draft on the Releases page and click **Publish** to make the downloads public. Manual runs from the Actions tab only upload artifacts (no release).
 
 ---
 
