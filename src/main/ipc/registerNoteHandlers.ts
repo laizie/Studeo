@@ -8,7 +8,9 @@ import {
   createNote,
   updateNote,
   deleteNote,
+  listNoteAndDescendantIds,
 } from '../db/repositories/noteRepo';
+import { deleteNoteAssets } from '../media';
 
 // content_json must be a JSON array of blocks. We validate the shape here (not just that
 // it parses) so a malformed document can never reach the DB or the search index.
@@ -59,6 +61,10 @@ export function registerNoteHandlers(): void {
 
   ipcMain.handle(IPC.NOTES.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Note id is required');
+    // Collect the note + all sub-pages first; the DB cascade drops the rows, then we remove
+    // each one's image folder so deleted notes don't leave orphaned files behind.
+    const ids = listNoteAndDescendantIds(id);
     deleteNote(id);
+    for (const noteId of ids) deleteNoteAssets(noteId);
   });
 }

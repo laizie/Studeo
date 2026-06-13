@@ -29,7 +29,7 @@ export default function AboutSection() {
   const backupDescription =
     backupState === 'done'   ? `Saved to ${backupDetail}`
     : backupState === 'failed' ? `Backup failed${backupDetail ? ` — ${backupDetail}` : ''}. Please try again.`
-    : 'Save a snapshot of your database anywhere — a safe copy before big changes';
+    : 'Save a snapshot of your database (note images are copied alongside it) — a safe copy before big changes';
 
   return (
     <div>
