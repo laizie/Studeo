@@ -69,11 +69,17 @@ jobs:
       - name: Rename DMG to stable name
         run: mv out/make/*.dmg out/make/Studeo-macOS.dmg
 
+      # Upload BOTH:
+      #  - the DMG  -> first-time install (what people download from Releases)
+      #  - the ZIP  -> what the Squirrel.Mac auto-updater actually consumes.
+      #               Keep its versioned name so update.electronjs.org can match it.
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
         with:
           name: Studeo-macOS
-          path: out/make/Studeo-macOS.dmg
+          path: |
+            out/make/Studeo-macOS.dmg
+            out/make/zip/darwin/**/*.zip
 
   build-windows:
     runs-on: windows-latest
@@ -91,11 +97,14 @@ jobs:
       - name: Build (Windows)
         run: npm run make -- --platform=win32
 
+      # Upload the FULL Squirrel output, not just the installer. The
+      # Squirrel.Windows auto-updater needs RELEASES + the *.nupkg alongside
+      # StudeoSetup.exe; uploading only the .exe breaks auto-update.
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v7
         with:
           name: Studeo-Windows
-          path: out/make/squirrel.windows/**/StudeoSetup.exe
+          path: out/make/squirrel.windows/**/*
 
   # Fan-in job: waits for both builds, downloads their installers, and
   # attaches them to a draft release for the pushed tag. Draft means
