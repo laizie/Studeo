@@ -3,6 +3,7 @@ import { IPC } from '../../shared/types';
 import type { CreateNoteInput, UpdateNoteInput } from '../../shared/types';
 import {
   listNotes,
+  listLooseNotes,
   getNote,
   searchNotes,
   createNote,
@@ -33,6 +34,8 @@ export function registerNoteHandlers(): void {
   ipcMain.handle(IPC.NOTES.LIST, (_event, filters?: { archived?: boolean }) =>
     listNotes(filters ?? {})
   );
+
+  ipcMain.handle(IPC.NOTES.LIST_LOOSE, () => listLooseNotes());
 
   ipcMain.handle(IPC.NOTES.GET, (_event, id: string) => {
     if (!id) throw new Error('Note id is required');

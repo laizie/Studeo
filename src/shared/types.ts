@@ -116,6 +116,8 @@ export interface Note {
   content_text: string;
   icon: string | null;
   parent_note_id: string | null;
+  /** Optional YYYY-MM-DD; places the note on its class Timeline. Null = a freeform Page. */
+  note_date: string | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -248,6 +250,8 @@ export interface CreateNoteInput {
   contentJson?: string;
   icon?: string;
   parentNoteId?: string;
+  /** YYYY-MM-DD; places the note on a class Timeline. */
+  noteDate?: string;
 }
 
 export interface UpdateNoteInput {
@@ -256,6 +260,8 @@ export interface UpdateNoteInput {
   contentJson?: string;
   icon?: string | null;
   parentNoteId?: string | null;
+  /** YYYY-MM-DD to place on the Timeline, or null to move it back to Pages. */
+  noteDate?: string | null;
   /** true = move to trash (sets archived_at); false = restore (clears it). */
   archived?: boolean;
 }
@@ -419,6 +425,7 @@ export const IPC = {
   },
   NOTES: {
     LIST:            'notes:list',
+    LIST_LOOSE:      'notes:list-loose',
     GET:             'notes:get',
     SEARCH:          'notes:search',
     CREATE:          'notes:create',
@@ -530,6 +537,8 @@ export interface WindowApi {
   notes: {
     /** Defaults to non-archived notes; pass { archived: true } for the trash. */
     list(filters?: { archived?: boolean }): Promise<Note[]>;
+    /** Top-level notes not attached to any course (the "Loose notes" bucket). */
+    listLoose(): Promise<Note[]>;
     get(id: string): Promise<Note | null>;
     /** Full-text search over title + content_text (non-archived only). */
     search(query: string): Promise<Note[]>;

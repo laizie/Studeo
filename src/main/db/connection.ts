@@ -12,6 +12,7 @@ import migration005 from './migrations/005_notes.sql?raw';
 import migration006 from './migrations/006_note_links.sql?raw';
 import migration007 from './migrations/007_note_link_pin.sql?raw';
 import migration008 from './migrations/008_note_versions.sql?raw';
+import migration009 from './migrations/009_note_date.sql?raw';
 
 let db: DatabaseSync | null = null;
 let dbPath: string | null = null;
@@ -54,6 +55,7 @@ const MIGRATIONS: { name: string; sql: string }[] = [
   { name: '006_note_links.sql', sql: migration006 },
   { name: '007_note_link_pin.sql', sql: migration007 },
   { name: '008_note_versions.sql', sql: migration008 },
+  { name: '009_note_date.sql', sql: migration009 },
 ];
 
 function runMigrations(database: DatabaseSync): void {
