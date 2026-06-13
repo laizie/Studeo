@@ -3,6 +3,7 @@ import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { studeoCodeBlock } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
+import NoteLinkBar from './NoteLinkBar';
 import { useUpdateNote } from '../../lib/queries/useNotes';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import type { Note } from '../../../shared/types';
@@ -97,6 +98,7 @@ export default function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="mx-auto max-w-[760px] px-6 py-10">
+      <NoteLinkBar noteId={note.id} />
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
