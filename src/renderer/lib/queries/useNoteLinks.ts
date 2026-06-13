@@ -5,8 +5,8 @@ import { noteKeys } from './useNotes';
 export const noteLinkKeys = {
   all: ['noteLinks'] as const,
   forNote: (noteId: string) => ['noteLinks', 'forNote', noteId] as const,
-  forEntity: (entityType: NoteLinkEntity, entityId: string) =>
-    ['noteLinks', 'forEntity', entityType, entityId] as const,
+  forEntity: (entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string) =>
+    ['noteLinks', 'forEntity', entityType, entityId, occurrenceDate ?? null] as const,
 };
 
 /** The links attached to a note — drives the editor's link bar. */
@@ -18,11 +18,16 @@ export function useNoteLinks(noteId: string | undefined) {
   });
 }
 
-/** The notes attached to an entity — drives per-entity embeds (course/assignment/…). */
-export function useEntityNotes(entityType: NoteLinkEntity, entityId: string | undefined) {
+/** The notes attached to an entity — drives per-entity embeds (course/assignment/…).
+    occurrenceDate scopes to a single dated lecture for class_meeting embeds. */
+export function useEntityNotes(
+  entityType: NoteLinkEntity,
+  entityId: string | undefined,
+  occurrenceDate?: string,
+) {
   return useQuery({
-    queryKey: noteLinkKeys.forEntity(entityType, entityId ?? ''),
-    queryFn: () => window.api.noteLinks.notesForEntity(entityType, entityId!),
+    queryKey: noteLinkKeys.forEntity(entityType, entityId ?? '', occurrenceDate),
+    queryFn: () => window.api.noteLinks.notesForEntity(entityType, entityId!, occurrenceDate),
     enabled: !!entityId,
   });
 }

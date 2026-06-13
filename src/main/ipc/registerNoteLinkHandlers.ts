@@ -22,10 +22,10 @@ export function registerNoteLinkHandlers(): void {
     return listLinksForNote(noteId);
   });
 
-  ipcMain.handle(IPC.NOTE_LINKS.NOTES_FOR_ENTITY, (_event, entityType: NoteLinkEntity, entityId: string) => {
+  ipcMain.handle(IPC.NOTE_LINKS.NOTES_FOR_ENTITY, (_event, entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string) => {
     assertEntityType(entityType);
     if (!entityId) throw new Error('entityId is required');
-    return listNotesForEntity(entityType, entityId);
+    return listNotesForEntity(entityType, entityId, occurrenceDate);
   });
 
   ipcMain.handle(IPC.NOTE_LINKS.CREATE, (_event, input: CreateNoteLinkInput) => {

@@ -16,6 +16,7 @@ import { parseDateLocal } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task } from '../../../shared/types';
 import { contrastTextColor } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
+import LectureNotesDialog from '../notes/LectureNotesDialog';
 import { cn } from '../../lib/utils';
 
 // ── Localizer ────────────────────────────────────────────────────────────────
@@ -132,6 +133,8 @@ export default function CalendarPage() {
   const calendarShowTasks   = usePageFiltersStore(s => s.calendarShowTasks);
   const setCalendarShowTasks = usePageFiltersStore(s => s.setCalendarShowTasks);
   const [calDate, setCalDate] = useState(new Date());
+  // The dated lecture whose notes dialog is open (set when a meeting event is clicked).
+  const [lectureSel, setLectureSel] = useState<{ meeting: ClassMeeting; course?: Course; date: string } | null>(null);
 
   // Track the visible range so we only expand meetings for what's on screen.
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>(() => ({
@@ -210,6 +213,13 @@ export default function CalendarPage() {
         navigate(`/courses/${event.resource.course.id}`);
       } else if (event.resource.type === 'task') {
         navigate('/tasks');
+      } else if (event.resource.type === 'meeting') {
+        // Open notes for this specific dated lecture.
+        setLectureSel({
+          meeting: event.resource.meeting,
+          course: event.resource.course,
+          date: toDateStr(event.start),
+        });
       }
     },
     [navigate]
@@ -336,6 +346,15 @@ export default function CalendarPage() {
           showMultiDayTimes
         />
       </div>
+      )}
+
+      {lectureSel && (
+        <LectureNotesDialog
+          meeting={lectureSel.meeting}
+          course={lectureSel.course}
+          date={lectureSel.date}
+          onClose={() => setLectureSel(null)}
+        />
       )}
     </div>
   );

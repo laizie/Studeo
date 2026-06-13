@@ -34,7 +34,7 @@ export default function EntityNotesList({
   heading = 'Notes',
 }: Props) {
   const navigate = useNavigate();
-  const { data: notes } = useEntityNotes(entityType, entityId);
+  const { data: notes } = useEntityNotes(entityType, entityId, occurrenceDate);
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const pending = createNote.isPending || linkNote.isPending;
