@@ -2,7 +2,7 @@ import { NavLink, Link } from 'react-router-dom';
 import logoUrl from '../assets/logo.png';
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
-  Calendar, Timer, Settings, Plus, Music,
+  Calendar, Timer, Settings, Plus, Music, FileText,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/courses', label: 'Courses', icon: BookOpen },
   { to: '/this-week', label: 'This Week', icon: CalendarDays },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { to: '/notes', label: 'Notes', icon: FileText },
   { to: '/calendar', label: 'Calendar', icon: Calendar },
   { to: '/study', label: 'Study', icon: Timer },
 ];

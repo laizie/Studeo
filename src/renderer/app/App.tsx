@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import Layout from './Layout';
 import DashboardPage from '../features/dashboard/DashboardPage';
@@ -9,6 +10,11 @@ import CalendarPage from '../features/calendar/CalendarPage';
 import StudyPage from '../features/study/StudyPage';
 import SettingsPage from '../features/settings/SettingsPage';
 import BatchAddPage from '../features/courses/BatchAddPage';
+import NotesPage from '../features/notes/NotesPage';
+
+// The note editor pulls in BlockNote (heavy). Lazy-load it so that bundle splits into its
+// own chunk and only downloads when a note is actually opened (M0 finding / plan §6.3).
+const NoteEditorPage = lazy(() => import('../features/notes/NoteEditorPage'));
 
 export default function App() {
   return (
@@ -23,6 +29,15 @@ export default function App() {
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="study" element={<StudyPage />} />
+          <Route path="notes" element={<NotesPage />} />
+          <Route
+            path="notes/:id"
+            element={
+              <Suspense fallback={<div className="p-10 text-muted">Loading editor…</div>}>
+                <NoteEditorPage />
+              </Suspense>
+            }
+          />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

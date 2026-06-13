@@ -1,0 +1,31 @@
+/* Map BlockNote's own CSS variables onto Studeo's design tokens (plan §7.6).
+   Because the tokens (--bg, --ink, --surface, --accent, …) already swap per active theme
+   (light / dark / warm via the .dark class + [data-theme="warm"]), the editor follows the
+   app theme automatically — no duplicated hex, no per-theme editor code. Scoped to the
+   .studeo-bn wrapper so it never leaks into the rest of the app.
+   This file is imported only by NoteEditor.tsx, so it lands in the lazy editor chunk. */
+
+.studeo-bn .bn-container {
+  --bn-colors-editor-background: var(--bg);
+  --bn-colors-editor-text: var(--ink);
+  --bn-colors-menu-background: var(--surface);
+  --bn-colors-menu-text: var(--ink);
+  --bn-colors-tooltip-background: var(--surface-hi);
+  --bn-colors-tooltip-text: var(--ink);
+  --bn-colors-hovered-background: var(--surface-hi);
+  --bn-colors-hovered-text: var(--ink);
+  --bn-colors-selected-background: var(--accent);
+  --bn-colors-selected-text: var(--accent-ink);
+  --bn-colors-disabled-background: var(--inset);
+  --bn-colors-disabled-text: var(--muted);
+  --bn-colors-border: var(--line);
+  --bn-colors-side-menu: var(--muted);
+  --bn-border-radius: 8px;
+  font-family: inherit;
+}
+
+/* The editor provides its own page padding; we control width from the wrapper, so let the
+   editor fill it. */
+.studeo-bn .bn-editor {
+  padding-inline: 0;
+}
