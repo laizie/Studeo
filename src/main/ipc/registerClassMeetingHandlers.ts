@@ -7,6 +7,7 @@ import {
   updateClassMeeting,
   deleteClassMeeting,
 } from '../db/repositories/classMeetingRepo';
+import { deleteLinksForEntity } from '../db/repositories/noteLinkRepo';
 
 export function registerClassMeetingHandlers(): void {
   ipcMain.handle(IPC.CLASS_MEETINGS.LIST, (_event, filters?: { courseId?: string }) =>
@@ -29,5 +30,6 @@ export function registerClassMeetingHandlers(): void {
   ipcMain.handle(IPC.CLASS_MEETINGS.DELETE, (_event, id: string) => {
     if (!id) throw new Error('id is required');
     deleteClassMeeting(id);
+    deleteLinksForEntity('class_meeting', id);
   });
 }

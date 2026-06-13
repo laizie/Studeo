@@ -11,6 +11,7 @@ import { registerMeetingExceptionHandlers } from './main/ipc/registerMeetingExce
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
 import { registerStudySessionHandlers } from './main/ipc/registerStudySessionHandlers';
 import { registerNoteHandlers } from './main/ipc/registerNoteHandlers';
+import { registerNoteLinkHandlers } from './main/ipc/registerNoteLinkHandlers';
 import { registerMediaHandlers } from './main/ipc/registerMediaHandlers';
 import { ASSET_SCHEME, registerAssetProtocol } from './main/media';
 import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
@@ -44,6 +45,7 @@ function registerIpcHandlers(): void {
   registerTermHandlers();
   registerStudySessionHandlers();
   registerNoteHandlers();
+  registerNoteLinkHandlers();
   registerMediaHandlers();
   registerReminderHandlers();
   registerAppHandlers();

@@ -27,6 +27,8 @@ import type {
   CreateStudySessionInput,
   CreateNoteInput,
   UpdateNoteInput,
+  CreateNoteLinkInput,
+  NoteLinkEntity,
   SaveMediaInput,
   ReminderConfig,
 } from './shared/types';
@@ -95,6 +97,13 @@ const api: WindowApi = {
     create: (input: CreateNoteInput)            => ipcRenderer.invoke(IPC.NOTES.CREATE, input),
     update: (id, input: UpdateNoteInput)        => ipcRenderer.invoke(IPC.NOTES.UPDATE, id, input),
     delete: (id)                                => ipcRenderer.invoke(IPC.NOTES.DELETE, id),
+  },
+
+  noteLinks: {
+    listForNote:    (noteId: string)                                   => ipcRenderer.invoke(IPC.NOTE_LINKS.LIST_FOR_NOTE, noteId),
+    notesForEntity: (entityType: NoteLinkEntity, entityId: string)     => ipcRenderer.invoke(IPC.NOTE_LINKS.NOTES_FOR_ENTITY, entityType, entityId),
+    create:         (input: CreateNoteLinkInput)                       => ipcRenderer.invoke(IPC.NOTE_LINKS.CREATE, input),
+    delete:         (id)                                               => ipcRenderer.invoke(IPC.NOTE_LINKS.DELETE, id),
   },
 
   media: {
