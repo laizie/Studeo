@@ -1,11 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { useCreateBlockNote } from '@blocknote/react';
+import {
+  useCreateBlockNote,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
+} from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
+import { filterSuggestionItems } from '@blocknote/core';
 import { studeoCodeBlock } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
 import NoteLinkBar from './NoteLinkBar';
+import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
+import { studeoSlashItems } from './noteSlashItems';
 import { useUpdateNote } from '../../lib/queries/useNotes';
+import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
+import { useCourses } from '../../lib/queries/useCourses';
+import { useAssignments } from '../../lib/queries/useAssignments';
+import { useCreateTask } from '../../lib/queries/useTasks';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import type { Note } from '../../../shared/types';
 import './blocknote-theme.css';
 // eslint-disable-next-line import/no-unresolved -- Vite resolves CSS side-effect imports at build time
@@ -22,6 +34,21 @@ function fileExt(file: File): string {
   if (fromName) return fromName;
   const sub = file.type.split('/')[1] ?? '';
   return sub;
+}
+
+// Today as a local YYYY-MM-DD (tasks store a date-only due date).
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Plain text of a BlockNote block's inline content. The content shape is BlockNote-internal,
+// so this reads it loosely rather than importing its generic types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- BlockNote inline content is loosely typed here
+function blockPlainText(content: any): string {
+  if (!Array.isArray(content)) return '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inline item shape varies (text/link)
+  return content.map((c: any) => (typeof c?.text === 'string' ? c.text : '')).join('').trim();
 }
 
 // A note with an empty/blank document should start with BlockNote's default empty paragraph
@@ -43,11 +70,24 @@ function parseInitial(contentJson: string) {
 export default function NoteEditor({ note }: { note: Note }) {
   const theme = useSettingsStore((s) => s.theme);
   const updateNote = useUpdateNote();
+  const linkNote = useCreateNoteLink();
+  const createTask = useCreateTask();
+  const { data: courses } = useCourses();
+  const { data: assignments } = useAssignments();
 
   // "Untitled" is the DB default/placeholder — show it as an empty field, not literal text.
   const initialTitle = note.title === 'Untitled' ? '' : note.title;
   const [title, setTitle] = useState(initialTitle);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  // Slash-command UI: which link picker is open, the /Due date prompt, and a transient toast.
+  const [picker, setPicker] = useState<'course' | 'assignment' | null>(null);
+  const [dueOpen, setDueOpen] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+
+  function showFlash(message: string) {
+    setFlash(message);
+    setTimeout(() => setFlash((m) => (m === message ? null : m)), 2200);
+  }
 
   const editor = useCreateBlockNote({
     codeBlock: studeoCodeBlock,
@@ -96,6 +136,44 @@ export default function NoteEditor({ note }: { note: Note }) {
     updateNote.mutate({ id: note.id, input: { title } });
   }
 
+  // ── Slash-command actions ─────────────────────────────────────────────────────
+  function linkSelected(entityType: 'course' | 'assignment', entityId: string) {
+    linkNote.mutate({ noteId: note.id, entityType, entityId });
+    setPicker(null);
+    showFlash(entityType === 'course' ? 'Linked to course' : 'Linked to assignment');
+  }
+
+  function insertDue(date: string) {
+    setDueOpen(false);
+    if (!date) return;
+    const info = computeDeadlineLabel(date);
+    editor.insertInlineContent([
+      { type: 'text', text: `📅 Due ${formatDueDate(date)} · ${info.label}`, styles: { bold: true } },
+      ' ', // trailing plain space so typing continues un-bolded
+    ]);
+  }
+
+  function checklistToTask() {
+    const text = blockPlainText(editor.getTextCursorPosition().block.content);
+    if (!text) { showFlash('Nothing on this line to add'); return; }
+    createTask.mutate({ name: text, dueDate: todayStr() });
+    showFlash('Added to Tasks (due today)');
+  }
+
+  const slashActions = {
+    onLinkCourse: () => setPicker('course'),
+    onLinkAssignment: () => setPicker('assignment'),
+    onInsertDue: () => setDueOpen(true),
+    onChecklistToTask: checklistToTask,
+  };
+
+  const courseItems: PickItem[] = (courses ?? []).map((c) => ({
+    id: c.id, label: c.name, sublabel: c.abbreviation,
+  }));
+  const assignmentItems: PickItem[] = (assignments ?? []).map((a) => ({
+    id: a.id, label: a.name, sublabel: courses?.find((c) => c.id === a.course_id)?.abbreviation,
+  }));
+
   return (
     <div className="mx-auto max-w-[760px] px-6 py-10">
       <NoteLinkBar noteId={note.id} />
@@ -126,10 +204,86 @@ export default function NoteEditor({ note }: { note: Note }) {
           editor={editor}
           theme={theme === 'light' ? 'light' : 'dark'}
           onChange={handleChange}
-        />
+          slashMenu={false}
+        >
+          <SuggestionMenuController
+            triggerCharacter="/"
+            getItems={async (query) =>
+              filterSuggestionItems(
+                [...getDefaultReactSlashMenuItems(editor), ...studeoSlashItems(slashActions)],
+                query,
+              )
+            }
+          />
+        </BlockNoteView>
       </div>
 
       {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+
+      {picker === 'course' && (
+        <LinkPickerDialog
+          title="Link a course"
+          items={courseItems}
+          onSelect={(id) => linkSelected('course', id)}
+          onClose={() => setPicker(null)}
+        />
+      )}
+      {picker === 'assignment' && (
+        <LinkPickerDialog
+          title="Link an assignment"
+          items={assignmentItems}
+          onSelect={(id) => linkSelected('assignment', id)}
+          onClose={() => setPicker(null)}
+        />
+      )}
+      {dueOpen && <DueDatePrompt onConfirm={insertDue} onClose={() => setDueOpen(false)} />}
+
+      {flash && (
+        <div className="fixed bottom-6 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-xs font-medium text-bg shadow-lg">
+          {flash}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Minimal date prompt for the /Due slash command. */
+function DueDatePrompt({ onConfirm, onClose }: { onConfirm: (date: string) => void; onClose: () => void }) {
+  const [date, setDate] = useState('');
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh]"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="relative w-full max-w-xs mx-4 rounded-2xl bg-surface p-5 shadow-2xl">
+        <label className="mb-2 block text-sm font-medium text-ink-soft">Due date</label>
+        <input
+          type="date"
+          autoFocus
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full rounded-lg border border-line bg-inset px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <button onClick={onClose} className="px-3 py-1.5 text-sm text-muted hover:text-ink transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(date)}
+            disabled={!date}
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep disabled:opacity-50 transition-colors"
+          >
+            Insert
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
