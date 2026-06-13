@@ -52,7 +52,7 @@ export default function EntityNotesList({
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-ink-soft">{heading}</h2>
+        {heading ? <h2 className="text-base font-semibold text-ink-soft">{heading}</h2> : <span />}
         <button
           onClick={handleNew}
           disabled={pending}
