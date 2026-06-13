@@ -25,6 +25,8 @@ import type {
   CreateTermInput,
   UpdateTermInput,
   CreateStudySessionInput,
+  CreateNoteInput,
+  UpdateNoteInput,
   ReminderConfig,
 } from './shared/types';
 
@@ -83,6 +85,15 @@ const api: WindowApi = {
   studySessions: {
     list:   ()                                  => ipcRenderer.invoke(IPC.STUDY_SESSIONS.LIST),
     create: (input: CreateStudySessionInput)    => ipcRenderer.invoke(IPC.STUDY_SESSIONS.CREATE, input),
+  },
+
+  notes: {
+    list:   (filters?: { archived?: boolean })  => ipcRenderer.invoke(IPC.NOTES.LIST, filters),
+    get:    (id)                                => ipcRenderer.invoke(IPC.NOTES.GET, id),
+    search: (query: string)                     => ipcRenderer.invoke(IPC.NOTES.SEARCH, query),
+    create: (input: CreateNoteInput)            => ipcRenderer.invoke(IPC.NOTES.CREATE, input),
+    update: (id, input: UpdateNoteInput)        => ipcRenderer.invoke(IPC.NOTES.UPDATE, id, input),
+    delete: (id)                                => ipcRenderer.invoke(IPC.NOTES.DELETE, id),
   },
 
   reminders: {
