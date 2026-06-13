@@ -1,14 +1,23 @@
+import { useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Pin, FileText, Star, CalendarDays } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useTerms } from '../../lib/queries/useTerms';
+import { useClassMeetings } from '../../lib/queries/useClassMeetings';
+import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
-import { groupNotesByWeek } from '../../../shared/notebook';
-import { formatDueDate } from '../../../shared/deadlines';
+import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
+import { buildExceptionIndex } from '../../../shared/meetingExceptions';
+import { lectureTemplate } from '../../../shared/noteTemplates';
+import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import type { EntityNote } from '../../../shared/types';
+
+type TimelineEntry =
+  | { kind: 'session'; date: string; session: ClassSession; notes: EntityNote[] }
+  | { kind: 'note'; date: string; note: EntityNote };
 
 function snippet(note: EntityNote): string {
   const text = note.content_text.trim().replace(/\n+/g, ' ');
@@ -65,27 +74,65 @@ export default function ClassNotebookPage() {
   const navigate = useNavigate();
   const { data: course } = useCourse(courseId ?? '');
   const { data: terms } = useTerms();
+  const { data: meetings } = useClassMeetings({ courseId });
+  const { data: exceptions } = useMeetingExceptions();
   const { data: notes } = useEntityNotes('course', courseId);
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const setPin = useSetNotePin();
 
-  const termStart = terms?.find((t) => t.id === course?.term_id)?.start_date ?? null;
+  const term = terms?.find((t) => t.id === course?.term_id);
+  const termStart = term?.start_date ?? null;
+  const termEnd = term?.end_date ?? null;
+
   const all = notes ?? [];
   const pinned = all.filter((n) => n.is_pinned);
-  const dated = all.filter((n) => !n.is_pinned && n.note_date);
+  const datedNotes = all.filter((n) => !n.is_pinned && n.note_date);
   const pages = all.filter((n) => !n.is_pinned && !n.note_date);
-  const weeks = groupNotesByWeek(termStart, dated);
+
+  // Merge real class sessions (from the schedule) with any other dated notes into one
+  // chronological timeline, then bucket into weeks.
+  const exIndex = useMemo(() => buildExceptionIndex(exceptions ?? []), [exceptions]);
+  const weeks = useMemo(() => {
+    const sessions = expandClassSessions(termStart, termEnd, meetings ?? [], exIndex);
+    const sessionDates = new Set(sessions.map((s) => s.date));
+    const notesByDate = new Map<string, EntityNote[]>();
+    for (const n of datedNotes) {
+      const arr = notesByDate.get(n.note_date as string) ?? [];
+      arr.push(n);
+      notesByDate.set(n.note_date as string, arr);
+    }
+    const entries: TimelineEntry[] = [
+      ...sessions.map((s): TimelineEntry => ({ kind: 'session', date: s.date, session: s, notes: notesByDate.get(s.date) ?? [] })),
+      ...datedNotes
+        .filter((n) => !sessionDates.has(n.note_date as string))
+        .map((n): TimelineEntry => ({ kind: 'note', date: n.note_date as string, note: n })),
+    ];
+    return bucketByWeek(termStart, entries, (e) => e.date);
+  }, [termStart, termEnd, meetings, exIndex, datedNotes]);
 
   function togglePin(note: EntityNote) {
     setPin.mutate({ linkId: note.link_id, pinned: !note.is_pinned });
   }
 
-  // Create a new note already linked to this class, then open it.
   async function newNote(opts: { pinned?: boolean; title?: string } = {}) {
     const note = await createNote.mutateAsync({ title: opts.title ?? `${course?.abbreviation ?? ''} — ` });
     const link = await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
     if (opts.pinned) await setPin.mutateAsync({ linkId: link.id, pinned: true });
+    navigate(`/notes/${note.id}`);
+  }
+
+  // One-click lecture note for a specific session: dated + linked to the course AND the
+  // dated lecture occurrence, pre-filled with the lecture template.
+  async function addLectureNote(session: ClassSession) {
+    const pretty = format(parseDateLocal(session.date), 'EEE, MMM d');
+    const note = await createNote.mutateAsync({
+      title: `${course?.abbreviation ?? ''} · Lecture ${pretty}`,
+      contentJson: lectureTemplate(),
+      noteDate: session.date,
+    });
+    await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
+    await linkNote.mutateAsync({ noteId: note.id, entityType: 'class_meeting', entityId: session.meetingId, occurrenceDate: session.date });
     navigate(`/notes/${note.id}`);
   }
 
@@ -152,7 +199,9 @@ export default function ClassNotebookPage() {
         </h2>
         {weeks.length === 0 ? (
           <p className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-muted">
-            Dated notes (lectures, readings) appear here by week. Open a note and set its date to add it.
+            {termStart
+              ? 'Your class sessions appear here by week once the course has a schedule and term dates.'
+              : 'Set start/end dates on this term (Settings → Semesters) to see your class sessions by week.'}
           </p>
         ) : (
           <div className="space-y-5">
@@ -165,7 +214,39 @@ export default function ClassNotebookPage() {
                   </span>
                 </p>
                 <div className="space-y-2">
-                  {w.items.map((n) => <NoteRow key={n.id} note={n} onPin={togglePin} showDate />)}
+                  {w.items.map((entry) =>
+                    entry.kind === 'note' ? (
+                      <NoteRow key={entry.note.id} note={entry.note} onPin={togglePin} showDate />
+                    ) : (
+                      <div key={`${entry.session.meetingId}:${entry.date}`}>
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs text-muted">
+                            {format(parseDateLocal(entry.date), 'EEE, MMM d')} · {entry.session.startTime}
+                          </span>
+                          <button
+                            onClick={() => addLectureNote(entry.session)}
+                            disabled={createNote.isPending}
+                            className="text-xs text-accent hover:underline disabled:opacity-50"
+                          >
+                            ＋ Lecture note
+                          </button>
+                        </div>
+                        {entry.notes.length === 0 ? (
+                          <button
+                            onClick={() => addLectureNote(entry.session)}
+                            disabled={createNote.isPending}
+                            className="w-full rounded-lg border border-dashed border-line px-3 py-2 text-left text-xs text-muted hover:bg-surface-hi hover:text-ink transition-colors disabled:opacity-50"
+                          >
+                            No notes for this session yet — add one
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} onPin={togglePin} />)}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             ))}
