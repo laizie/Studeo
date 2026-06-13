@@ -113,6 +113,29 @@ export interface Note {
   updated_at: string;
 }
 
+// The Studeo entities a note can be attached to. Kept as a fixed set; the DB CHECK
+// constraint and the IPC handler both validate against it.
+export type NoteLinkEntity =
+  | 'course'
+  | 'assignment'
+  | 'class_meeting'
+  | 'study_session'
+  | 'term';
+
+export const NOTE_LINK_ENTITIES: NoteLinkEntity[] = [
+  'course', 'assignment', 'class_meeting', 'study_session', 'term',
+];
+
+export interface NoteLink {
+  id: string;
+  note_id: string;
+  entity_type: NoteLinkEntity;
+  entity_id: string;
+  /** Only for class_meeting links: the dated lecture (YYYY-MM-DD). Null otherwise. */
+  occurrence_date: string | null;
+  created_at: string;
+}
+
 export interface StudySession {
   id: string;
   started_at: string;
@@ -219,6 +242,14 @@ export interface UpdateNoteInput {
   parentNoteId?: string | null;
   /** true = move to trash (sets archived_at); false = restore (clears it). */
   archived?: boolean;
+}
+
+export interface CreateNoteLinkInput {
+  noteId: string;
+  entityType: NoteLinkEntity;
+  entityId: string;
+  /** Only for class_meeting: pins the note to one dated lecture (YYYY-MM-DD). */
+  occurrenceDate?: string;
 }
 
 export interface SaveMediaInput {
@@ -378,6 +409,12 @@ export const IPC = {
     UPDATE: 'notes:update',
     DELETE: 'notes:delete',
   },
+  NOTE_LINKS: {
+    LIST_FOR_NOTE:    'note_links:list-for-note',
+    NOTES_FOR_ENTITY: 'note_links:notes-for-entity',
+    CREATE:           'note_links:create',
+    DELETE:           'note_links:delete',
+  },
   MEDIA: {
     SAVE: 'media:save',
   },
@@ -479,6 +516,15 @@ export interface WindowApi {
     search(query: string): Promise<Note[]>;
     create(input: CreateNoteInput): Promise<Note>;
     update(id: string, input: UpdateNoteInput): Promise<Note>;
+    delete(id: string): Promise<void>;
+  };
+  noteLinks: {
+    /** The links attached to one note (for the editor's link bar). */
+    listForNote(noteId: string): Promise<NoteLink[]>;
+    /** The notes attached to one entity (for per-entity embeds). */
+    notesForEntity(entityType: NoteLinkEntity, entityId: string): Promise<Note[]>;
+    /** Linking the same note+entity twice is a no-op and returns the existing link. */
+    create(input: CreateNoteLinkInput): Promise<NoteLink>;
     delete(id: string): Promise<void>;
   };
   media: {

@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { IPC } from '../../shared/types';
 import type { CreateTermInput, UpdateTermInput } from '../../shared/types';
 import { listTerms, createTerm, updateTerm, deleteTerm } from '../db/repositories/termRepo';
+import { deleteLinksForEntity } from '../db/repositories/noteLinkRepo';
 
 export function registerTermHandlers(): void {
   ipcMain.handle(IPC.TERMS.LIST, () => listTerms());
@@ -19,5 +20,6 @@ export function registerTermHandlers(): void {
   ipcMain.handle(IPC.TERMS.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Term id is required');
     deleteTerm(id);
+    deleteLinksForEntity('term', id);
   });
 }
