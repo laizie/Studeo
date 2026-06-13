@@ -10,6 +10,7 @@ vi.mock('../connection', () => ({
 
 import {
   listNotes,
+  listLooseNotes,
   getNote,
   searchNotes,
   createNote,
@@ -17,6 +18,8 @@ import {
   deleteNote,
   listNoteAndDescendantIds,
 } from '../repositories/noteRepo';
+import { createNoteLink } from '../repositories/noteLinkRepo';
+import { createCourse } from '../repositories/courseRepo';
 
 // Helper: a one-paragraph BlockNote document containing the given text.
 function paragraph(text: string): string {
@@ -118,6 +121,34 @@ describe('noteRepo', () => {
       const note = createNote({ contentJson: paragraph('findme keyword') });
       updateNote(note.id, { archived: true });
       expect(searchNotes('findme')).toEqual([]);
+    });
+  });
+
+  describe('note_date', () => {
+    it('stores a note date on create and lets update set/clear it', () => {
+      const note = createNote({ noteDate: '2026-09-02' });
+      expect(note.note_date).toBe('2026-09-02');
+      expect(updateNote(note.id, { noteDate: '2026-09-09' }).note_date).toBe('2026-09-09');
+      expect(updateNote(note.id, { noteDate: null }).note_date).toBeNull();
+    });
+
+    it('defaults note_date to null', () => {
+      expect(createNote({}).note_date).toBeNull();
+    });
+  });
+
+  describe('listLooseNotes', () => {
+    it('returns only top-level notes with no course link', () => {
+      const course = createCourse({ name: 'Bio', abbreviation: 'BIO', color: '#32b562' });
+      const loose = createNote({ title: 'Loose' });
+      const linked = createNote({ title: 'Linked' });
+      createNoteLink({ noteId: linked.id, entityType: 'course', entityId: course.id });
+      const child = createNote({ title: 'Child', parentNoteId: loose.id });
+
+      const ids = listLooseNotes().map((n) => n.id);
+      expect(ids).toContain(loose.id);
+      expect(ids).not.toContain(linked.id); // has a course link
+      expect(ids).not.toContain(child.id);  // a sub-page, not top-level
     });
   });
 

@@ -24,6 +24,24 @@ export function getNote(id: string): Note | null {
   return r ? row(r) : null;
 }
 
+/**
+ * Top-level notes not attached to any course — the "Loose notes" bucket. Excludes archived
+ * notes and sub-pages (those show under their parent), and anything with a course link.
+ */
+export function listLooseNotes(): Note[] {
+  return (
+    getDb()
+      .prepare(
+        `SELECT * FROM notes
+         WHERE archived_at IS NULL
+           AND parent_note_id IS NULL
+           AND id NOT IN (SELECT note_id FROM note_links WHERE entity_type = 'course')
+         ORDER BY updated_at DESC`
+      )
+      .all() as unknown[]
+  ).map(row);
+}
+
 // FTS5's MATCH grammar would choke on raw user input (bare punctuation, unbalanced
 // quotes). We turn the query into a safe prefix search: each whitespace-separated token
 // becomes a quoted phrase with a trailing '*', so "graph the" matches "graph theory".
@@ -61,8 +79,8 @@ export function createNote(input: CreateNoteInput): Note {
 
   getDb()
     .prepare(
-      `INSERT INTO notes (id, title, content_json, content_text, icon, parent_note_id, archived_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)`
+      `INSERT INTO notes (id, title, content_json, content_text, icon, parent_note_id, note_date, archived_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`
     )
     .run(
       id,
@@ -71,6 +89,7 @@ export function createNote(input: CreateNoteInput): Note {
       contentText,
       input.icon ?? null,
       input.parentNoteId ?? null,
+      input.noteDate ?? null,
       now,
       now,
     );
@@ -99,6 +118,10 @@ export function updateNote(id: string, input: UpdateNoteInput): Note {
   if (input.parentNoteId !== undefined) {
     fields.push('parent_note_id = ?');
     values.push(input.parentNoteId ?? null);
+  }
+  if (input.noteDate !== undefined) {
+    fields.push('note_date = ?');
+    values.push(input.noteDate ?? null);
   }
   if (input.archived !== undefined) {
     fields.push('archived_at = ?');

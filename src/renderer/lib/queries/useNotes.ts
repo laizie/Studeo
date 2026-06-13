@@ -17,6 +17,13 @@ export function useNotes(filters: { archived?: boolean } = {}) {
   });
 }
 
+export function useLooseNotes() {
+  return useQuery({
+    queryKey: [...noteKeys.all, 'loose'] as const,
+    queryFn:  () => window.api.notes.listLoose(),
+  });
+}
+
 export function useNote(id: string | undefined) {
   return useQuery({
     queryKey: noteKeys.detail(id ?? ''),
