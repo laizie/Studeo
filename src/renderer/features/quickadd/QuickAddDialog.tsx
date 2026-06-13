@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useCreateAssignment } from '../../lib/queries/useAssignments';
 import { useCreateTask } from '../../lib/queries/useTasks';
+import { useCreateNote } from '../../lib/queries/useNotes';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 
@@ -11,7 +13,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = 'assignment' | 'task';
+type Tab = 'assignment' | 'task' | 'note';
 
 const INPUT =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
@@ -21,9 +23,10 @@ const INPUT =
 
 export default function QuickAddDialog({ isOpen, onClose }: Props) {
   // Remember the last-used tab across sessions (the Settings tip promises this).
-  const [tab, setTab] = useState<Tab>(
-    () => (localStorage.getItem('studeo:quickAddTab') === 'task' ? 'task' : 'assignment')
-  );
+  const [tab, setTab] = useState<Tab>(() => {
+    const saved = localStorage.getItem('studeo:quickAddTab');
+    return saved === 'task' || saved === 'note' ? saved : 'assignment';
+  });
 
   function selectTab(t: Tab) {
     localStorage.setItem('studeo:quickAddTab', t);
@@ -37,9 +40,11 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
 
   const nameRef = useRef<HTMLInputElement>(null);
 
+  const navigate = useNavigate();
   const { data: courses = [] } = useCourses();
   const createAssignment = useCreateAssignment();
   const createTask       = useCreateTask();
+  const createNote       = useCreateNote();
 
   // Reset form whenever the dialog opens
   useEffect(() => {
@@ -67,21 +72,28 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !dueDate) return;
+    if (!name.trim()) return;
+    if (tab !== 'note' && !dueDate) return;
 
     if (tab === 'assignment') {
       if (!courseId) return;
       await createAssignment.mutateAsync({ courseId, name: name.trim(), type, dueDate });
-    } else {
+    } else if (tab === 'task') {
       await createTask.mutateAsync({ name: name.trim(), dueDate });
+    } else {
+      // A note opens straight into the editor — no due date.
+      const note = await createNote.mutateAsync({ title: name.trim() });
+      onClose();
+      navigate(`/notes/${note.id}`);
+      return;
     }
 
     onClose();
   }
 
-  const isPending = createAssignment.isPending || createTask.isPending;
-  const isError   = createAssignment.isError   || createTask.isError;
-  const canSubmit = name.trim() && dueDate && (tab === 'task' || courseId);
+  const isPending = createAssignment.isPending || createTask.isPending || createNote.isPending;
+  const isError   = createAssignment.isError   || createTask.isError   || createNote.isError;
+  const canSubmit = name.trim() && (tab === 'note' || dueDate) && (tab !== 'assignment' || courseId);
 
   if (!isOpen) return null;
 
@@ -97,7 +109,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
         <div className="flex items-center justify-between mb-4">
           {/* Tab switcher */}
           <div className="flex items-center gap-0.5 p-0.5 bg-inset rounded-lg">
-            {(['assignment', 'task'] as Tab[]).map(t => (
+            {(['assignment', 'task', 'note'] as Tab[]).map(t => (
               <button
                 key={t}
                 type="button"
@@ -129,7 +141,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder={tab === 'assignment' ? 'Assignment name…' : 'Task name…'}
+            placeholder={tab === 'assignment' ? 'Assignment name…' : tab === 'task' ? 'Task name…' : 'Note title…'}
             className={INPUT}
             required
           />
@@ -160,14 +172,16 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             </div>
           )}
 
-          {/* Due date */}
-          <input
-            type="date"
-            value={dueDate}
-            onChange={e => setDueDate(e.target.value)}
-            className={INPUT}
-            required
-          />
+          {/* Due date — not applicable to a note */}
+          {tab !== 'note' && (
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              className={INPUT}
+              required
+            />
+          )}
 
           {isError && (
             <p className="text-xs text-red-500">Something went wrong — please try again.</p>
