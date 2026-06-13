@@ -1,7 +1,8 @@
 import { ipcMain, shell, dialog, BrowserWindow } from 'electron';
-import { rmSync } from 'node:fs';
+import { rmSync, existsSync, readdirSync, cpSync } from 'node:fs';
 import { IPC } from '../../shared/types';
 import { getDb, getDbPath } from '../db/connection';
+import { getAssetsRoot } from '../media';
 
 // App-level utilities for a local-first app: let the user see exactly where
 // their data lives, and take a backup copy of it on demand.
@@ -30,6 +31,17 @@ export function registerAppHandlers(): void {
       // overwrite, so clear the target the save dialog already confirmed.
       rmSync(filePath, { force: true });
       getDb().prepare('VACUUM INTO ?').run(filePath);
+
+      // Note images live outside the .db file, so a db-only backup would lose them on
+      // restore. Copy the asset folder next to the backup (e.g. "…-backup-2026-06-13-assets/")
+      // whenever there are any. Sibling folder rather than a zip — no archive dependency.
+      const assetsRoot = getAssetsRoot();
+      if (existsSync(assetsRoot) && readdirSync(assetsRoot).length > 0) {
+        const assetsTarget = filePath.replace(/\.db$/i, '') + '-assets';
+        rmSync(assetsTarget, { recursive: true, force: true });
+        cpSync(assetsRoot, assetsTarget, { recursive: true });
+      }
+
       return { saved: true, path: filePath };
     } catch (err) {
       return { saved: false, error: err instanceof Error ? err.message : 'Backup failed' };

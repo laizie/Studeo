@@ -115,6 +115,22 @@ export function updateNote(id: string, input: UpdateNoteInput): Note {
   return getNote(id)!;
 }
 
+// A note plus every sub-page beneath it (recursive). Used before delete so the caller can
+// clean up each note's image folder — the DB cascade removes the rows, but not the files.
+export function listNoteAndDescendantIds(id: string): string[] {
+  const rows = getDb()
+    .prepare(
+      `WITH RECURSIVE descendants(id) AS (
+         SELECT id FROM notes WHERE id = ?
+         UNION ALL
+         SELECT n.id FROM notes n JOIN descendants d ON n.parent_note_id = d.id
+       )
+       SELECT id FROM descendants`
+    )
+    .all(id) as { id: string }[];
+  return rows.map((r) => r.id);
+}
+
 export function deleteNote(id: string): void {
   // ON DELETE CASCADE removes child sub-pages; the FTS triggers clean the index.
   getDb().prepare('DELETE FROM notes WHERE id = ?').run(id);

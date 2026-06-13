@@ -15,6 +15,7 @@ import {
   createNote,
   updateNote,
   deleteNote,
+  listNoteAndDescendantIds,
 } from '../repositories/noteRepo';
 
 // Helper: a one-paragraph BlockNote document containing the given text.
@@ -117,6 +118,19 @@ describe('noteRepo', () => {
       const note = createNote({ contentJson: paragraph('findme keyword') });
       updateNote(note.id, { archived: true });
       expect(searchNotes('findme')).toEqual([]);
+    });
+  });
+
+  describe('listNoteAndDescendantIds', () => {
+    it('returns the note plus all nested sub-pages, excluding unrelated notes', () => {
+      const parent = createNote({ title: 'Parent' });
+      const child = createNote({ title: 'Child', parentNoteId: parent.id });
+      const grandchild = createNote({ title: 'Grandchild', parentNoteId: child.id });
+      const unrelated = createNote({ title: 'Unrelated' });
+
+      const ids = listNoteAndDescendantIds(parent.id).sort();
+      expect(ids).toEqual([parent.id, child.id, grandchild.id].sort());
+      expect(ids).not.toContain(unrelated.id);
     });
   });
 

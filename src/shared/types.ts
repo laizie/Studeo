@@ -221,6 +221,14 @@ export interface UpdateNoteInput {
   archived?: boolean;
 }
 
+export interface SaveMediaInput {
+  /** The note the image belongs to — its bytes are stored under this note's folder. */
+  noteId: string;
+  /** File extension (no dot), e.g. "png". Validated against an image whitelist in main. */
+  ext: string;
+  data: Uint8Array;
+}
+
 export interface CreateMeetingExceptionInput {
   meetingId: string;
   date: string; // YYYY-MM-DD
@@ -370,6 +378,9 @@ export const IPC = {
     UPDATE: 'notes:update',
     DELETE: 'notes:delete',
   },
+  MEDIA: {
+    SAVE: 'media:save',
+  },
   REMINDERS: {
     CONFIGURE: 'reminders:configure',
     TEST:      'reminders:test',
@@ -469,6 +480,10 @@ export interface WindowApi {
     create(input: CreateNoteInput): Promise<Note>;
     update(id: string, input: UpdateNoteInput): Promise<Note>;
     delete(id: string): Promise<void>;
+  };
+  media: {
+    /** Persist image bytes for a note; resolves to a studeo-asset:// URL to render it. */
+    save(input: SaveMediaInput): Promise<string>;
   };
   reminders: {
     configure(config: ReminderConfig): Promise<void>;
