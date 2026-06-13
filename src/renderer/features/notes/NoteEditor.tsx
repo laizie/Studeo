@@ -6,7 +6,7 @@ import {
 } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { filterSuggestionItems } from '@blocknote/core';
-import { History } from 'lucide-react';
+import { History, CalendarDays, X } from 'lucide-react';
 import { studeoCodeBlock } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
 import NoteLinkBar from './NoteLinkBar';
@@ -87,6 +87,8 @@ export default function NoteEditor({ note }: { note: Note }) {
   const [dueOpen, setDueOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [noteDate, setNoteDate] = useState(note.note_date);
   const [flash, setFlash] = useState<string | null>(null);
 
   function showFlash(message: string) {
@@ -139,6 +141,15 @@ export default function NoteEditor({ note }: { note: Note }) {
   function saveTitle() {
     if (title.trim() === initialTitle) return;
     updateNote.mutate({ id: note.id, input: { title } });
+  }
+
+  // Setting a date places this note on its class Timeline (in the matching week); clearing
+  // it moves the note back to the freeform Pages list.
+  function applyNoteDate(date: string | null) {
+    setDateOpen(false);
+    setNoteDate(date);
+    updateNote.mutate({ id: note.id, input: { noteDate: date } });
+    if (date) showFlash('Added to the class timeline');
   }
 
   // ── Slash-command actions ─────────────────────────────────────────────────────
@@ -199,7 +210,25 @@ export default function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="mx-auto max-w-[760px] px-6 py-10">
-      <div className="mb-2 flex justify-end">
+      <div className="mb-2 flex items-center justify-end gap-1">
+        <button
+          onClick={() => setDateOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted hover:bg-surface-hi hover:text-ink transition-colors"
+          title="Set a date to place this note on the class timeline"
+        >
+          <CalendarDays size={13} />
+          {noteDate ? formatDueDate(noteDate) : 'Set date'}
+        </button>
+        {noteDate && (
+          <button
+            onClick={() => applyNoteDate(null)}
+            className="rounded-md p-1 text-muted hover:bg-surface-hi hover:text-ink transition-colors"
+            title="Remove from timeline"
+            aria-label="Remove date"
+          >
+            <X size={12} />
+          </button>
+        )}
         <button
           onClick={() => setHistoryOpen(true)}
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted hover:bg-surface-hi hover:text-ink transition-colors"
@@ -270,6 +299,15 @@ export default function NoteEditor({ note }: { note: Note }) {
         />
       )}
       {dueOpen && <DueDatePrompt onConfirm={insertDue} onClose={() => setDueOpen(false)} />}
+      {dateOpen && (
+        <DueDatePrompt
+          title="Note date"
+          confirmLabel="Set"
+          initial={noteDate ?? ''}
+          onConfirm={applyNoteDate}
+          onClose={() => setDateOpen(false)}
+        />
+      )}
       {historyOpen && (
         <VersionHistoryDialog
           noteId={note.id}
@@ -288,9 +326,21 @@ export default function NoteEditor({ note }: { note: Note }) {
   );
 }
 
-/** Minimal date prompt for the /Due slash command. */
-function DueDatePrompt({ onConfirm, onClose }: { onConfirm: (date: string) => void; onClose: () => void }) {
-  const [date, setDate] = useState('');
+/** Minimal date prompt, reused by the /Due slash command and the note-date control. */
+function DueDatePrompt({
+  onConfirm,
+  onClose,
+  title = 'Due date',
+  confirmLabel = 'Insert',
+  initial = '',
+}: {
+  onConfirm: (date: string) => void;
+  onClose: () => void;
+  title?: string;
+  confirmLabel?: string;
+  initial?: string;
+}) {
+  const [date, setDate] = useState(initial);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -304,7 +354,7 @@ function DueDatePrompt({ onConfirm, onClose }: { onConfirm: (date: string) => vo
     >
       <div className="absolute inset-0 bg-black/30" />
       <div className="relative w-full max-w-xs mx-4 rounded-2xl bg-surface p-5 shadow-2xl">
-        <label className="mb-2 block text-sm font-medium text-ink-soft">Due date</label>
+        <label className="mb-2 block text-sm font-medium text-ink-soft">{title}</label>
         <input
           type="date"
           autoFocus
@@ -321,7 +371,7 @@ function DueDatePrompt({ onConfirm, onClose }: { onConfirm: (date: string) => vo
             disabled={!date}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep disabled:opacity-50 transition-colors"
           >
-            Insert
+            {confirmLabel}
           </button>
         </div>
       </div>
