@@ -2,11 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CreateNoteInput, UpdateNoteInput } from '../../../shared/types';
 
 export const noteKeys = {
-  all:    ['notes']                                  as const,
-  list:   (filters: { archived?: boolean }) =>
-            ['notes', 'list', filters]               as const,
-  detail: (id: string) => ['notes', 'detail', id]    as const,
-  search: (query: string) => ['notes', 'search', query] as const,
+  all:      ['notes']                                  as const,
+  list:     (filters: { archived?: boolean }) =>
+              ['notes', 'list', filters]               as const,
+  detail:   (id: string) => ['notes', 'detail', id]    as const,
+  search:   (query: string) => ['notes', 'search', query] as const,
+  versions: (id: string) => ['notes', 'versions', id]  as const,
 };
 
 export function useNotes(filters: { archived?: boolean } = {}) {
@@ -55,5 +56,25 @@ export function useDeleteNote() {
   return useMutation({
     mutationFn: (id: string) => window.api.notes.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: noteKeys.all }),
+  });
+}
+
+export function useNoteVersions(noteId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: noteKeys.versions(noteId ?? ''),
+    queryFn:  () => window.api.notes.listVersions(noteId!),
+    enabled:  !!noteId && enabled,
+  });
+}
+
+export function useRestoreNoteVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ noteId, versionId }: { noteId: string; versionId: string }) =>
+      window.api.notes.restoreVersion(noteId, versionId),
+    onSuccess: (_data, { noteId }) => {
+      qc.invalidateQueries({ queryKey: noteKeys.all });
+      qc.invalidateQueries({ queryKey: noteKeys.versions(noteId) });
+    },
   });
 }

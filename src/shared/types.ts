@@ -98,6 +98,14 @@ export interface MeetingException {
   new_location: string | null;
 }
 
+// A point-in-time snapshot of a note's document, for restore.
+export interface NoteVersion {
+  id: string;
+  note_id: string;
+  content_json: string;
+  created_at: string;
+}
+
 // A block-based note (Notion-like). content_json is the BlockNote document (an array
 // of blocks, serialized). content_text is a derived plaintext flattening of it, kept by
 // the repo for search/AI — never authored directly. parent_note_id nests sub-pages.
@@ -410,12 +418,14 @@ export const IPC = {
     CREATE: 'study_sessions:create',
   },
   NOTES: {
-    LIST:   'notes:list',
-    GET:    'notes:get',
-    SEARCH: 'notes:search',
-    CREATE: 'notes:create',
-    UPDATE: 'notes:update',
-    DELETE: 'notes:delete',
+    LIST:            'notes:list',
+    GET:             'notes:get',
+    SEARCH:          'notes:search',
+    CREATE:          'notes:create',
+    UPDATE:          'notes:update',
+    DELETE:          'notes:delete',
+    LIST_VERSIONS:   'notes:list-versions',
+    RESTORE_VERSION: 'notes:restore-version',
   },
   NOTE_LINKS: {
     LIST_FOR_NOTE:    'note_links:list-for-note',
@@ -526,6 +536,10 @@ export interface WindowApi {
     create(input: CreateNoteInput): Promise<Note>;
     update(id: string, input: UpdateNoteInput): Promise<Note>;
     delete(id: string): Promise<void>;
+    /** Recent saved snapshots of a note's document, newest first. */
+    listVersions(noteId: string): Promise<NoteVersion[]>;
+    /** Restore a note to a snapshot (snapshots the current content first so it's reversible). */
+    restoreVersion(noteId: string, versionId: string): Promise<Note>;
   };
   noteLinks: {
     /** The links attached to one note (for the editor's link bar). */

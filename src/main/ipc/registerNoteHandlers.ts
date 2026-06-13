@@ -8,8 +8,10 @@ import {
   createNote,
   updateNote,
   deleteNote,
+  restoreNoteVersion,
   listNoteAndDescendantIds,
 } from '../db/repositories/noteRepo';
+import { listNoteVersions } from '../db/repositories/noteVersionRepo';
 import { deleteNoteAssets } from '../media';
 
 // content_json must be a JSON array of blocks. We validate the shape here (not just that
@@ -57,6 +59,17 @@ export function registerNoteHandlers(): void {
     }
     validateContentJson(input?.contentJson);
     return updateNote(id, input ?? {});
+  });
+
+  ipcMain.handle(IPC.NOTES.LIST_VERSIONS, (_event, noteId: string) => {
+    if (!noteId) throw new Error('Note id is required');
+    return listNoteVersions(noteId);
+  });
+
+  ipcMain.handle(IPC.NOTES.RESTORE_VERSION, (_event, noteId: string, versionId: string) => {
+    if (!noteId) throw new Error('Note id is required');
+    if (!versionId) throw new Error('Version id is required');
+    return restoreNoteVersion(noteId, versionId);
   });
 
   ipcMain.handle(IPC.NOTES.DELETE, (_event, id: string) => {

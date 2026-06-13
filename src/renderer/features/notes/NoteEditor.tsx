@@ -6,19 +6,21 @@ import {
 } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { filterSuggestionItems } from '@blocknote/core';
+import { History } from 'lucide-react';
 import { studeoCodeBlock } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
 import NoteLinkBar from './NoteLinkBar';
 import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
+import VersionHistoryDialog from './VersionHistoryDialog';
 import { studeoSlashItems } from './noteSlashItems';
-import { useUpdateNote } from '../../lib/queries/useNotes';
+import { useUpdateNote, useRestoreNoteVersion } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useCreateTask } from '../../lib/queries/useTasks';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
-import type { Note } from '../../../shared/types';
+import type { Note, NoteVersion } from '../../../shared/types';
 import './blocknote-theme.css';
 // eslint-disable-next-line import/no-unresolved -- Vite resolves CSS side-effect imports at build time
 import '@blocknote/core/fonts/inter.css';
@@ -72,6 +74,7 @@ export default function NoteEditor({ note }: { note: Note }) {
   const updateNote = useUpdateNote();
   const linkNote = useCreateNoteLink();
   const createTask = useCreateTask();
+  const restoreVersion = useRestoreNoteVersion();
   const { data: courses } = useCourses();
   const { data: assignments } = useAssignments();
 
@@ -82,6 +85,8 @@ export default function NoteEditor({ note }: { note: Note }) {
   // Slash-command UI: which link picker is open, the /Due date prompt, and a transient toast.
   const [picker, setPicker] = useState<'course' | 'assignment' | null>(null);
   const [dueOpen, setDueOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
   function showFlash(message: string) {
@@ -167,6 +172,24 @@ export default function NoteEditor({ note }: { note: Note }) {
     onChecklistToTask: checklistToTask,
   };
 
+  // Restore a snapshot: the backend swaps the stored content (snapshotting current first so
+  // it's reversible), then we sync the LIVE editor via replaceBlocks — no remount, so the
+  // unmount-flush can't clobber the restored content.
+  async function handleRestore(version: NoteVersion) {
+    setRestoringId(version.id);
+    try {
+      const restored = await restoreVersion.mutateAsync({ noteId: note.id, versionId: version.id });
+      const blocks = parseInitial(restored.content_json) ?? [{ type: 'paragraph' }];
+      editor.replaceBlocks(editor.document, blocks);
+      latestJson.current = restored.content_json;
+      dirty.current = false;
+      setHistoryOpen(false);
+      showFlash('Restored earlier version');
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   const courseItems: PickItem[] = (courses ?? []).map((c) => ({
     id: c.id, label: c.name, sublabel: c.abbreviation,
   }));
@@ -176,6 +199,16 @@ export default function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="mx-auto max-w-[760px] px-6 py-10">
+      <div className="mb-2 flex justify-end">
+        <button
+          onClick={() => setHistoryOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted hover:bg-surface-hi hover:text-ink transition-colors"
+          title="Version history"
+        >
+          <History size={13} />
+          History
+        </button>
+      </div>
       <NoteLinkBar noteId={note.id} />
       <input
         value={title}
@@ -237,6 +270,14 @@ export default function NoteEditor({ note }: { note: Note }) {
         />
       )}
       {dueOpen && <DueDatePrompt onConfirm={insertDue} onClose={() => setDueOpen(false)} />}
+      {historyOpen && (
+        <VersionHistoryDialog
+          noteId={note.id}
+          restoringId={restoringId}
+          onRestore={handleRestore}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
 
       {flash && (
         <div className="fixed bottom-6 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-xs font-medium text-bg shadow-lg">
