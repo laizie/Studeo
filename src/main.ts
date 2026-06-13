@@ -10,6 +10,7 @@ import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHan
 import { registerMeetingExceptionHandlers } from './main/ipc/registerMeetingExceptionHandlers';
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
 import { registerStudySessionHandlers } from './main/ipc/registerStudySessionHandlers';
+import { registerNoteHandlers } from './main/ipc/registerNoteHandlers';
 import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
 import { registerAppHandlers } from './main/ipc/registerAppHandlers';
 import { startReminderScheduler } from './main/reminders';
@@ -31,6 +32,7 @@ function registerIpcHandlers(): void {
   registerMeetingExceptionHandlers();
   registerTermHandlers();
   registerStudySessionHandlers();
+  registerNoteHandlers();
   registerReminderHandlers();
   registerAppHandlers();
   registerSpotifyHandlers();

@@ -98,6 +98,21 @@ export interface MeetingException {
   new_location: string | null;
 }
 
+// A block-based note (Notion-like). content_json is the BlockNote document (an array
+// of blocks, serialized). content_text is a derived plaintext flattening of it, kept by
+// the repo for search/AI — never authored directly. parent_note_id nests sub-pages.
+export interface Note {
+  id: string;
+  title: string;
+  content_json: string;
+  content_text: string;
+  icon: string | null;
+  parent_note_id: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StudySession {
   id: string;
   started_at: string;
@@ -186,6 +201,24 @@ export interface UpdateTaskInput {
   name?: string;
   status?: AssignmentStatus;
   dueDate?: string;
+}
+
+export interface CreateNoteInput {
+  title?: string;
+  /** BlockNote document, serialized. Defaults to an empty document ('[]'). */
+  contentJson?: string;
+  icon?: string;
+  parentNoteId?: string;
+}
+
+export interface UpdateNoteInput {
+  title?: string;
+  /** When provided, the repo recomputes content_text from it. */
+  contentJson?: string;
+  icon?: string | null;
+  parentNoteId?: string | null;
+  /** true = move to trash (sets archived_at); false = restore (clears it). */
+  archived?: boolean;
 }
 
 export interface CreateMeetingExceptionInput {
@@ -329,6 +362,14 @@ export const IPC = {
     LIST:   'study_sessions:list',
     CREATE: 'study_sessions:create',
   },
+  NOTES: {
+    LIST:   'notes:list',
+    GET:    'notes:get',
+    SEARCH: 'notes:search',
+    CREATE: 'notes:create',
+    UPDATE: 'notes:update',
+    DELETE: 'notes:delete',
+  },
   REMINDERS: {
     CONFIGURE: 'reminders:configure',
     TEST:      'reminders:test',
@@ -418,6 +459,16 @@ export interface WindowApi {
   studySessions: {
     list(): Promise<StudySession[]>;
     create(input: CreateStudySessionInput): Promise<StudySession>;
+  };
+  notes: {
+    /** Defaults to non-archived notes; pass { archived: true } for the trash. */
+    list(filters?: { archived?: boolean }): Promise<Note[]>;
+    get(id: string): Promise<Note | null>;
+    /** Full-text search over title + content_text (non-archived only). */
+    search(query: string): Promise<Note[]>;
+    create(input: CreateNoteInput): Promise<Note>;
+    update(id: string, input: UpdateNoteInput): Promise<Note>;
+    delete(id: string): Promise<void>;
   };
   reminders: {
     configure(config: ReminderConfig): Promise<void>;
