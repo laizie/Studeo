@@ -76,6 +76,20 @@ export function blocksToPlainText(contentJson: string): string {
 }
 
 /**
+ * Convert plain text into a serialized BlockNote document — one paragraph block per line.
+ * Used to migrate the legacy plain-text `assignments.notes` field into a real note. Returns
+ * "[]" (empty document) for empty input.
+ */
+export function plainTextToBlocks(text: string): string {
+  if (!text) return '[]';
+  const blocks = text.split('\n').map((line) => ({
+    type: 'paragraph',
+    content: line ? [{ type: 'text', text: line, styles: {} }] : [],
+  }));
+  return JSON.stringify(blocks);
+}
+
+/**
  * Derive a fallback title from a note's content — the first non-empty line of text,
  * trimmed and length-capped. Used when the user hasn't given the note an explicit title.
  * Returns "" if the document has no text.

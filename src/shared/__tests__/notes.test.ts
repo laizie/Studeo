@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blocksToPlainText, noteTitleFromBlocks } from '../notes';
+import { blocksToPlainText, noteTitleFromBlocks, plainTextToBlocks } from '../notes';
 
 // A small but realistic BlockNote document covering the shapes the walker must handle:
 // styled inline runs, a link, nested children, and a table.
@@ -72,6 +72,27 @@ describe('blocksToPlainText', () => {
     const text = blocksToPlainText(doc);
     expect(text).toContain('Term');
     expect(text).toContain('Defn');
+  });
+});
+
+describe('plainTextToBlocks', () => {
+  it('returns an empty document for empty input', () => {
+    expect(plainTextToBlocks('')).toBe('[]');
+  });
+
+  it('makes one paragraph block per line and round-trips through blocksToPlainText', () => {
+    const text = 'first line\nsecond line';
+    const json = plainTextToBlocks(text);
+    const blocks = JSON.parse(json);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].type).toBe('paragraph');
+    expect(blocksToPlainText(json)).toBe(text);
+  });
+
+  it('preserves blank lines as empty paragraphs', () => {
+    const blocks = JSON.parse(plainTextToBlocks('a\n\nb'));
+    expect(blocks).toHaveLength(3);
+    expect(blocks[1].content).toEqual([]);
   });
 });
 
