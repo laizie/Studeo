@@ -33,17 +33,31 @@ export function listLinksForNote(noteId: string): NoteLink[] {
   ).map(linkRow);
 }
 
-/** The (non-archived) notes attached to one entity, newest-updated first. */
-export function listNotesForEntity(entityType: NoteLinkEntity, entityId: string): Note[] {
+/**
+ * The (non-archived) notes attached to one entity, newest-updated first.
+ * For lectures, pass occurrenceDate to scope to a single dated lecture; omit it for
+ * course/assignment/etc (whose links carry no date) to get all their notes.
+ */
+export function listNotesForEntity(
+  entityType: NoteLinkEntity,
+  entityId: string,
+  occurrenceDate?: string,
+): Note[] {
+  const params: string[] = [entityType, entityId];
+  let dateClause = '';
+  if (occurrenceDate) {
+    dateClause = ' AND l.occurrence_date = ?';
+    params.push(occurrenceDate);
+  }
   return (
     getDb()
       .prepare(
         `SELECT n.* FROM notes n
          JOIN note_links l ON l.note_id = n.id
-         WHERE l.entity_type = ? AND l.entity_id = ? AND n.archived_at IS NULL
+         WHERE l.entity_type = ? AND l.entity_id = ?${dateClause} AND n.archived_at IS NULL
          ORDER BY n.updated_at DESC`
       )
-      .all(entityType, entityId) as unknown[]
+      .all(...params) as unknown[]
   ).map(noteRow);
 }
 

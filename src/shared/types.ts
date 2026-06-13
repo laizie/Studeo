@@ -521,8 +521,9 @@ export interface WindowApi {
   noteLinks: {
     /** The links attached to one note (for the editor's link bar). */
     listForNote(noteId: string): Promise<NoteLink[]>;
-    /** The notes attached to one entity (for per-entity embeds). */
-    notesForEntity(entityType: NoteLinkEntity, entityId: string): Promise<Note[]>;
+    /** The notes attached to one entity (for per-entity embeds). occurrenceDate scopes to
+        a single dated lecture for class_meeting links. */
+    notesForEntity(entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string): Promise<Note[]>;
     /** Linking the same note+entity twice is a no-op and returns the existing link. */
     create(input: CreateNoteLinkInput): Promise<NoteLink>;
     delete(id: string): Promise<void>;

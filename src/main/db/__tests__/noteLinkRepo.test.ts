@@ -76,6 +76,18 @@ describe('noteLinkRepo', () => {
       const notes = listNotesForEntity('course', course.id);
       expect(notes.map((n) => n.id)).toEqual([kept.id]);
     });
+
+    it('scopes class_meeting notes to a given occurrence date when provided', () => {
+      const meetingId = 'meeting-1';
+      const mon = createNote({ title: 'Monday' });
+      const wed = createNote({ title: 'Wednesday' });
+      createNoteLink({ noteId: mon.id, entityType: 'class_meeting', entityId: meetingId, occurrenceDate: '2026-01-12' });
+      createNoteLink({ noteId: wed.id, entityType: 'class_meeting', entityId: meetingId, occurrenceDate: '2026-01-14' });
+
+      expect(listNotesForEntity('class_meeting', meetingId, '2026-01-12').map((n) => n.id)).toEqual([mon.id]);
+      // No date → all occurrences for that meeting.
+      expect(listNotesForEntity('class_meeting', meetingId)).toHaveLength(2);
+    });
   });
 
   describe('deleteNoteLink', () => {

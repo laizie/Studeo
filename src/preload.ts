@@ -101,7 +101,7 @@ const api: WindowApi = {
 
   noteLinks: {
     listForNote:    (noteId: string)                                   => ipcRenderer.invoke(IPC.NOTE_LINKS.LIST_FOR_NOTE, noteId),
-    notesForEntity: (entityType: NoteLinkEntity, entityId: string)     => ipcRenderer.invoke(IPC.NOTE_LINKS.NOTES_FOR_ENTITY, entityType, entityId),
+    notesForEntity: (entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string) => ipcRenderer.invoke(IPC.NOTE_LINKS.NOTES_FOR_ENTITY, entityType, entityId, occurrenceDate),
     create:         (input: CreateNoteLinkInput)                       => ipcRenderer.invoke(IPC.NOTE_LINKS.CREATE, input),
     delete:         (id)                                               => ipcRenderer.invoke(IPC.NOTE_LINKS.DELETE, id),
   },
