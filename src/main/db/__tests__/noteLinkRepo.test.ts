@@ -12,6 +12,7 @@ import {
   listLinksForNote,
   listNotesForEntity,
   createNoteLink,
+  setLinkPinned,
   deleteNoteLink,
   deleteLinksForEntity,
   entityExists,
@@ -87,6 +88,27 @@ describe('noteLinkRepo', () => {
       expect(listNotesForEntity('class_meeting', meetingId, '2026-01-12').map((n) => n.id)).toEqual([mon.id]);
       // No date → all occurrences for that meeting.
       expect(listNotesForEntity('class_meeting', meetingId)).toHaveLength(2);
+    });
+  });
+
+  describe('pinning', () => {
+    it('orders pinned notes first and exposes pin state on each row', () => {
+      const course = aCourse();
+      const first = createNote({ title: 'First' });
+      const second = createNote({ title: 'Second' });
+      createNoteLink({ noteId: first.id, entityType: 'course', entityId: course.id });
+      const secondLink = createNoteLink({ noteId: second.id, entityType: 'course', entityId: course.id });
+
+      setLinkPinned(secondLink.id, true);
+
+      const notes = listNotesForEntity('course', course.id);
+      expect(notes[0].id).toBe(second.id);   // pinned floats to the top
+      expect(notes[0].is_pinned).toBe(1);
+      expect(notes[0].link_id).toBe(secondLink.id);
+      expect(notes[1].is_pinned).toBe(0);
+
+      setLinkPinned(secondLink.id, false);
+      expect(listNotesForEntity('course', course.id)[0].is_pinned).toBe(0);
     });
   });
 
