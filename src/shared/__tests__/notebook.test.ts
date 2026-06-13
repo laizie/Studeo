@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupNotesByWeek, expandClassSessions } from '../notebook';
+import { groupNotesByWeek, expandClassSessions, findActiveOrNextSession } from '../notebook';
 import { buildExceptionIndex } from '../meetingExceptions';
 import type { ClassMeeting, MeetingException } from '../types';
 
@@ -82,5 +82,33 @@ describe('expandClassSessions', () => {
     const [first] = expandClassSessions('2026-01-05', '2026-01-18', [monday], buildExceptionIndex([ex]));
     expect(first.startTime).toBe('11:00');
     expect(first.location).toBe('Rm 2');
+  });
+});
+
+describe('findActiveOrNextSession', () => {
+  const wed: ClassMeeting = { ...monday, id: 'm2', day_of_week: 3, start_time: '14:00', end_time: '15:00' };
+
+  it('returns null with no meetings', () => {
+    expect(findActiveOrNextSession([], new Date(2026, 0, 5, 9, 30))).toBeNull();
+  });
+
+  it('flags the session in progress as active', () => {
+    const s = findActiveOrNextSession([monday, wed], new Date(2026, 0, 5, 9, 30)); // Mon 09:30
+    expect(s?.meetingId).toBe('m1');
+    expect(s?.active).toBe(true);
+    expect(s?.date).toBe('2026-01-05');
+  });
+
+  it('skips a session already over today and picks the next one', () => {
+    const s = findActiveOrNextSession([monday, wed], new Date(2026, 0, 5, 11, 0)); // Mon 11:00
+    expect(s?.meetingId).toBe('m2'); // Wednesday
+    expect(s?.active).toBe(false);
+    expect(s?.date).toBe('2026-01-07');
+  });
+
+  it('finds the soonest upcoming session on another day', () => {
+    const s = findActiveOrNextSession([monday, wed], new Date(2026, 0, 4, 8, 0)); // Sun
+    expect(s?.meetingId).toBe('m1'); // Monday is soonest
+    expect(s?.date).toBe('2026-01-05');
   });
 });
