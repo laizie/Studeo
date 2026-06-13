@@ -70,6 +70,52 @@ export interface ClassSession {
   location: string | null;
 }
 
+export interface UpcomingSession {
+  meetingId: string;
+  courseId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string;
+  endTime: string;
+  /** True when `now` falls within the session today (class is in progress). */
+  active: boolean;
+}
+
+function hhmmToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/**
+ * The class session happening now, or the soonest upcoming one within the next week, across
+ * all meetings. Powers smart quick-capture ("lecture note for the class happening now/next").
+ * Ignores exceptions — a one-off cancellation may still be suggested (low harm).
+ */
+export function findActiveOrNextSession(meetings: ClassMeeting[], now: Date): UpcomingSession | null {
+  const nowDow = now.getDay();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  let best: { key: number; session: UpcomingSession } | null = null;
+  for (const m of meetings) {
+    const start = hhmmToMinutes(m.start_time);
+    const end = hhmmToMinutes(m.end_time);
+    let daysAhead = (m.day_of_week - nowDow + 7) % 7;
+    if (daysAhead === 0 && nowMin >= end) daysAhead = 7; // today's already ended → next week
+    const active = daysAhead === 0 && nowMin >= start && nowMin < end;
+    const key = daysAhead * 1440 + start; // minutes-from-midnight ordering
+    const session: UpcomingSession = {
+      meetingId: m.id,
+      courseId: m.course_id,
+      date: ymd(addDays(midnight, daysAhead)),
+      startTime: m.start_time,
+      endTime: m.end_time,
+      active,
+    };
+    if (!best || key < best.key) best = { key, session };
+  }
+  return best?.session ?? null;
+}
+
 /**
  * Expand a course's recurring class meetings into concrete dated sessions across the term,
  * honoring exceptions (cancelled dates are dropped; moved dates use the new time/location).

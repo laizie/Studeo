@@ -10,7 +10,7 @@ import { useCreateNote } from '../../lib/queries/useNotes';
 import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
 import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
 import { buildExceptionIndex } from '../../../shared/meetingExceptions';
-import { lectureTemplate } from '../../../shared/noteTemplates';
+import { useCreateLectureNote } from './useLectureNote';
 import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import type { EntityNote } from '../../../shared/types';
@@ -80,6 +80,7 @@ export default function ClassNotebookPage() {
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const setPin = useSetNotePin();
+  const createLectureNote = useCreateLectureNote();
 
   const term = terms?.find((t) => t.id === course?.term_id);
   const termStart = term?.start_date ?? null;
@@ -122,18 +123,15 @@ export default function ClassNotebookPage() {
     navigate(`/notes/${note.id}`);
   }
 
-  // One-click lecture note for a specific session: dated + linked to the course AND the
-  // dated lecture occurrence, pre-filled with the lecture template.
+  // One-click lecture note for a specific session (dated + linked to course and occurrence).
   async function addLectureNote(session: ClassSession) {
-    const pretty = format(parseDateLocal(session.date), 'EEE, MMM d');
-    const note = await createNote.mutateAsync({
-      title: `${course?.abbreviation ?? ''} · Lecture ${pretty}`,
-      contentJson: lectureTemplate(),
-      noteDate: session.date,
+    const id = await createLectureNote({
+      courseId: courseId!,
+      courseAbbrev: course?.abbreviation ?? '',
+      meetingId: session.meetingId,
+      date: session.date,
     });
-    await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
-    await linkNote.mutateAsync({ noteId: note.id, entityType: 'class_meeting', entityId: session.meetingId, occurrenceDate: session.date });
-    navigate(`/notes/${note.id}`);
+    navigate(`/notes/${id}`);
   }
 
   if (!course) {

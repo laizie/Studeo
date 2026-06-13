@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, NotebookPen } from 'lucide-react';
+import { format } from 'date-fns';
 import { useCourses } from '../../lib/queries/useCourses';
+import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useCreateAssignment } from '../../lib/queries/useAssignments';
 import { useCreateTask } from '../../lib/queries/useTasks';
 import { useCreateNote } from '../../lib/queries/useNotes';
+import { useCreateLectureNote } from '../notes/useLectureNote';
+import { findActiveOrNextSession } from '../../../shared/notebook';
+import { parseDateLocal } from '../../../shared/deadlines';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 
@@ -42,9 +47,27 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
 
   const navigate = useNavigate();
   const { data: courses = [] } = useCourses();
+  const { data: meetings = [] } = useClassMeetings();
   const createAssignment = useCreateAssignment();
   const createTask       = useCreateTask();
   const createNote       = useCreateNote();
+  const createLectureNote = useCreateLectureNote();
+
+  // For the Note tab: the class happening now or next, for one-tap lecture capture.
+  const nextSession = isOpen && tab === 'note' ? findActiveOrNextSession(meetings, new Date()) : null;
+
+  async function captureLecture() {
+    if (!nextSession) return;
+    const abbrev = courses.find((c) => c.id === nextSession.courseId)?.abbreviation ?? '';
+    const id = await createLectureNote({
+      courseId: nextSession.courseId,
+      courseAbbrev: abbrev,
+      meetingId: nextSession.meetingId,
+      date: nextSession.date,
+    });
+    onClose();
+    navigate(`/notes/${id}`);
+  }
 
   // Reset form whenever the dialog opens
   useEffect(() => {
@@ -135,6 +158,25 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Smart capture: jump straight into lecture notes for the current/next class */}
+          {tab === 'note' && nextSession && (
+            <button
+              type="button"
+              onClick={captureLecture}
+              className="flex w-full items-center gap-2.5 rounded-lg border border-line bg-inset px-3 py-2 text-left hover:bg-surface-hi transition-colors"
+            >
+              <NotebookPen size={15} className="shrink-0 text-accent" />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink">
+                  {nextSession.active ? 'In class now' : 'Next class'} · {courses.find((c) => c.id === nextSession.courseId)?.abbreviation ?? 'Class'}
+                </span>
+                <span className="block text-xs text-muted">
+                  Take lecture notes · {format(parseDateLocal(nextSession.date), 'EEE, MMM d')} →
+                </span>
+              </span>
+            </button>
+          )}
+
           {/* Name */}
           <input
             ref={nameRef}
