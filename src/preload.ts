@@ -97,6 +97,8 @@ const api: WindowApi = {
     create: (input: CreateNoteInput)            => ipcRenderer.invoke(IPC.NOTES.CREATE, input),
     update: (id, input: UpdateNoteInput)        => ipcRenderer.invoke(IPC.NOTES.UPDATE, id, input),
     delete: (id)                                => ipcRenderer.invoke(IPC.NOTES.DELETE, id),
+    listVersions:   (noteId: string)                  => ipcRenderer.invoke(IPC.NOTES.LIST_VERSIONS, noteId),
+    restoreVersion: (noteId: string, versionId: string) => ipcRenderer.invoke(IPC.NOTES.RESTORE_VERSION, noteId, versionId),
   },
 
   noteLinks: {

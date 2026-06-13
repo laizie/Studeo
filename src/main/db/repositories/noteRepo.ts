@@ -1,5 +1,6 @@
 import { getDb } from '../connection';
 import { blocksToPlainText } from '../../../shared/notes';
+import { snapshotNoteContent, getNoteVersion } from './noteVersionRepo';
 import type { Note, CreateNoteInput, UpdateNoteInput } from '../../../shared/types';
 
 function row(r: unknown): Note {
@@ -112,7 +113,31 @@ export function updateNote(id: string, input: UpdateNoteInput): Note {
     getDb().prepare(`UPDATE notes SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   }
 
+  // Snapshot saved document states for restore (throttled inside snapshotNoteContent).
+  if (input.contentJson !== undefined) {
+    snapshotNoteContent(id, input.contentJson);
+  }
+
   return getNote(id)!;
+}
+
+/**
+ * Restore a note to a previous snapshot. The current content is snapshotted first (forced),
+ * so the restore can itself be undone. Returns the restored note.
+ */
+export function restoreNoteVersion(noteId: string, versionId: string): Note {
+  const version = getNoteVersion(versionId);
+  if (!version || version.note_id !== noteId) throw new Error('Version not found for this note');
+
+  const current = getNote(noteId);
+  if (!current) throw new Error('Note not found');
+  snapshotNoteContent(noteId, current.content_json, true);
+
+  getDb()
+    .prepare('UPDATE notes SET content_json = ?, content_text = ?, updated_at = ? WHERE id = ?')
+    .run(version.content_json, blocksToPlainText(version.content_json), new Date().toISOString(), noteId);
+
+  return getNote(noteId)!;
 }
 
 // A note plus every sub-page beneath it (recursive). Used before delete so the caller can
