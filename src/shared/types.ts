@@ -133,7 +133,15 @@ export interface NoteLink {
   entity_id: string;
   /** Only for class_meeting links: the dated lecture (YYYY-MM-DD). Null otherwise. */
   occurrence_date: string | null;
+  is_pinned: 0 | 1;
   created_at: string;
+}
+
+// A note as seen through one of its links — the note's fields plus the link that attaches
+// it to the entity being viewed (so the embed can pin/unpin and order by pin).
+export interface EntityNote extends Note {
+  link_id: string;
+  is_pinned: 0 | 1;
 }
 
 export interface StudySession {
@@ -413,6 +421,7 @@ export const IPC = {
     LIST_FOR_NOTE:    'note_links:list-for-note',
     NOTES_FOR_ENTITY: 'note_links:notes-for-entity',
     CREATE:           'note_links:create',
+    SET_PINNED:       'note_links:set-pinned',
     DELETE:           'note_links:delete',
   },
   MEDIA: {
@@ -521,11 +530,13 @@ export interface WindowApi {
   noteLinks: {
     /** The links attached to one note (for the editor's link bar). */
     listForNote(noteId: string): Promise<NoteLink[]>;
-    /** The notes attached to one entity (for per-entity embeds). occurrenceDate scopes to
-        a single dated lecture for class_meeting links. */
-    notesForEntity(entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string): Promise<Note[]>;
+    /** The notes attached to one entity (for per-entity embeds), pinned first. occurrenceDate
+        scopes to a single dated lecture for class_meeting links. */
+    notesForEntity(entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string): Promise<EntityNote[]>;
     /** Linking the same note+entity twice is a no-op and returns the existing link. */
     create(input: CreateNoteLinkInput): Promise<NoteLink>;
+    /** Pin/unpin a note on an entity (e.g. a course "home" page). Keyed by the link id. */
+    setPinned(linkId: string, pinned: boolean): Promise<void>;
     delete(id: string): Promise<void>;
   };
   media: {

@@ -1,11 +1,11 @@
 import { getDb } from '../connection';
-import type { Note, NoteLink, NoteLinkEntity, CreateNoteLinkInput } from '../../../shared/types';
+import type { EntityNote, NoteLink, NoteLinkEntity, CreateNoteLinkInput } from '../../../shared/types';
 
 function linkRow(r: unknown): NoteLink {
   return r as NoteLink;
 }
-function noteRow(r: unknown): Note {
-  return r as Note;
+function entityNoteRow(r: unknown): EntityNote {
+  return r as EntityNote;
 }
 
 // entity_type → the table its entity_id points at. The keys are the validated, fixed set
@@ -34,7 +34,8 @@ export function listLinksForNote(noteId: string): NoteLink[] {
 }
 
 /**
- * The (non-archived) notes attached to one entity, newest-updated first.
+ * The (non-archived) notes attached to one entity — pinned first, then newest-updated.
+ * Each row carries its link id + pin state (EntityNote) so the embed can pin/unpin.
  * For lectures, pass occurrenceDate to scope to a single dated lecture; omit it for
  * course/assignment/etc (whose links carry no date) to get all their notes.
  */
@@ -42,7 +43,7 @@ export function listNotesForEntity(
   entityType: NoteLinkEntity,
   entityId: string,
   occurrenceDate?: string,
-): Note[] {
+): EntityNote[] {
   const params: string[] = [entityType, entityId];
   let dateClause = '';
   if (occurrenceDate) {
@@ -52,13 +53,18 @@ export function listNotesForEntity(
   return (
     getDb()
       .prepare(
-        `SELECT n.* FROM notes n
+        `SELECT n.*, l.id AS link_id, l.is_pinned FROM notes n
          JOIN note_links l ON l.note_id = n.id
          WHERE l.entity_type = ? AND l.entity_id = ?${dateClause} AND n.archived_at IS NULL
-         ORDER BY n.updated_at DESC`
+         ORDER BY l.is_pinned DESC, n.updated_at DESC`
       )
       .all(...params) as unknown[]
-  ).map(noteRow);
+  ).map(entityNoteRow);
+}
+
+/** Pin or unpin a note on an entity, keyed by the link id. */
+export function setLinkPinned(linkId: string, pinned: boolean): void {
+  getDb().prepare('UPDATE note_links SET is_pinned = ? WHERE id = ?').run(pinned ? 1 : 0, linkId);
 }
 
 // Find an identical existing link so creation is idempotent. `occurrence_date IS ?` matches

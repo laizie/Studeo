@@ -1,9 +1,10 @@
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, Pin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Note, NoteLinkEntity } from '../../../shared/types';
+import { cn } from '../../lib/utils';
 import { useCreateNote } from '../../lib/queries/useNotes';
-import { useEntityNotes, useCreateNoteLink } from '../../lib/queries/useNoteLinks';
+import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
 
 interface Props {
   entityType: NoteLinkEntity;
@@ -37,6 +38,7 @@ export default function EntityNotesList({
   const { data: notes } = useEntityNotes(entityType, entityId, occurrenceDate);
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
+  const setPin = useSetNotePin();
   const pending = createNote.isPending || linkNote.isPending;
 
   async function handleNew() {
@@ -69,19 +71,36 @@ export default function EntityNotesList({
       ) : (
         <div className="space-y-2">
           {list.map((note) => (
-            <Link
+            <div
               key={note.id}
-              to={`/notes/${note.id}`}
-              className="block rounded-xl border border-line bg-surface px-4 py-3 hover:bg-surface-hi transition-colors"
+              className={cn(
+                'group flex items-start gap-2 rounded-xl border px-4 py-3 transition-colors',
+                note.is_pinned ? 'border-accent/40 bg-surface' : 'border-line bg-surface hover:bg-surface-hi',
+              )}
             >
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
-                <span className="shrink-0 text-xs text-muted">
-                  {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
-                </span>
-              </div>
-              <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
-            </Link>
+              <Link to={`/notes/${note.id}`} className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
+                  <span className="shrink-0 text-xs text-muted">
+                    {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
+              </Link>
+              <button
+                onClick={() => setPin.mutate({ linkId: note.link_id, pinned: !note.is_pinned })}
+                title={note.is_pinned ? 'Unpin' : 'Pin to top'}
+                aria-label={note.is_pinned ? 'Unpin note' : 'Pin note to top'}
+                className={cn(
+                  'mt-0.5 shrink-0 rounded-md p-1 transition-colors',
+                  note.is_pinned
+                    ? 'text-accent'
+                    : 'text-muted opacity-0 hover:text-ink group-hover:opacity-100 focus-visible:opacity-100',
+                )}
+              >
+                <Pin size={14} className={note.is_pinned ? 'fill-current' : ''} />
+              </button>
+            </div>
           ))}
         </div>
       )}

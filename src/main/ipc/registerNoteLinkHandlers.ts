@@ -5,6 +5,7 @@ import {
   listLinksForNote,
   listNotesForEntity,
   createNoteLink,
+  setLinkPinned,
   deleteNoteLink,
   entityExists,
 } from '../db/repositories/noteLinkRepo';
@@ -41,6 +42,11 @@ export function registerNoteLinkHandlers(): void {
       throw new Error('occurrenceDate is only valid for class_meeting links');
     }
     return createNoteLink(input);
+  });
+
+  ipcMain.handle(IPC.NOTE_LINKS.SET_PINNED, (_event, linkId: string, pinned: boolean) => {
+    if (!linkId) throw new Error('Link id is required');
+    setLinkPinned(linkId, !!pinned);
   });
 
   ipcMain.handle(IPC.NOTE_LINKS.DELETE, (_event, id: string) => {

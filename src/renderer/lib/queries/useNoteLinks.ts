@@ -48,6 +48,15 @@ export function useCreateNoteLink() {
   });
 }
 
+export function useSetNotePin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ linkId, pinned }: { linkId: string; pinned: boolean }) =>
+      window.api.noteLinks.setPinned(linkId, pinned),
+    onSuccess: () => invalidateLinks(qc),
+  });
+}
+
 export function useDeleteNoteLink() {
   const qc = useQueryClient();
   return useMutation({
