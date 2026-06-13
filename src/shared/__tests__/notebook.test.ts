@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { groupNotesByWeek } from '../notebook';
+import { groupNotesByWeek, expandClassSessions } from '../notebook';
+import { buildExceptionIndex } from '../meetingExceptions';
+import type { ClassMeeting, MeetingException } from '../types';
 
 type N = { id: string; note_date: string | null };
+
+// 2026-01-05 is a Monday (day_of_week 1).
+const monday: ClassMeeting = {
+  id: 'm1', course_id: 'c1', day_of_week: 1, start_time: '09:00', end_time: '10:00', location: 'Rm 1',
+};
 
 describe('groupNotesByWeek', () => {
   it('returns no weeks when nothing is dated', () => {
@@ -42,5 +49,38 @@ describe('groupNotesByWeek', () => {
     expect(weeks[0].start).toBe('2026-09-01');
     // 9 days apart → second week
     expect(weeks[weeks.length - 1].items.map((n) => n.id)).toContain('later');
+  });
+});
+
+describe('expandClassSessions', () => {
+  const empty = buildExceptionIndex([]);
+
+  it('returns [] without term dates', () => {
+    expect(expandClassSessions(null, '2026-01-18', [monday], empty)).toEqual([]);
+  });
+
+  it('expands a weekly meeting to each matching weekday in range', () => {
+    const sessions = expandClassSessions('2026-01-05', '2026-01-18', [monday], empty);
+    expect(sessions.map((s) => s.date)).toEqual(['2026-01-05', '2026-01-12']);
+    expect(sessions.every((s) => s.startTime === '09:00')).toBe(true);
+  });
+
+  it('drops cancelled occurrences', () => {
+    const ex: MeetingException = {
+      id: 'e1', meeting_id: 'm1', date: '2026-01-12', kind: 'cancelled',
+      new_start_time: null, new_end_time: null, new_location: null,
+    };
+    const sessions = expandClassSessions('2026-01-05', '2026-01-18', [monday], buildExceptionIndex([ex]));
+    expect(sessions.map((s) => s.date)).toEqual(['2026-01-05']);
+  });
+
+  it('reflects a moved occurrence time/location', () => {
+    const ex: MeetingException = {
+      id: 'e2', meeting_id: 'm1', date: '2026-01-05', kind: 'moved',
+      new_start_time: '11:00', new_end_time: '12:00', new_location: 'Rm 2',
+    };
+    const [first] = expandClassSessions('2026-01-05', '2026-01-18', [monday], buildExceptionIndex([ex]));
+    expect(first.startTime).toBe('11:00');
+    expect(first.location).toBe('Rm 2');
   });
 });
