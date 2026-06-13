@@ -2,7 +2,7 @@ import { NavLink, Link } from 'react-router-dom';
 import logoUrl from '../assets/logo.png';
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
-  Calendar, Timer, Settings, Plus, Music, FileText,
+  Calendar, Timer, Settings, Plus, Music, FileText, Search,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
@@ -77,9 +77,10 @@ function MusicSection() {
 
 interface Props {
   onOpenQuickAdd: () => void;
+  onOpenSearch: () => void;
 }
 
-export default function Sidebar({ onOpenQuickAdd }: Props) {
+export default function Sidebar({ onOpenQuickAdd, onOpenSearch }: Props) {
   return (
     <nav className="w-56 h-full flex flex-col bg-[#2c1f14] shrink-0">
       <div className="px-4 py-5 border-b border-[#3d2b1f] flex items-center justify-between">
@@ -87,13 +88,22 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
           <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
           <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">Studeo</span>
         </div>
-        <button
-          onClick={onOpenQuickAdd}
-          title="Quick add (⌘N)"
-          className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
-        >
-          <Plus size={14} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={onOpenSearch}
+            title="Search notes (⌘K)"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+          >
+            <Search size={14} />
+          </button>
+          <button
+            onClick={onOpenQuickAdd}
+            title="Quick add (⌘N)"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 px-2 py-3 space-y-0.5">
