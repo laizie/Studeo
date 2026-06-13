@@ -63,6 +63,10 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // The preload only uses contextBridge + ipcRenderer (both sandbox-safe), and note
+      // images load via the studeo-asset:// custom protocol rather than file://, so the
+      // renderer can run fully sandboxed — the strongest isolation for untrusted UI.
+      sandbox: true,
     },
   });
 
