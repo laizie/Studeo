@@ -16,6 +16,7 @@ import { startReminderScheduler } from './main/reminders';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
+import { initAutoUpdater } from './main/updater';
 
 if (started) {
   app.quit();
@@ -79,6 +80,7 @@ app.on('ready', () => {
   registerIpcHandlers();
   startReminderScheduler(); // after initDb — the scheduler reads class meetings
   createWindow();
+  initAutoUpdater(); // checks GitHub for newer published releases (packaged builds only)
 });
 
 app.on('window-all-closed', () => {
