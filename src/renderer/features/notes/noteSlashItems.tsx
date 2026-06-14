@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardList, CalendarClock, ListTodo } from 'lucide-react';
+import { BookOpen, ClipboardList, CalendarClock, ListTodo, Link2 } from 'lucide-react';
 import type { DefaultReactSuggestionItem } from '@blocknote/react';
 
 export interface SlashActions {
@@ -6,6 +6,7 @@ export interface SlashActions {
   onLinkAssignment: () => void;
   onInsertDue: () => void;
   onChecklistToTask: () => void;
+  onLinkNotes: () => void;
 }
 
 /** Studeo-specific slash menu commands, grouped under "Studeo" below the default blocks. */
@@ -42,6 +43,14 @@ export function studeoSlashItems(actions: SlashActions): DefaultReactSuggestionI
       aliases: ['task', 'todo', 'checklist'],
       icon: <ListTodo size={18} />,
       onItemClick: actions.onChecklistToTask,
+    },
+    {
+      title: 'Link notes',
+      group: 'Studeo',
+      subtext: 'Insert links to other notes (exam review / study guide)',
+      aliases: ['link', 'notes', 'reference', 'study', 'guide'],
+      icon: <Link2 size={18} />,
+      onItemClick: actions.onLinkNotes,
     },
   ];
 }
