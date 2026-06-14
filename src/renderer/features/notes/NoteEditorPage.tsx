@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useNote, useDeleteNote } from '../../lib/queries/useNotes';
+import { useNoteLinks } from '../../lib/queries/useNoteLinks';
 import QueryErrorState from '../../components/QueryErrorState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import NoteEditor from './NoteEditor';
@@ -9,17 +10,16 @@ import NoteEditor from './NoteEditor';
 export default function NoteEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const { data: note, isLoading, isError, refetch } = useNote(id);
+  const { data: links } = useNoteLinks(id);
   const deleteNote = useDeleteNote();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Return to the page they came from (a class notebook, Loose notes, a parent
-  // note, search…). `location.key` is 'default' only when this note was the first
-  // route loaded — in that case there's no history to pop, so fall back to /notes.
+  // Back always returns to this note's class notebook. If the note isn't tied to a
+  // course (a loose note), fall back to the Notebooks hub.
+  const courseId = links?.find((l) => l.entity_type === 'course')?.entity_id;
   function goBack() {
-    if (location.key !== 'default') navigate(-1);
-    else navigate('/notes');
+    navigate(courseId ? `/notes/class/${courseId}` : '/notes');
   }
 
   function handleDelete() {
