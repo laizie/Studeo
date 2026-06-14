@@ -78,6 +78,10 @@
   position: absolute;
   top: 8px;
   right: 10px;
+  display: inline-block;
+  width: max-content;
+  max-width: 45%;
+  opacity: 1 !important; /* BlockNote injects a rule hiding this until hover/focus; force it visible */
   appearance: none;
   user-select: none;
   cursor: pointer;

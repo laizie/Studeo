@@ -8,7 +8,7 @@ import {
 import { BlockNoteView } from '@blocknote/mantine';
 import { filterSuggestionItems } from '@blocknote/core';
 import { History, CalendarDays, X } from 'lucide-react';
-import { studeoCodeBlock } from './codeBlock';
+import { studeoSchema } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
 import NoteLinkBar from './NoteLinkBar';
 import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
@@ -101,7 +101,7 @@ export default function NoteEditor({ note }: { note: Note }) {
   }
 
   const editor = useCreateBlockNote({
-    codeBlock: studeoCodeBlock,
+    schema: studeoSchema,
     initialContent: parseInitial(note.content_json),
     // Drag-drop / paste / file-picker all funnel here. We persist the bytes via the media
     // IPC and hand BlockNote back a studeo-asset:// URL to store in the image block.
