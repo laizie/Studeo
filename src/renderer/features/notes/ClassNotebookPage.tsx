@@ -90,7 +90,7 @@ export default function ClassNotebookPage() {
 
   async function newNote(opts: { title?: string; templateId?: TemplateId } = {}) {
     const note = await createNote.mutateAsync({
-      title: opts.title ?? format(new Date(), 'MMM d, yyyy'),
+      title: opts.title ?? format(new Date(), 'MM/dd/yy'),
       contentJson: templateContent(opts.templateId ?? 'blank'),
     });
     await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
