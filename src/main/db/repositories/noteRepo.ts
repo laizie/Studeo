@@ -1,7 +1,7 @@
 import { getDb } from '../connection';
 import { blocksToPlainText } from '../../../shared/notes';
 import { snapshotNoteContent, getNoteVersion } from './noteVersionRepo';
-import type { Note, CreateNoteInput, UpdateNoteInput } from '../../../shared/types';
+import type { Note, NoteWithCourse, CreateNoteInput, UpdateNoteInput } from '../../../shared/types';
 
 function row(r: unknown): Note {
   return r as Note;
@@ -17,6 +17,25 @@ export function listNotes(filters: NoteFilters = {}): Note[] {
     ? 'SELECT * FROM notes WHERE archived_at IS NOT NULL ORDER BY updated_at DESC'
     : 'SELECT * FROM notes WHERE archived_at IS NULL ORDER BY updated_at DESC';
   return (getDb().prepare(sql).all() as unknown[]).map(row);
+}
+
+/**
+ * All non-archived notes, newest first, each tagged with the course it's filed under.
+ * The course comes from the note's most-recent 'course' link (null for a loose note).
+ * Drives cross-class lists that color-code notes by class (e.g. the Notes landing page).
+ */
+export function listNotesWithCourse(): NoteWithCourse[] {
+  const sql = `
+    SELECT n.*,
+      (SELECT l.entity_id
+         FROM note_links l
+        WHERE l.note_id = n.id AND l.entity_type = 'course'
+        ORDER BY l.created_at DESC
+        LIMIT 1) AS course_id
+    FROM notes n
+    WHERE n.archived_at IS NULL
+    ORDER BY n.updated_at DESC`;
+  return (getDb().prepare(sql).all() as unknown[]).map((r) => r as NoteWithCourse);
 }
 
 export function getNote(id: string): Note | null {
@@ -45,7 +64,7 @@ export function listLooseNotes(): Note[] {
          WHERE archived_at IS NULL
            AND parent_note_id IS NULL
            AND id NOT IN (SELECT note_id FROM note_links WHERE entity_type = 'course')
-         ORDER BY updated_at DESC`
+         ORDER BY is_pinned DESC, updated_at DESC`
       )
       .all() as unknown[]
   ).map(row);
@@ -113,7 +132,7 @@ export function createNote(input: CreateNoteInput): Note {
 
 export function updateNote(id: string, input: UpdateNoteInput): Note {
   const fields: string[] = [];
-  const values: (string | null)[] = [];
+  const values: (string | number | null)[] = [];
 
   if (input.title !== undefined) {
     fields.push('title = ?');
@@ -137,6 +156,11 @@ export function updateNote(id: string, input: UpdateNoteInput): Note {
   if (input.noteDate !== undefined) {
     fields.push('note_date = ?');
     values.push(input.noteDate ?? null);
+  }
+  if (input.pinned !== undefined) {
+    // SQLite has no boolean — store 0/1, matching note_links.is_pinned.
+    fields.push('is_pinned = ?');
+    values.push(input.pinned ? 1 : 0);
   }
   if (input.archived !== undefined) {
     fields.push('archived_at = ?');

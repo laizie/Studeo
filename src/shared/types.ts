@@ -118,9 +118,19 @@ export interface Note {
   parent_note_id: string | null;
   /** Optional YYYY-MM-DD; places the note on its class Timeline. Null = a freeform Page. */
   note_date: string | null;
+  /** Global pin: 1 surfaces the note in the "Pinned" section. (See note_links.is_pinned for
+   *  the separate per-entity pin.) */
+  is_pinned: 0 | 1;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// A note plus the id of the course it's filed under (null for a loose note). Used by
+// cross-class lists (e.g. the Notes landing page) to color-code a note by its class —
+// the color/abbreviation themselves are looked up from the already-loaded course list.
+export interface NoteWithCourse extends Note {
+  course_id: string | null;
 }
 
 // The Studeo entities a note can be attached to. Kept as a fixed set; the DB CHECK
@@ -262,6 +272,8 @@ export interface UpdateNoteInput {
   parentNoteId?: string | null;
   /** YYYY-MM-DD to place on the Timeline, or null to move it back to Pages. */
   noteDate?: string | null;
+  /** true = pin globally (Pinned section); false = unpin. */
+  pinned?: boolean;
   /** true = move to trash (sets archived_at); false = restore (clears it). */
   archived?: boolean;
 }
@@ -425,6 +437,7 @@ export const IPC = {
   },
   NOTES: {
     LIST:            'notes:list',
+    LIST_WITH_COURSE:'notes:list-with-course',
     LIST_LOOSE:      'notes:list-loose',
     CHILDREN:        'notes:children',
     GET:             'notes:get',
@@ -538,6 +551,8 @@ export interface WindowApi {
   notes: {
     /** Defaults to non-archived notes; pass { archived: true } for the trash. */
     list(filters?: { archived?: boolean }): Promise<Note[]>;
+    /** Non-archived notes, newest first, each tagged with its course id (null = loose). */
+    listWithCourse(): Promise<NoteWithCourse[]>;
     /** Top-level notes not attached to any course (the "Loose notes" bucket). */
     listLoose(): Promise<Note[]>;
     /** Direct sub-pages of a note (the Pages tree). */
