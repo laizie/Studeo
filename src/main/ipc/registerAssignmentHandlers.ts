@@ -12,6 +12,7 @@ import {
   updateAssignment,
   deleteAssignment,
 } from '../db/repositories/assignmentRepo';
+import { deleteLinksForEntity } from '../db/repositories/noteLinkRepo';
 
 // score/pointsPossible: absent or null = "no grade recorded"; otherwise both
 // must be sane non-negative numbers and you can't earn points out of nothing.
@@ -59,5 +60,6 @@ export function registerAssignmentHandlers(): void {
   ipcMain.handle(IPC.ASSIGNMENTS.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Assignment id is required');
     deleteAssignment(id);
+    deleteLinksForEntity('assignment', id);
   });
 }

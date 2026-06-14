@@ -98,6 +98,72 @@ export interface MeetingException {
   new_location: string | null;
 }
 
+// A point-in-time snapshot of a note's document, for restore.
+export interface NoteVersion {
+  id: string;
+  note_id: string;
+  content_json: string;
+  created_at: string;
+}
+
+// A block-based note (Notion-like). content_json is the BlockNote document (an array
+// of blocks, serialized). content_text is a derived plaintext flattening of it, kept by
+// the repo for search/AI — never authored directly. parent_note_id nests sub-pages.
+export interface Note {
+  id: string;
+  title: string;
+  content_json: string;
+  content_text: string;
+  icon: string | null;
+  parent_note_id: string | null;
+  /** Optional YYYY-MM-DD; places the note on its class Timeline. Null = a freeform Page. */
+  note_date: string | null;
+  /** Global pin: 1 surfaces the note in the "Pinned" section. (See note_links.is_pinned for
+   *  the separate per-entity pin.) */
+  is_pinned: 0 | 1;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// A note plus the id of the course it's filed under (null for a loose note). Used by
+// cross-class lists (e.g. the Notes landing page) to color-code a note by its class —
+// the color/abbreviation themselves are looked up from the already-loaded course list.
+export interface NoteWithCourse extends Note {
+  course_id: string | null;
+}
+
+// The Studeo entities a note can be attached to. Kept as a fixed set; the DB CHECK
+// constraint and the IPC handler both validate against it.
+export type NoteLinkEntity =
+  | 'course'
+  | 'assignment'
+  | 'class_meeting'
+  | 'study_session'
+  | 'term';
+
+export const NOTE_LINK_ENTITIES: NoteLinkEntity[] = [
+  'course', 'assignment', 'class_meeting', 'study_session', 'term',
+];
+
+export interface NoteLink {
+  id: string;
+  note_id: string;
+  entity_type: NoteLinkEntity;
+  entity_id: string;
+  /** Only for class_meeting links: the dated lecture (YYYY-MM-DD). Null otherwise. */
+  occurrence_date: string | null;
+  is_pinned: 0 | 1;
+  created_at: string;
+}
+
+// A note as seen through one of its links — the note's fields plus the link that attaches
+// it to the entity being viewed (so the embed can pin/unpin and order by pin).
+export interface EntityNote extends Note {
+  link_id: string;
+  is_pinned: 0 | 1;
+}
+
 export interface StudySession {
   id: string;
   started_at: string;
@@ -186,6 +252,46 @@ export interface UpdateTaskInput {
   name?: string;
   status?: AssignmentStatus;
   dueDate?: string;
+}
+
+export interface CreateNoteInput {
+  title?: string;
+  /** BlockNote document, serialized. Defaults to an empty document ('[]'). */
+  contentJson?: string;
+  icon?: string;
+  parentNoteId?: string;
+  /** YYYY-MM-DD; places the note on a class Timeline. */
+  noteDate?: string;
+}
+
+export interface UpdateNoteInput {
+  title?: string;
+  /** When provided, the repo recomputes content_text from it. */
+  contentJson?: string;
+  icon?: string | null;
+  parentNoteId?: string | null;
+  /** YYYY-MM-DD to place on the Timeline, or null to move it back to Pages. */
+  noteDate?: string | null;
+  /** true = pin globally (Pinned section); false = unpin. */
+  pinned?: boolean;
+  /** true = move to trash (sets archived_at); false = restore (clears it). */
+  archived?: boolean;
+}
+
+export interface CreateNoteLinkInput {
+  noteId: string;
+  entityType: NoteLinkEntity;
+  entityId: string;
+  /** Only for class_meeting: pins the note to one dated lecture (YYYY-MM-DD). */
+  occurrenceDate?: string;
+}
+
+export interface SaveMediaInput {
+  /** The note the image belongs to — its bytes are stored under this note's folder. */
+  noteId: string;
+  /** File extension (no dot), e.g. "png". Validated against an image whitelist in main. */
+  ext: string;
+  data: Uint8Array;
 }
 
 export interface CreateMeetingExceptionInput {
@@ -329,6 +435,29 @@ export const IPC = {
     LIST:   'study_sessions:list',
     CREATE: 'study_sessions:create',
   },
+  NOTES: {
+    LIST:            'notes:list',
+    LIST_WITH_COURSE:'notes:list-with-course',
+    LIST_LOOSE:      'notes:list-loose',
+    CHILDREN:        'notes:children',
+    GET:             'notes:get',
+    SEARCH:          'notes:search',
+    CREATE:          'notes:create',
+    UPDATE:          'notes:update',
+    DELETE:          'notes:delete',
+    LIST_VERSIONS:   'notes:list-versions',
+    RESTORE_VERSION: 'notes:restore-version',
+  },
+  NOTE_LINKS: {
+    LIST_FOR_NOTE:    'note_links:list-for-note',
+    NOTES_FOR_ENTITY: 'note_links:notes-for-entity',
+    CREATE:           'note_links:create',
+    SET_PINNED:       'note_links:set-pinned',
+    DELETE:           'note_links:delete',
+  },
+  MEDIA: {
+    SAVE: 'media:save',
+  },
   REMINDERS: {
     CONFIGURE: 'reminders:configure',
     TEST:      'reminders:test',
@@ -418,6 +547,42 @@ export interface WindowApi {
   studySessions: {
     list(): Promise<StudySession[]>;
     create(input: CreateStudySessionInput): Promise<StudySession>;
+  };
+  notes: {
+    /** Defaults to non-archived notes; pass { archived: true } for the trash. */
+    list(filters?: { archived?: boolean }): Promise<Note[]>;
+    /** Non-archived notes, newest first, each tagged with its course id (null = loose). */
+    listWithCourse(): Promise<NoteWithCourse[]>;
+    /** Top-level notes not attached to any course (the "Loose notes" bucket). */
+    listLoose(): Promise<Note[]>;
+    /** Direct sub-pages of a note (the Pages tree). */
+    children(parentId: string): Promise<Note[]>;
+    get(id: string): Promise<Note | null>;
+    /** Full-text search over title + content_text (non-archived only). */
+    search(query: string): Promise<Note[]>;
+    create(input: CreateNoteInput): Promise<Note>;
+    update(id: string, input: UpdateNoteInput): Promise<Note>;
+    delete(id: string): Promise<void>;
+    /** Recent saved snapshots of a note's document, newest first. */
+    listVersions(noteId: string): Promise<NoteVersion[]>;
+    /** Restore a note to a snapshot (snapshots the current content first so it's reversible). */
+    restoreVersion(noteId: string, versionId: string): Promise<Note>;
+  };
+  noteLinks: {
+    /** The links attached to one note (for the editor's link bar). */
+    listForNote(noteId: string): Promise<NoteLink[]>;
+    /** The notes attached to one entity (for per-entity embeds), pinned first. occurrenceDate
+        scopes to a single dated lecture for class_meeting links. */
+    notesForEntity(entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string): Promise<EntityNote[]>;
+    /** Linking the same note+entity twice is a no-op and returns the existing link. */
+    create(input: CreateNoteLinkInput): Promise<NoteLink>;
+    /** Pin/unpin a note on an entity (e.g. a course "home" page). Keyed by the link id. */
+    setPinned(linkId: string, pinned: boolean): Promise<void>;
+    delete(id: string): Promise<void>;
+  };
+  media: {
+    /** Persist image bytes for a note; resolves to a studeo-asset:// URL to render it. */
+    save(input: SaveMediaInput): Promise<string>;
   };
   reminders: {
     configure(config: ReminderConfig): Promise<void>;

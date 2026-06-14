@@ -14,6 +14,7 @@ import SpotifyStudyPanel from '../spotify/SpotifyStudyPanel';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import StudySessionsNotesCard from './StudySessionsNotesCard';
 
 // ── Study technique presets ───────────────────────────────────────────────────
 
@@ -485,6 +486,11 @@ export default function StudyPage() {
         {/* ── Focus list card ───────────────────────────────────────────────── */}
         <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
           <FocusListPanel />
+        </div>
+
+        {/* ── Recent sessions + notes ───────────────────────────────────────── */}
+        <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
+          <StudySessionsNotesCard />
         </div>
 
       </div>

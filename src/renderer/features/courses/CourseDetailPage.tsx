@@ -10,6 +10,7 @@ import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
 import GradeWeightsCard from './GradeWeightsCard';
+import EntityNotesList from '../notes/EntityNotesList';
 import { computeCourseStanding, formatPercent } from '../../../shared/grades';
 import ClassMeetingDialog from './ClassMeetingDialog';
 import MeetingExceptionDialog from './MeetingExceptionDialog';
@@ -319,6 +320,25 @@ export default function CourseDetailPage() {
           <GradeWeightsCard course={course} />
         </div>
 
+      </div>
+
+      {/* ── Notes (course knowledge base) ──────────────────────────────────── */}
+      <div className="mt-12">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-base font-semibold text-ink-soft">Notes</span>
+          <Link
+            to={`/notes/class/${course.id}`}
+            className="text-sm text-muted hover:text-ink transition-colors"
+          >
+            Open notebook →
+          </Link>
+        </div>
+        <EntityNotesList
+          entityType="course"
+          entityId={course.id}
+          newNoteTitle={`${course.abbreviation} — `}
+          heading=""
+        />
       </div>
 
       <AddAssignmentDialog

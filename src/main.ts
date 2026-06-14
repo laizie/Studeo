@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, session, protocol } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { initDb } from './main/db/connection';
@@ -10,6 +10,10 @@ import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHan
 import { registerMeetingExceptionHandlers } from './main/ipc/registerMeetingExceptionHandlers';
 import { registerTermHandlers } from './main/ipc/registerTermHandlers';
 import { registerStudySessionHandlers } from './main/ipc/registerStudySessionHandlers';
+import { registerNoteHandlers } from './main/ipc/registerNoteHandlers';
+import { registerNoteLinkHandlers } from './main/ipc/registerNoteLinkHandlers';
+import { registerMediaHandlers } from './main/ipc/registerMediaHandlers';
+import { ASSET_SCHEME, registerAssetProtocol } from './main/media';
 import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
 import { registerAppHandlers } from './main/ipc/registerAppHandlers';
 import { startReminderScheduler } from './main/reminders';
@@ -22,6 +26,15 @@ if (started) {
   app.quit();
 }
 
+// Must run before app `ready`: mark our custom scheme as a privileged, secure standard
+// scheme so the renderer can load studeo-asset:// images like any normal https resource.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: ASSET_SCHEME,
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
+]);
+
 function registerIpcHandlers(): void {
   registerCourseHandlers();
   registerAssignmentHandlers();
@@ -31,6 +44,9 @@ function registerIpcHandlers(): void {
   registerMeetingExceptionHandlers();
   registerTermHandlers();
   registerStudySessionHandlers();
+  registerNoteHandlers();
+  registerNoteLinkHandlers();
+  registerMediaHandlers();
   registerReminderHandlers();
   registerAppHandlers();
   registerSpotifyHandlers();
@@ -47,6 +63,10 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // The preload only uses contextBridge + ipcRenderer (both sandbox-safe), and note
+      // images load via the studeo-asset:// custom protocol rather than file://, so the
+      // renderer can run fully sandboxed — the strongest isolation for untrusted UI.
+      sandbox: true,
     },
   });
 
@@ -77,6 +97,7 @@ app.on('ready', () => {
   setAuthCompletionHandler(notifyAuthCallback);
 
   initDb();
+  registerAssetProtocol(); // serves studeo-asset:// note images from the data folder
   registerIpcHandlers();
   startReminderScheduler(); // after initDb — the scheduler reads class meetings
   createWindow();
