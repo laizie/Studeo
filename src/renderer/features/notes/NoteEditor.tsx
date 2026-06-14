@@ -22,6 +22,7 @@ import { useAssignments } from '../../lib/queries/useAssignments';
 import { useCreateTask } from '../../lib/queries/useTasks';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
+import { detectCodeLanguage } from '../../../shared/detectLanguage';
 import type { Note, NoteVersion } from '../../../shared/types';
 import './blocknote-theme.css';
 // eslint-disable-next-line import/no-unresolved -- Vite resolves CSS side-effect imports at build time
@@ -134,6 +135,31 @@ export default function NoteEditor({ note }: { note: Note }) {
     dirty.current = true;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flushContent, AUTOSAVE_MS);
+    autoDetectCodeLanguages();
+  }
+
+  // Auto-pick a language for code blocks the user hasn't set one on, so syntax highlighting
+  // turns on as they type. We only ever do this once per block (and never touch a block that
+  // already has a non-default language), so a manual choice from the picker is never fought.
+  const autoLangDone = useRef<Set<string>>(new Set());
+  function autoDetectCodeLanguages() {
+    for (const block of editor.document) {
+      if (block.type !== 'codeBlock') continue;
+      if (autoLangDone.current.has(block.id)) continue;
+      if (block.props.language && block.props.language !== 'text') {
+        autoLangDone.current.add(block.id); // already set (saved note or manual pick) — leave it
+        continue;
+      }
+      const text = Array.isArray(block.content)
+        ? block.content.map((ic) => (ic.type === 'text' ? ic.text : '')).join('')
+        : '';
+      const lang = detectCodeLanguage(text);
+      if (lang) {
+        autoLangDone.current.add(block.id);
+        // Defer: don't mutate the doc while BlockNote is dispatching the current change.
+        queueMicrotask(() => editor.updateBlock(block, { props: { language: lang } }));
+      }
+    }
   }
 
   // Flush any pending edit when the editor unmounts (route change / app close).
