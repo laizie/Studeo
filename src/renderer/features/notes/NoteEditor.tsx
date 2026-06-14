@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   useCreateBlockNote,
   SuggestionMenuController,
@@ -11,6 +12,7 @@ import { studeoCodeBlock } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
 import NoteLinkBar from './NoteLinkBar';
 import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
+import NotePickerDialog from './NotePickerDialog';
 import VersionHistoryDialog from './VersionHistoryDialog';
 import { studeoSlashItems } from './noteSlashItems';
 import { useUpdateNote, useRestoreNoteVersion } from '../../lib/queries/useNotes';
@@ -70,6 +72,7 @@ function parseInitial(contentJson: string) {
  * creation). Saves are debounced and also flushed on unmount (navigate-away).
  */
 export default function NoteEditor({ note }: { note: Note }) {
+  const navigate = useNavigate();
   const theme = useSettingsStore((s) => s.theme);
   const updateNote = useUpdateNote();
   const linkNote = useCreateNoteLink();
@@ -84,6 +87,7 @@ export default function NoteEditor({ note }: { note: Note }) {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   // Slash-command UI: which link picker is open, the /Due date prompt, and a transient toast.
   const [picker, setPicker] = useState<'course' | 'assignment' | null>(null);
+  const [notePickerOpen, setNotePickerOpen] = useState(false);
   const [dueOpen, setDueOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -181,7 +185,27 @@ export default function NoteEditor({ note }: { note: Note }) {
     onLinkAssignment: () => setPicker('assignment'),
     onInsertDue: () => setDueOpen(true),
     onChecklistToTask: checklistToTask,
+    onLinkNotes: () => setNotePickerOpen(true),
   };
+
+  // Insert a bullet list of links to other notes (study guide / exam review). Links use the
+  // app's hash routes so the in-editor click handler can navigate to them in-app.
+  function insertNoteLinks(notes: Note[]) {
+    setNotePickerOpen(false);
+    if (notes.length === 0) return;
+    const blocks = notes.map((n) => ({
+      type: 'bulletListItem' as const,
+      content: [
+        {
+          type: 'link' as const,
+          href: `#/notes/${n.id}`,
+          content: [{ type: 'text' as const, text: n.title || 'Untitled', styles: {} }],
+        },
+      ],
+    }));
+    editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
+    showFlash(`Linked ${notes.length} note${notes.length === 1 ? '' : 's'}`);
+  }
 
   // Restore a snapshot: the backend swaps the stored content (snapshotting current first so
   // it's reversible), then we sync the LIVE editor via replaceBlocks — no remount, so the
@@ -255,6 +279,15 @@ export default function NoteEditor({ note }: { note: Note }) {
       />
       <div
         className="studeo-bn"
+        onClick={(e) => {
+          // Follow in-app note links (study guides) without leaving the window.
+          const anchor = (e.target as HTMLElement).closest('a');
+          const href = anchor?.getAttribute('href') ?? '';
+          if (href.startsWith('#/')) {
+            e.preventDefault();
+            navigate(href.slice(1));
+          }
+        }}
         onDoubleClick={(e) => {
           // Double-click an image to preview it full-screen (single click stays free for
           // BlockNote's own select/resize handling).
@@ -297,6 +330,9 @@ export default function NoteEditor({ note }: { note: Note }) {
           onSelect={(id) => linkSelected('assignment', id)}
           onClose={() => setPicker(null)}
         />
+      )}
+      {notePickerOpen && (
+        <NotePickerDialog excludeId={note.id} onInsert={insertNoteLinks} onClose={() => setNotePickerOpen(false)} />
       )}
       {dueOpen && <DueDatePrompt onConfirm={insertDue} onClose={() => setDueOpen(false)} />}
       {dateOpen && (
