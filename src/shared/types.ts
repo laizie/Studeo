@@ -426,6 +426,7 @@ export const IPC = {
   NOTES: {
     LIST:            'notes:list',
     LIST_LOOSE:      'notes:list-loose',
+    CHILDREN:        'notes:children',
     GET:             'notes:get',
     SEARCH:          'notes:search',
     CREATE:          'notes:create',
@@ -539,6 +540,8 @@ export interface WindowApi {
     list(filters?: { archived?: boolean }): Promise<Note[]>;
     /** Top-level notes not attached to any course (the "Loose notes" bucket). */
     listLoose(): Promise<Note[]>;
+    /** Direct sub-pages of a note (the Pages tree). */
+    children(parentId: string): Promise<Note[]>;
     get(id: string): Promise<Note | null>;
     /** Full-text search over title + content_text (non-archived only). */
     search(query: string): Promise<Note[]>;

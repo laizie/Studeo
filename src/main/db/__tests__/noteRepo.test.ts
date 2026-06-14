@@ -11,6 +11,7 @@ vi.mock('../connection', () => ({
 import {
   listNotes,
   listLooseNotes,
+  listChildNotes,
   getNote,
   searchNotes,
   createNote,
@@ -149,6 +150,17 @@ describe('noteRepo', () => {
       expect(ids).toContain(loose.id);
       expect(ids).not.toContain(linked.id); // has a course link
       expect(ids).not.toContain(child.id);  // a sub-page, not top-level
+    });
+  });
+
+  describe('listChildNotes', () => {
+    it('returns direct sub-pages of a note', () => {
+      const parent = createNote({ title: 'Lab' });
+      const child1 = createNote({ title: 'Lab 1', parentNoteId: parent.id });
+      const child2 = createNote({ title: 'Lab 2', parentNoteId: parent.id });
+      createNote({ title: 'Unrelated' });
+      const ids = listChildNotes(parent.id).map((n) => n.id).sort();
+      expect(ids).toEqual([child1.id, child2.id].sort());
     });
   });
 

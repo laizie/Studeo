@@ -4,6 +4,7 @@ import type { CreateNoteInput, UpdateNoteInput } from '../../shared/types';
 import {
   listNotes,
   listLooseNotes,
+  listChildNotes,
   getNote,
   searchNotes,
   createNote,
@@ -36,6 +37,11 @@ export function registerNoteHandlers(): void {
   );
 
   ipcMain.handle(IPC.NOTES.LIST_LOOSE, () => listLooseNotes());
+
+  ipcMain.handle(IPC.NOTES.CHILDREN, (_event, parentId: string) => {
+    if (!parentId) throw new Error('parentId is required');
+    return listChildNotes(parentId);
+  });
 
   ipcMain.handle(IPC.NOTES.GET, (_event, id: string) => {
     if (!id) throw new Error('Note id is required');

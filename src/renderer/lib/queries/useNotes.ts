@@ -24,6 +24,14 @@ export function useLooseNotes() {
   });
 }
 
+export function useChildNotes(parentId: string | undefined) {
+  return useQuery({
+    queryKey: [...noteKeys.all, 'children', parentId ?? ''] as const,
+    queryFn:  () => window.api.notes.children(parentId!),
+    enabled:  !!parentId,
+  });
+}
+
 export function useNote(id: string | undefined) {
   return useQuery({
     queryKey: noteKeys.detail(id ?? ''),

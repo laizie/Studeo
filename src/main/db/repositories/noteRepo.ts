@@ -24,6 +24,15 @@ export function getNote(id: string): Note | null {
   return r ? row(r) : null;
 }
 
+/** Direct sub-pages of a note (the Pages tree), newest-updated first. */
+export function listChildNotes(parentId: string): Note[] {
+  return (
+    getDb()
+      .prepare('SELECT * FROM notes WHERE parent_note_id = ? AND archived_at IS NULL ORDER BY updated_at DESC')
+      .all(parentId) as unknown[]
+  ).map(row);
+}
+
 /**
  * Top-level notes not attached to any course — the "Loose notes" bucket. Excludes archived
  * notes and sub-pages (those show under their parent), and anything with a course link.
