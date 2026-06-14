@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CalendarDays, Trash2 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useTerms } from '../../lib/queries/useTerms';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
-import { useCreateNote } from '../../lib/queries/useNotes';
+import { useCreateNote, useDeleteNote } from '../../lib/queries/useNotes';
 import { useEntityNotes, useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
 import { buildExceptionIndex } from '../../../shared/meetingExceptions';
@@ -14,6 +14,7 @@ import { useCreateLectureNote } from './useLectureNote';
 import TemplatePickerDialog from './TemplatePickerDialog';
 import { templateContent, type TemplateId } from '../../../shared/noteTemplates';
 import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import type { EntityNote } from '../../../shared/types';
 
 type TimelineEntry =
@@ -26,22 +27,37 @@ function snippet(note: EntityNote): string {
   return text.length > 100 ? text.slice(0, 100).trimEnd() + '…' : text;
 }
 
-function NoteRow({ note, showDate }: { note: EntityNote; showDate?: boolean }) {
+function NoteRow({
+  note,
+  showDate,
+  onDelete,
+}: {
+  note: EntityNote;
+  showDate?: boolean;
+  onDelete: (note: EntityNote) => void;
+}) {
   return (
-    <Link
-      to={`/notes/${note.id}`}
-      className="block rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:bg-surface-hi"
-    >
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
-        <span className="shrink-0 text-xs text-muted">
-          {showDate && note.note_date
-            ? formatDueDate(note.note_date)
-            : formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
-        </span>
-      </div>
-      <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
-    </Link>
+    <div className="group flex items-start gap-2 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:bg-surface-hi">
+      <Link to={`/notes/${note.id}`} className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
+          <span className="shrink-0 text-xs text-muted">
+            {showDate && note.note_date
+              ? formatDueDate(note.note_date)
+              : formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+          </span>
+        </div>
+        <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
+      </Link>
+      <button
+        onClick={() => onDelete(note)}
+        title="Delete note"
+        aria-label="Delete note"
+        className="mt-0.5 shrink-0 rounded-md p-1 text-muted opacity-0 transition hover:text-red-500 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -56,7 +72,9 @@ export default function ClassNotebookPage() {
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const createLectureNote = useCreateLectureNote();
+  const deleteNote = useDeleteNote();
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<EntityNote | null>(null);
 
   const term = terms?.find((t) => t.id === course?.term_id);
   const termStart = term?.start_date ?? null;
@@ -176,7 +194,7 @@ export default function ClassNotebookPage() {
                 <div className="space-y-2">
                   {w.items.map((entry) =>
                     entry.kind === 'note' ? (
-                      <NoteRow key={entry.note.id} note={entry.note} showDate />
+                      <NoteRow key={entry.note.id} note={entry.note} showDate onDelete={setPendingDelete} />
                     ) : (
                       <div key={`${entry.session.meetingId}:${entry.date}`}>
                         <div className="mb-1 flex items-center justify-between">
@@ -201,7 +219,7 @@ export default function ClassNotebookPage() {
                           </button>
                         ) : (
                           <div className="space-y-2">
-                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} />)}
+                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} onDelete={setPendingDelete} />)}
                           </div>
                         )}
                       </div>
@@ -225,10 +243,18 @@ export default function ClassNotebookPage() {
           </p>
         ) : (
           <div className="space-y-2">
-            {pages.map((n) => <NoteRow key={n.id} note={n} />)}
+            {pages.map((n) => <NoteRow key={n.id} note={n} onDelete={setPendingDelete} />)}
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        isOpen={!!pendingDelete}
+        title="Delete note?"
+        message="This permanently deletes the note."
+        onConfirm={() => { if (pendingDelete) deleteNote.mutate(pendingDelete.id); }}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
