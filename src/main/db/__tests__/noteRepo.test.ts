@@ -133,8 +133,10 @@ describe('noteRepo', () => {
       expect(updateNote(note.id, { noteDate: null }).note_date).toBeNull();
     });
 
-    it('defaults note_date to null', () => {
-      expect(createNote({}).note_date).toBeNull();
+    it('defaults note_date to today (local) when not provided', () => {
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      expect(createNote({}).note_date).toBe(today);
     });
   });
 
