@@ -60,7 +60,7 @@
 }
 .studeo-bn .bn-block-content[data-content-type='codeBlock'] > pre {
   margin: 0;
-  padding: 20px 22px;
+  padding: 40px 22px 20px; /* extra top room for the always-visible language picker */
   width: 100%;
   overflow-x: auto;
   white-space: pre;
@@ -72,27 +72,30 @@
 .studeo-bn .bn-block-content[data-content-type='codeBlock'] > div {
   outline: none !important;
 }
-/* Language picker: hidden until you hover the block, top-left like a code editor. */
+/* Language picker: always visible, top-right, so it's obvious you can set a language and get
+   syntax highlighting. Pick a language from this dropdown to colour the block. */
 .studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select {
   position: absolute;
   top: 8px;
-  left: 18px;
+  right: 10px;
   appearance: none;
   user-select: none;
   cursor: pointer;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
   outline: none !important;
-  background-color: transparent;
-  color: #e6edf3;
-  font-size: 0.8em;
-  opacity: 0;
-  transition: opacity 0.3s 1s;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #c9d1d9;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 3px 9px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select:hover,
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select:focus {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 .studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select > option {
-  color: #000;
-}
-.studeo-bn .bn-block-content[data-content-type='codeBlock']:hover > div > select,
-.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select:focus {
-  opacity: 0.6;
-  transition-delay: 0.1s;
+  color: #000; /* native dropdown list renders on a light surface */
 }
