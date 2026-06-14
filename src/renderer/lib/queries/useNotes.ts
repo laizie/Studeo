@@ -70,7 +70,12 @@ export function useDeleteNote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => window.api.notes.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: noteKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: noteKeys.all });
+      // Deleting a note also removes its links in the DB, so refresh the per-entity
+      // note lists (e.g. a class notebook) — otherwise the row lingers in that view.
+      qc.invalidateQueries({ queryKey: ['noteLinks'] });
+    },
   });
 }
 

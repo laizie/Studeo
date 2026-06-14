@@ -15,23 +15,21 @@ export default function NoteEditorPage() {
   const deleteNote = useDeleteNote();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Back always returns to this note's class notebook. If the note isn't tied to a
-  // course (a loose note), fall back to the Notebooks hub.
+  // Back (and delete) return to this note's class notebook. If the note isn't tied to
+  // a course (a loose note), fall back to the Notebooks hub.
   const courseId = links?.find((l) => l.entity_type === 'course')?.entity_id;
-  function goBack() {
-    navigate(courseId ? `/notes/class/${courseId}` : '/notes');
-  }
+  const backTo = courseId ? `/notes/class/${courseId}` : '/notes';
 
   function handleDelete() {
     if (!id) return;
-    deleteNote.mutate(id, { onSuccess: () => navigate('/notes') });
+    deleteNote.mutate(id, { onSuccess: () => navigate(backTo) });
   }
 
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-line px-6 py-3">
         <button
-          onClick={goBack}
+          onClick={() => navigate(backTo)}
           className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
         >
           <ArrowLeft size={15} />
@@ -67,7 +65,7 @@ export default function NoteEditorPage() {
       <ConfirmDialog
         isOpen={confirmOpen}
         title="Delete note?"
-        message="This permanently deletes the note and any sub-pages under it."
+        message="This permanently deletes the note."
         onConfirm={handleDelete}
         onClose={() => setConfirmOpen(false)}
       />
