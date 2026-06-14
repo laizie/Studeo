@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Pin, FileText, Star, CalendarDays } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -11,6 +11,8 @@ import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/quer
 import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
 import { buildExceptionIndex } from '../../../shared/meetingExceptions';
 import { useCreateLectureNote } from './useLectureNote';
+import TemplatePickerDialog from './TemplatePickerDialog';
+import { templateContent, type TemplateId } from '../../../shared/noteTemplates';
 import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import type { EntityNote } from '../../../shared/types';
@@ -81,6 +83,7 @@ export default function ClassNotebookPage() {
   const linkNote = useCreateNoteLink();
   const setPin = useSetNotePin();
   const createLectureNote = useCreateLectureNote();
+  const [templateOpen, setTemplateOpen] = useState(false);
 
   const term = terms?.find((t) => t.id === course?.term_id);
   const termStart = term?.start_date ?? null;
@@ -116,8 +119,11 @@ export default function ClassNotebookPage() {
     setPin.mutate({ linkId: note.link_id, pinned: !note.is_pinned });
   }
 
-  async function newNote(opts: { pinned?: boolean; title?: string } = {}) {
-    const note = await createNote.mutateAsync({ title: opts.title ?? `${course?.abbreviation ?? ''} — ` });
+  async function newNote(opts: { pinned?: boolean; title?: string; templateId?: TemplateId } = {}) {
+    const note = await createNote.mutateAsync({
+      title: opts.title ?? `${course?.abbreviation ?? ''} — `,
+      contentJson: templateContent(opts.templateId ?? 'blank'),
+    });
     const link = await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
     if (opts.pinned) await setPin.mutateAsync({ linkId: link.id, pinned: true });
     navigate(`/notes/${note.id}`);
@@ -162,7 +168,7 @@ export default function ClassNotebookPage() {
           </div>
         </div>
         <button
-          onClick={() => newNote()}
+          onClick={() => setTemplateOpen(true)}
           disabled={createNote.isPending}
           className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm text-accent-ink hover:bg-accent-deep transition-colors disabled:opacity-60"
         >
@@ -170,6 +176,13 @@ export default function ClassNotebookPage() {
           New note
         </button>
       </div>
+
+      {templateOpen && (
+        <TemplatePickerDialog
+          onPick={(id) => { setTemplateOpen(false); newNote({ templateId: id }); }}
+          onClose={() => setTemplateOpen(false)}
+        />
+      )}
 
       {/* ── Course home ──────────────────────────────────────────────────────── */}
       <section className="mb-8">

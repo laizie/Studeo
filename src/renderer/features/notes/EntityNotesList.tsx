@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, FileText, Pin } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Note, NoteLinkEntity } from '../../../shared/types';
+import { templateContent, type TemplateId } from '../../../shared/noteTemplates';
 import { cn } from '../../lib/utils';
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
+import TemplatePickerDialog from './TemplatePickerDialog';
 
 interface Props {
   entityType: NoteLinkEntity;
@@ -39,10 +42,14 @@ export default function EntityNotesList({
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const setPin = useSetNotePin();
+  const [templateOpen, setTemplateOpen] = useState(false);
   const pending = createNote.isPending || linkNote.isPending;
 
-  async function handleNew() {
-    const note = await createNote.mutateAsync({ title: newNoteTitle ?? '' });
+  async function handleNew(templateId: TemplateId) {
+    const note = await createNote.mutateAsync({
+      title: newNoteTitle ?? '',
+      contentJson: templateContent(templateId),
+    });
     await linkNote.mutateAsync({ noteId: note.id, entityType, entityId, occurrenceDate });
     navigate(`/notes/${note.id}`);
   }
@@ -51,10 +58,16 @@ export default function EntityNotesList({
 
   return (
     <div>
+      {templateOpen && (
+        <TemplatePickerDialog
+          onPick={(id) => { setTemplateOpen(false); handleNew(id); }}
+          onClose={() => setTemplateOpen(false)}
+        />
+      )}
       <div className="mb-4 flex items-center justify-between">
         {heading ? <h2 className="text-base font-semibold text-ink-soft">{heading}</h2> : <span />}
         <button
-          onClick={handleNew}
+          onClick={() => setTemplateOpen(true)}
           disabled={pending}
           className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep transition-colors disabled:opacity-60"
         >
