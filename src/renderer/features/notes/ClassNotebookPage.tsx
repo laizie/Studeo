@@ -92,7 +92,7 @@ export default function ClassNotebookPage() {
   const all = notes ?? [];
   const pinned = all.filter((n) => n.is_pinned);
   const datedNotes = all.filter((n) => !n.is_pinned && n.note_date);
-  const pages = all.filter((n) => !n.is_pinned && !n.note_date);
+  const pages = all.filter((n) => !n.is_pinned && !n.note_date && !n.parent_note_id);
 
   // Merge real class sessions (from the schedule) with any other dated notes into one
   // chronological timeline, then bucket into weeks.
