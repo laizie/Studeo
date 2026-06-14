@@ -25,6 +25,11 @@ import type {
   CreateTermInput,
   UpdateTermInput,
   CreateStudySessionInput,
+  CreateNoteInput,
+  UpdateNoteInput,
+  CreateNoteLinkInput,
+  NoteLinkEntity,
+  SaveMediaInput,
   ReminderConfig,
 } from './shared/types';
 
@@ -83,6 +88,32 @@ const api: WindowApi = {
   studySessions: {
     list:   ()                                  => ipcRenderer.invoke(IPC.STUDY_SESSIONS.LIST),
     create: (input: CreateStudySessionInput)    => ipcRenderer.invoke(IPC.STUDY_SESSIONS.CREATE, input),
+  },
+
+  notes: {
+    list:   (filters?: { archived?: boolean })  => ipcRenderer.invoke(IPC.NOTES.LIST, filters),
+    listWithCourse: ()                          => ipcRenderer.invoke(IPC.NOTES.LIST_WITH_COURSE),
+    listLoose: ()                               => ipcRenderer.invoke(IPC.NOTES.LIST_LOOSE),
+    children: (parentId: string)                => ipcRenderer.invoke(IPC.NOTES.CHILDREN, parentId),
+    get:    (id)                                => ipcRenderer.invoke(IPC.NOTES.GET, id),
+    search: (query: string)                     => ipcRenderer.invoke(IPC.NOTES.SEARCH, query),
+    create: (input: CreateNoteInput)            => ipcRenderer.invoke(IPC.NOTES.CREATE, input),
+    update: (id, input: UpdateNoteInput)        => ipcRenderer.invoke(IPC.NOTES.UPDATE, id, input),
+    delete: (id)                                => ipcRenderer.invoke(IPC.NOTES.DELETE, id),
+    listVersions:   (noteId: string)                  => ipcRenderer.invoke(IPC.NOTES.LIST_VERSIONS, noteId),
+    restoreVersion: (noteId: string, versionId: string) => ipcRenderer.invoke(IPC.NOTES.RESTORE_VERSION, noteId, versionId),
+  },
+
+  noteLinks: {
+    listForNote:    (noteId: string)                                   => ipcRenderer.invoke(IPC.NOTE_LINKS.LIST_FOR_NOTE, noteId),
+    notesForEntity: (entityType: NoteLinkEntity, entityId: string, occurrenceDate?: string) => ipcRenderer.invoke(IPC.NOTE_LINKS.NOTES_FOR_ENTITY, entityType, entityId, occurrenceDate),
+    create:         (input: CreateNoteLinkInput)                       => ipcRenderer.invoke(IPC.NOTE_LINKS.CREATE, input),
+    setPinned:      (linkId: string, pinned: boolean)                  => ipcRenderer.invoke(IPC.NOTE_LINKS.SET_PINNED, linkId, pinned),
+    delete:         (id)                                               => ipcRenderer.invoke(IPC.NOTE_LINKS.DELETE, id),
+  },
+
+  media: {
+    save: (input: SaveMediaInput) => ipcRenderer.invoke(IPC.MEDIA.SAVE, input),
   },
 
   reminders: {

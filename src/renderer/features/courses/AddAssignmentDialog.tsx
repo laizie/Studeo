@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, NotebookPen } from 'lucide-react';
 import { ASSIGNMENT_TYPES } from '../../../shared/types';
 import type { Assignment, AssignmentType } from '../../../shared/types';
+import { plainTextToBlocks } from '../../../shared/notes';
 import { useCreateAssignment, useUpdateAssignment } from '../../lib/queries/useAssignments';
+import { useCreateNote } from '../../lib/queries/useNotes';
+import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
+import EntityNotesList from '../notes/EntityNotesList';
 
 interface Props {
   courseId: string;
@@ -24,30 +28,32 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const [name, setName]       = useState('');
   const [type, setType]       = useState<AssignmentType>('Assignment');
   const [dueDate, setDueDate] = useState('');
-  const [notes, setNotes]     = useState('');
   // Kept as strings so the inputs can be empty; parsed on submit.
   const [score, setScore]           = useState('');
   const [pointsPossible, setPointsPossible] = useState('');
+  // Tracks the one-time import of a legacy plain-text note, so the banner hides immediately.
+  const [legacyImported, setLegacyImported] = useState(false);
 
   const createAssignment = useCreateAssignment();
   const updateAssignment = useUpdateAssignment();
+  const createNote = useCreateNote();
+  const linkNote = useCreateNoteLink();
   const nameRef = useRef<HTMLInputElement>(null);
 
   // Populate fields when switching between add / edit mode
   useEffect(() => {
     if (!isOpen) return;
+    setLegacyImported(false);
     if (assignment) {
       setName(assignment.name);
       setType(assignment.type);
       setDueDate(assignment.due_date.slice(0, 10)); // strip any time component → YYYY-MM-DD
-      setNotes(assignment.notes ?? '');
       setScore(assignment.score?.toString() ?? '');
       setPointsPossible(assignment.points_possible?.toString() ?? '');
     } else {
       setName('');
       setType('Assignment');
       setDueDate('');
-      setNotes('');
       setScore('');
       setPointsPossible('');
     }
@@ -78,13 +84,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     if (isEditing) {
       await updateAssignment.mutateAsync({
         id: assignment.id,
-        input: {
-          name: name.trim(),
-          type,
-          dueDate,
-          notes: notes.trim() || null,
-          ...gradeFields,
-        },
+        input: { name: name.trim(), type, dueDate, ...gradeFields },
       });
     } else {
       await createAssignment.mutateAsync({
@@ -92,13 +92,28 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
         name: name.trim(),
         type,
         dueDate,
-        notes: notes.trim() || undefined,
         ...gradeFields,
       });
     }
 
     onClose();
   }
+
+  // Migrate an assignment's old plain-text notes into a real linked note (the "Open linked
+  // note" model). Non-destructive until the user clicks: it creates the note, links it, then
+  // clears the legacy field. The embed below refreshes to show the new note.
+  async function importLegacyNote() {
+    if (!assignment?.notes?.trim()) return;
+    const note = await createNote.mutateAsync({
+      title: `${assignment.name} — notes`,
+      contentJson: plainTextToBlocks(assignment.notes),
+    });
+    await linkNote.mutateAsync({ noteId: note.id, entityType: 'assignment', entityId: assignment.id });
+    await updateAssignment.mutateAsync({ id: assignment.id, input: { notes: null } });
+    setLegacyImported(true);
+  }
+
+  const hasLegacyNote = isEditing && !legacyImported && !!assignment?.notes?.trim();
 
   const isPending = createAssignment.isPending || updateAssignment.isPending;
   const isError   = createAssignment.isError   || updateAssignment.isError;
@@ -112,7 +127,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     >
       <div className="absolute inset-0 bg-black/30" />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[88vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit assignment' : 'New assignment'}
@@ -195,20 +210,6 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">
-              Notes
-              <span className="ml-1 text-stone-500 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any notes…"
-              rows={2}
-              className={`${INPUT_CLASS} resize-none`}
-            />
-          </div>
-
           {isError && (
             <p className="text-sm text-red-600">Something went wrong — please try again.</p>
           )}
@@ -230,6 +231,31 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             </button>
           </div>
         </form>
+
+        {/* Notes live as linked notes (the "open linked note" model). Available once the
+            assignment exists, so this shows in edit mode only. */}
+        {isEditing && assignment && (
+          <div className="mt-6 border-t border-line pt-5">
+            {hasLegacyNote && (
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-inset px-3 py-2">
+                <p className="text-xs text-muted">You have an older quick note saved here.</p>
+                <button
+                  onClick={importLegacyNote}
+                  disabled={createNote.isPending || linkNote.isPending}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-ink hover:bg-accent-deep disabled:opacity-60 transition-colors"
+                >
+                  <NotebookPen size={13} />
+                  Import as note
+                </button>
+              </div>
+            )}
+            <EntityNotesList
+              entityType="assignment"
+              entityId={assignment.id}
+              newNoteTitle={`${assignment.name} — `}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

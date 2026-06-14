@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import { IPC } from '../../shared/types';
+import { deleteLinksForEntity } from '../db/repositories/noteLinkRepo';
 import type { CreateCourseInput, UpdateCourseInput } from '../../shared/types';
 import {
   listCourses,
@@ -39,5 +40,6 @@ export function registerCourseHandlers(): void {
   ipcMain.handle(IPC.COURSES.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Course id is required');
     deleteCourse(id);
+    deleteLinksForEntity('course', id);
   });
 }

@@ -1,7 +1,7 @@
 {
   "name": "studeo",
   "productName": "Studeo",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A local-first desktop app for students to track courses, assignments, and study sessions.",
   "main": ".vite/build/main.js",
   "private": true,
@@ -54,7 +54,13 @@
     "vitest": "^4.1.8"
   },
   "dependencies": {
+    "@blocknote/code-block": "^0.51.4",
+    "@blocknote/core": "^0.51.4",
+    "@blocknote/mantine": "^0.51.4",
+    "@blocknote/react": "^0.51.4",
     "@fontsource/dm-sans": "^5.2.8",
+    "@mantine/core": "^9.3.1",
+    "@mantine/hooks": "^9.3.1",
     "@tanstack/react-query": "^5.101.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

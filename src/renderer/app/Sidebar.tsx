@@ -1,20 +1,26 @@
+import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import logoUrl from '../assets/logo.png';
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
-  Calendar, Timer, Settings, Plus, Music,
+  Calendar, Timer, Settings, Plus, Music, FileText, Search,
+  ChevronRight, ChevronDown,
 } from 'lucide-react';
+import { useCourses } from '../lib/queries/useCourses';
 import { cn } from '../lib/utils';
 import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
 import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock } from '../store/useTimerStore';
 
-const navItems = [
+const navItemsTop = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/courses', label: 'Courses', icon: BookOpen },
   { to: '/this-week', label: 'This Week', icon: CalendarDays },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+];
+
+const navItemsBottom = [
   { to: '/calendar', label: 'Calendar', icon: Calendar },
   { to: '/study', label: 'Study', icon: Timer },
 ];
@@ -26,6 +32,54 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       ? 'bg-accent text-accent-ink font-semibold'
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
   );
+
+const subLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'flex items-center gap-2 px-2 py-1 rounded-md text-[13px] w-full transition-colors',
+    isActive
+      ? 'bg-[#3d2b1f] text-[#e8d5c0] font-medium'
+      : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
+  );
+
+/** "Notes" nav as a class-first group: a notebook per course + a Loose-notes bucket. */
+function NotesNavSection() {
+  const { data: courses } = useCourses();
+  const [open, setOpen] = useState(true);
+  const list = courses ?? [];
+
+  return (
+    <div>
+      <div className="flex items-center">
+        <NavLink to="/notes" end className={navLinkClass}>
+          <FileText size={15} className="shrink-0" />
+          Notes
+        </NavLink>
+        <button
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? 'Collapse notebooks' : 'Expand notebooks'}
+          className="ml-1 rounded-md p-1 text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+        >
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+      </div>
+
+      {open && (
+        <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-[#3d2b1f] pl-2">
+          {list.map((c) => (
+            <NavLink key={c.id} to={`/notes/class/${c.id}`} className={subLinkClass}>
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+              <span className="truncate">{c.abbreviation || c.name}</span>
+            </NavLink>
+          ))}
+          <NavLink to="/notes/loose" className={subLinkClass}>
+            <FileText size={12} className="shrink-0" />
+            Loose notes
+          </NavLink>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Compact running-timer chip — visible from any screen, click to jump to Study. */
 function TimerChip() {
@@ -76,9 +130,10 @@ function MusicSection() {
 
 interface Props {
   onOpenQuickAdd: () => void;
+  onOpenSearch: () => void;
 }
 
-export default function Sidebar({ onOpenQuickAdd }: Props) {
+export default function Sidebar({ onOpenQuickAdd, onOpenSearch }: Props) {
   return (
     <nav className="w-56 h-full flex flex-col bg-[#2c1f14] shrink-0">
       <div className="px-4 py-5 border-b border-[#3d2b1f] flex items-center justify-between">
@@ -86,18 +141,34 @@ export default function Sidebar({ onOpenQuickAdd }: Props) {
           <img src={logoUrl} alt="" className="h-10 w-10 shrink-0 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
           <span className="text-sm font-semibold text-[#e8d5c0] tracking-tight">Studeo</span>
         </div>
-        <button
-          onClick={onOpenQuickAdd}
-          title="Quick add (⌘N)"
-          className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
-        >
-          <Plus size={14} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={onOpenSearch}
+            title="Search notes (⌘K)"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+          >
+            <Search size={14} />
+          </button>
+          <button
+            onClick={onOpenQuickAdd}
+            title="Quick add (⌘N)"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 px-2 py-3 space-y-0.5">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+        {navItemsTop.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={navLinkClass}>
+            <Icon size={15} className="shrink-0" />
+            {label}
+          </NavLink>
+        ))}
+        <NotesNavSection />
+        {navItemsBottom.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} className={navLinkClass}>
             <Icon size={15} className="shrink-0" />
             {label}
           </NavLink>

@@ -1,0 +1,105 @@
+/* Map BlockNote's own CSS variables onto Studeo's design tokens (plan §7.6).
+   Because the tokens (--bg, --ink, --surface, --accent, …) already swap per active theme
+   (light / dark / warm via the .dark class + [data-theme="warm"]), the editor follows the
+   app theme automatically — no duplicated hex, no per-theme editor code. Scoped to the
+   .studeo-bn wrapper so it never leaks into the rest of the app.
+   This file is imported only by NoteEditor.tsx, so it lands in the lazy editor chunk. */
+
+.studeo-bn .bn-container {
+  --bn-colors-editor-background: var(--bg);
+  --bn-colors-editor-text: var(--ink);
+  --bn-colors-menu-background: var(--surface);
+  --bn-colors-menu-text: var(--ink);
+  --bn-colors-tooltip-background: var(--surface-hi);
+  --bn-colors-tooltip-text: var(--ink);
+  --bn-colors-hovered-background: var(--surface-hi);
+  --bn-colors-hovered-text: var(--ink);
+  --bn-colors-selected-background: var(--accent);
+  --bn-colors-selected-text: var(--accent-ink);
+  --bn-colors-disabled-background: var(--inset);
+  --bn-colors-disabled-text: var(--muted);
+  --bn-colors-border: var(--line);
+  --bn-colors-side-menu: var(--muted);
+  --bn-border-radius: 8px;
+  font-family: inherit;
+}
+
+/* The editor provides its own page padding; we control width from the wrapper, so let the
+   editor fill it. */
+.studeo-bn .bn-editor {
+  padding-inline: 0;
+}
+
+/* Pin the editor surface to the app's theme tokens. The rule that paints
+   var(--bn-colors-editor-background) ships in @blocknote/react's stylesheet, which we don't
+   import (we use the mantine variant), and every non-light app theme maps to BlockNote's
+   "dark" base — so without this, Mantine's own cold-dark body colour shows through and
+   clashes badly in the warm (espresso) theme. Setting the surface and text directly keeps
+   regular notes matching the active theme in light, dark, and warm. (Code blocks re-assert
+   their own dark surface below via higher specificity.) */
+.studeo-bn,
+.studeo-bn .bn-container,
+.studeo-bn .bn-editor {
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+/* ── Code blocks ───────────────────────────────────────────────────────────────
+   BlockNote's dark code-block styling ships in @blocknote/core's stylesheet, which we
+   don't import (we use the mantine variant). Without it the box has no background, so the
+   Shiki "github-dark" token colors land on the light app surface and look washed out — and
+   like an off-gray box in the dark/warm themes. Reproduce the official rules here, scoped to
+   our editor, so a code block always renders like a code editor: one dark surface in every
+   app theme, with vivid, readable syntax colors. The per-token colors are applied inline by
+   Shiki, so they sit on top of this background automatically. */
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] {
+  position: relative;
+  color: #e6edf3;
+  background-color: #161616;
+  border-radius: 8px;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > pre {
+  margin: 0;
+  padding: 40px 22px 20px; /* extra top room for the always-visible language picker */
+  width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div {
+  outline: none !important;
+}
+/* Language picker: always visible, top-right, so it's obvious you can set a language and get
+   syntax highlighting. Pick a language from this dropdown to colour the block. */
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: inline-block;
+  width: max-content;
+  max-width: 45%;
+  opacity: 1 !important; /* BlockNote injects a rule hiding this until hover/focus; force it visible */
+  appearance: none;
+  user-select: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  outline: none !important;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #c9d1d9;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 3px 9px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select:hover,
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select:focus {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select > option {
+  color: #000; /* native dropdown list renders on a light surface */
+}

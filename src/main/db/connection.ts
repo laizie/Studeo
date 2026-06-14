@@ -8,6 +8,12 @@ import migration001 from './migrations/001_initial.sql?raw';
 import migration002 from './migrations/002_meeting_exceptions.sql?raw';
 import migration003 from './migrations/003_subtasks.sql?raw';
 import migration004 from './migrations/004_grades.sql?raw';
+import migration005 from './migrations/005_notes.sql?raw';
+import migration006 from './migrations/006_note_links.sql?raw';
+import migration007 from './migrations/007_note_link_pin.sql?raw';
+import migration008 from './migrations/008_note_versions.sql?raw';
+import migration009 from './migrations/009_note_date.sql?raw';
+import migration010 from './migrations/010_note_pin.sql?raw';
 
 let db: DatabaseSync | null = null;
 let dbPath: string | null = null;
@@ -46,6 +52,12 @@ const MIGRATIONS: { name: string; sql: string }[] = [
   { name: '002_meeting_exceptions.sql', sql: migration002 },
   { name: '003_subtasks.sql', sql: migration003 },
   { name: '004_grades.sql', sql: migration004 },
+  { name: '005_notes.sql', sql: migration005 },
+  { name: '006_note_links.sql', sql: migration006 },
+  { name: '007_note_link_pin.sql', sql: migration007 },
+  { name: '008_note_versions.sql', sql: migration008 },
+  { name: '009_note_date.sql', sql: migration009 },
+  { name: '010_note_pin.sql', sql: migration010 },
 ];
 
 function runMigrations(database: DatabaseSync): void {
