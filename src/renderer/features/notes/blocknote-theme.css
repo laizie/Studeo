@@ -30,6 +30,20 @@
   padding-inline: 0;
 }
 
+/* Pin the editor surface to the app's theme tokens. The rule that paints
+   var(--bn-colors-editor-background) ships in @blocknote/react's stylesheet, which we don't
+   import (we use the mantine variant), and every non-light app theme maps to BlockNote's
+   "dark" base — so without this, Mantine's own cold-dark body colour shows through and
+   clashes badly in the warm (espresso) theme. Setting the surface and text directly keeps
+   regular notes matching the active theme in light, dark, and warm. (Code blocks re-assert
+   their own dark surface below via higher specificity.) */
+.studeo-bn,
+.studeo-bn .bn-container,
+.studeo-bn .bn-editor {
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
 /* ── Code blocks ───────────────────────────────────────────────────────────────
    BlockNote's dark code-block styling ships in @blocknote/core's stylesheet, which we
    don't import (we use the mantine variant). Without it the box has no background, so the
