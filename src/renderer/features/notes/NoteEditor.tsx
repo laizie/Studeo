@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   useCreateBlockNote,
   SuggestionMenuController,
@@ -7,7 +7,7 @@ import {
 } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { filterSuggestionItems } from '@blocknote/core';
-import { History, CalendarDays, X, ChevronLeft, FileText } from 'lucide-react';
+import { History, CalendarDays, X } from 'lucide-react';
 import { studeoCodeBlock } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
 import NoteLinkBar from './NoteLinkBar';
@@ -15,7 +15,7 @@ import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
 import NotePickerDialog from './NotePickerDialog';
 import VersionHistoryDialog from './VersionHistoryDialog';
 import { studeoSlashItems } from './noteSlashItems';
-import { useUpdateNote, useRestoreNoteVersion, useCreateNote, useNote, useChildNotes } from '../../lib/queries/useNotes';
+import { useUpdateNote, useRestoreNoteVersion } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
@@ -75,12 +75,9 @@ export default function NoteEditor({ note }: { note: Note }) {
   const navigate = useNavigate();
   const theme = useSettingsStore((s) => s.theme);
   const updateNote = useUpdateNote();
-  const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const createTask = useCreateTask();
   const restoreVersion = useRestoreNoteVersion();
-  const { data: parent } = useNote(note.parent_note_id ?? undefined);
-  const { data: children } = useChildNotes(note.id);
   const { data: courses } = useCourses();
   const { data: assignments } = useAssignments();
 
@@ -213,11 +210,6 @@ export default function NoteEditor({ note }: { note: Note }) {
   // Restore a snapshot: the backend swaps the stored content (snapshotting current first so
   // it's reversible), then we sync the LIVE editor via replaceBlocks — no remount, so the
   // unmount-flush can't clobber the restored content.
-  async function addSubPage() {
-    const child = await createNote.mutateAsync({ parentNoteId: note.id, title: '' });
-    navigate(`/notes/${child.id}`);
-  }
-
   async function handleRestore(version: NoteVersion) {
     setRestoringId(version.id);
     try {
@@ -242,15 +234,6 @@ export default function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="mx-auto max-w-[760px] px-6 py-10">
-      {parent && (
-        <Link
-          to={`/notes/${parent.id}`}
-          className="mb-3 inline-flex items-center gap-1 text-xs text-muted hover:text-ink transition-colors"
-        >
-          <ChevronLeft size={13} />
-          {parent.title || 'Untitled'}
-        </Link>
-      )}
       <div className="mb-2 flex items-center justify-end gap-1">
         <button
           onClick={() => setDateOpen(true)}
@@ -328,36 +311,6 @@ export default function NoteEditor({ note }: { note: Note }) {
             }
           />
         </BlockNoteView>
-      </div>
-
-      {/* ── Sub-pages ──────────────────────────────────────────────────────── */}
-      <div className="mt-10 border-t border-line pt-5">
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Sub-pages</h3>
-          <button
-            onClick={addSubPage}
-            disabled={createNote.isPending}
-            className="text-xs text-accent hover:underline disabled:opacity-50"
-          >
-            ＋ Add sub-page
-          </button>
-        </div>
-        {children && children.length > 0 ? (
-          <div className="space-y-1.5">
-            {children.map((c) => (
-              <Link
-                key={c.id}
-                to={`/notes/${c.id}`}
-                className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink hover:bg-surface-hi transition-colors"
-              >
-                <FileText size={13} className="shrink-0 text-muted" />
-                <span className="truncate">{c.title || 'Untitled'}</span>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted">No sub-pages yet — add one for labs, problem sets, or sub-topics.</p>
-        )}
       </div>
 
       {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
