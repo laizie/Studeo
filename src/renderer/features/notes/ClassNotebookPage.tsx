@@ -1,20 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Pin, FileText, Star, CalendarDays } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CalendarDays } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useTerms } from '../../lib/queries/useTerms';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
 import { useCreateNote } from '../../lib/queries/useNotes';
-import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
+import { useEntityNotes, useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
 import { buildExceptionIndex } from '../../../shared/meetingExceptions';
 import { useCreateLectureNote } from './useLectureNote';
 import TemplatePickerDialog from './TemplatePickerDialog';
 import { templateContent, type TemplateId } from '../../../shared/noteTemplates';
 import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
-import { cn } from '../../lib/utils';
 import type { EntityNote } from '../../../shared/types';
 
 type TimelineEntry =
@@ -27,47 +26,22 @@ function snippet(note: EntityNote): string {
   return text.length > 100 ? text.slice(0, 100).trimEnd() + '…' : text;
 }
 
-function NoteRow({
-  note,
-  onPin,
-  showDate,
-}: {
-  note: EntityNote;
-  onPin: (note: EntityNote) => void;
-  showDate?: boolean;
-}) {
+function NoteRow({ note, showDate }: { note: EntityNote; showDate?: boolean }) {
   return (
-    <div
-      className={cn(
-        'group flex items-start gap-2 rounded-xl border px-4 py-3 transition-colors',
-        note.is_pinned ? 'border-accent/40 bg-surface' : 'border-line bg-surface hover:bg-surface-hi',
-      )}
+    <Link
+      to={`/notes/${note.id}`}
+      className="block rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:bg-surface-hi"
     >
-      <Link to={`/notes/${note.id}`} className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-3">
-          <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
-          <span className="shrink-0 text-xs text-muted">
-            {showDate && note.note_date
-              ? formatDueDate(note.note_date)
-              : formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
-          </span>
-        </div>
-        <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
-      </Link>
-      <button
-        onClick={() => onPin(note)}
-        title={note.is_pinned ? 'Unpin' : 'Pin to top'}
-        aria-label={note.is_pinned ? 'Unpin note' : 'Pin note to top'}
-        className={cn(
-          'mt-0.5 shrink-0 rounded-md p-1 transition-colors',
-          note.is_pinned
-            ? 'text-accent'
-            : 'text-muted opacity-0 hover:text-ink group-hover:opacity-100 focus-visible:opacity-100',
-        )}
-      >
-        <Pin size={14} className={note.is_pinned ? 'fill-current' : ''} />
-      </button>
-    </div>
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
+        <span className="shrink-0 text-xs text-muted">
+          {showDate && note.note_date
+            ? formatDueDate(note.note_date)
+            : formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+        </span>
+      </div>
+      <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
+    </Link>
   );
 }
 
@@ -81,7 +55,6 @@ export default function ClassNotebookPage() {
   const { data: notes } = useEntityNotes('course', courseId);
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
-  const setPin = useSetNotePin();
   const createLectureNote = useCreateLectureNote();
   const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -89,10 +62,10 @@ export default function ClassNotebookPage() {
   const termStart = term?.start_date ?? null;
   const termEnd = term?.end_date ?? null;
 
+  // Dated notes go on the Timeline; undated ones live in freeform Pages.
   const all = notes ?? [];
-  const pinned = all.filter((n) => n.is_pinned);
-  const datedNotes = all.filter((n) => !n.is_pinned && n.note_date);
-  const pages = all.filter((n) => !n.is_pinned && !n.note_date);
+  const datedNotes = all.filter((n) => n.note_date);
+  const pages = all.filter((n) => !n.note_date);
 
   // Merge real class sessions (from the schedule) with any other dated notes into one
   // chronological timeline, then bucket into weeks.
@@ -115,17 +88,12 @@ export default function ClassNotebookPage() {
     return bucketByWeek(termStart, entries, (e) => e.date);
   }, [termStart, termEnd, meetings, exIndex, datedNotes]);
 
-  function togglePin(note: EntityNote) {
-    setPin.mutate({ linkId: note.link_id, pinned: !note.is_pinned });
-  }
-
-  async function newNote(opts: { pinned?: boolean; title?: string; templateId?: TemplateId } = {}) {
+  async function newNote(opts: { title?: string; templateId?: TemplateId } = {}) {
     const note = await createNote.mutateAsync({
       title: opts.title ?? `${course?.abbreviation ?? ''} — `,
       contentJson: templateContent(opts.templateId ?? 'blank'),
     });
-    const link = await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
-    if (opts.pinned) await setPin.mutateAsync({ linkId: link.id, pinned: true });
+    await linkNote.mutateAsync({ noteId: note.id, entityType: 'course', entityId: courseId! });
     navigate(`/notes/${note.id}`);
   }
 
@@ -184,25 +152,6 @@ export default function ClassNotebookPage() {
         />
       )}
 
-      {/* ── Course home ──────────────────────────────────────────────────────── */}
-      <section className="mb-8">
-        <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
-          <Star size={13} /> Course home
-        </h2>
-        {pinned.length === 0 ? (
-          <button
-            onClick={() => newNote({ pinned: true, title: `${course.abbreviation} — Overview` })}
-            className="w-full rounded-xl border border-dashed border-line py-4 text-sm text-muted hover:bg-surface-hi hover:text-ink transition-colors"
-          >
-            ＋ Create a course home page
-          </button>
-        ) : (
-          <div className="space-y-2">
-            {pinned.map((n) => <NoteRow key={n.id} note={n} onPin={togglePin} />)}
-          </div>
-        )}
-      </section>
-
       {/* ── Timeline ─────────────────────────────────────────────────────────── */}
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
@@ -227,7 +176,7 @@ export default function ClassNotebookPage() {
                 <div className="space-y-2">
                   {w.items.map((entry) =>
                     entry.kind === 'note' ? (
-                      <NoteRow key={entry.note.id} note={entry.note} onPin={togglePin} showDate />
+                      <NoteRow key={entry.note.id} note={entry.note} showDate />
                     ) : (
                       <div key={`${entry.session.meetingId}:${entry.date}`}>
                         <div className="mb-1 flex items-center justify-between">
@@ -252,7 +201,7 @@ export default function ClassNotebookPage() {
                           </button>
                         ) : (
                           <div className="space-y-2">
-                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} onPin={togglePin} />)}
+                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} />)}
                           </div>
                         )}
                       </div>
@@ -276,7 +225,7 @@ export default function ClassNotebookPage() {
           </p>
         ) : (
           <div className="space-y-2">
-            {pages.map((n) => <NoteRow key={n.id} note={n} onPin={togglePin} />)}
+            {pages.map((n) => <NoteRow key={n.id} note={n} />)}
           </div>
         )}
       </section>
