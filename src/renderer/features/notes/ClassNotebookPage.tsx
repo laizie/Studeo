@@ -1,21 +1,38 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, CalendarDays, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CalendarDays, Trash2, Pin, Clock, ClipboardList } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { cn } from '../../lib/utils';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useTerms } from '../../lib/queries/useTerms';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
+import { useAssignments } from '../../lib/queries/useAssignments';
 import { useCreateNote, useDeleteNote } from '../../lib/queries/useNotes';
-import { useEntityNotes, useCreateNoteLink } from '../../lib/queries/useNoteLinks';
+import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
 import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
 import { buildExceptionIndex } from '../../../shared/meetingExceptions';
 import { useCreateLectureNote } from './useLectureNote';
 import TemplatePickerDialog from './TemplatePickerDialog';
 import { templateContent, type TemplateId } from '../../../shared/noteTemplates';
-import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
+import { parseDateLocal, formatDueDate, computeDeadlineLabel } from '../../../shared/deadlines';
+import { URGENCY_CLASS } from '../../lib/urgency';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import type { EntityNote } from '../../../shared/types';
+import type { Assignment, ClassMeeting, EntityNote } from '../../../shared/types';
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// A bordered card used for the right-rail context panels (Schedule, Upcoming).
+function SidePanel({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-xl border border-line bg-surface p-4">
+      <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+        {icon} {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
 
 type TimelineEntry =
   | { kind: 'session'; date: string; session: ClassSession; notes: EntityNote[] }
@@ -30,14 +47,22 @@ function snippet(note: EntityNote): string {
 function NoteRow({
   note,
   showDate,
+  onTogglePin,
   onDelete,
 }: {
   note: EntityNote;
   showDate?: boolean;
+  onTogglePin: (note: EntityNote) => void;
   onDelete: (note: EntityNote) => void;
 }) {
+  const pinned = note.is_pinned === 1;
   return (
-    <div className="group flex items-start gap-2 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:bg-surface-hi">
+    <div
+      className={cn(
+        'group flex items-start gap-2 rounded-xl border px-4 py-3 transition-colors',
+        pinned ? 'border-accent/40 bg-surface' : 'border-line bg-surface hover:bg-surface-hi',
+      )}
+    >
       <Link to={`/notes/${note.id}`} className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
@@ -49,6 +74,19 @@ function NoteRow({
         </div>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{snippet(note)}</p>
       </Link>
+      <button
+        onClick={() => onTogglePin(note)}
+        title={pinned ? 'Unpin from this class' : 'Pin to top of this class'}
+        aria-label={pinned ? 'Unpin note' : 'Pin note to top'}
+        className={cn(
+          'mt-0.5 shrink-0 rounded-md p-1 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          pinned
+            ? 'text-accent'
+            : 'text-muted opacity-0 hover:text-ink group-hover:opacity-100',
+        )}
+      >
+        <Pin size={14} className={pinned ? 'fill-current' : ''} />
+      </button>
       <button
         onClick={() => onDelete(note)}
         title="Delete note"
@@ -68,10 +106,12 @@ export default function ClassNotebookPage() {
   const { data: terms } = useTerms();
   const { data: meetings } = useClassMeetings({ courseId });
   const { data: exceptions } = useMeetingExceptions();
+  const { data: assignments } = useAssignments({ courseId });
   const { data: notes } = useEntityNotes('course', courseId);
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const createLectureNote = useCreateLectureNote();
+  const setPin = useSetNotePin();
   const deleteNote = useDeleteNote();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<EntityNote | null>(null);
@@ -80,10 +120,26 @@ export default function ClassNotebookPage() {
   const termStart = term?.start_date ?? null;
   const termEnd = term?.end_date ?? null;
 
-  // Dated notes go on the Timeline; undated ones live in freeform Pages.
+  // Pinned notes lift to a section at the top (per-class pin, via note_links). The rest
+  // split as before: dated notes on the Timeline, undated ones in freeform Pages.
   const all = notes ?? [];
-  const datedNotes = all.filter((n) => n.note_date);
-  const pages = all.filter((n) => !n.note_date);
+  const pinnedNotes = all.filter((n) => n.is_pinned === 1);
+  const datedNotes = all.filter((n) => n.note_date && n.is_pinned !== 1);
+  const pages = all.filter((n) => !n.note_date && n.is_pinned !== 1);
+
+  function togglePin(note: EntityNote) {
+    setPin.mutate({ linkId: note.link_id, pinned: note.is_pinned !== 1 });
+  }
+
+  // Right-rail context. Meetings sorted into weekday order; assignments narrowed to the
+  // next few still-open ones (soonest first) so the panel stays a glanceable summary.
+  const schedule = [...(meetings ?? [])].sort(
+    (a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time),
+  );
+  const upcoming = (assignments ?? [])
+    .filter((a) => a.status !== 'completed')
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .slice(0, 5);
 
   // Merge real class sessions (from the schedule) with any other dated notes into one
   // chronological timeline, then bucket into weeks.
@@ -170,6 +226,24 @@ export default function ClassNotebookPage() {
         />
       )}
 
+      <div className="flex items-start gap-8">
+        {/* Main column: the note lists (Pinned, Timeline, Pages). */}
+        <div className="min-w-0 flex-1">
+
+      {/* ── Pinned ───────────────────────────────────────────────────────────── */}
+      {pinnedNotes.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            <Pin size={13} /> Pinned
+          </h2>
+          <div className="space-y-2">
+            {pinnedNotes.map((n) => (
+              <NoteRow key={n.id} note={n} showDate onTogglePin={togglePin} onDelete={setPendingDelete} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ── Timeline ─────────────────────────────────────────────────────────── */}
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
@@ -194,7 +268,7 @@ export default function ClassNotebookPage() {
                 <div className="space-y-2">
                   {w.items.map((entry) =>
                     entry.kind === 'note' ? (
-                      <NoteRow key={entry.note.id} note={entry.note} showDate onDelete={setPendingDelete} />
+                      <NoteRow key={entry.note.id} note={entry.note} showDate onTogglePin={togglePin} onDelete={setPendingDelete} />
                     ) : (
                       <div key={`${entry.session.meetingId}:${entry.date}`}>
                         <div className="mb-1 flex items-center justify-between">
@@ -219,7 +293,7 @@ export default function ClassNotebookPage() {
                           </button>
                         ) : (
                           <div className="space-y-2">
-                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} onDelete={setPendingDelete} />)}
+                            {entry.notes.map((n) => <NoteRow key={n.id} note={n} onTogglePin={togglePin} onDelete={setPendingDelete} />)}
                           </div>
                         )}
                       </div>
@@ -243,10 +317,55 @@ export default function ClassNotebookPage() {
           </p>
         ) : (
           <div className="space-y-2">
-            {pages.map((n) => <NoteRow key={n.id} note={n} onDelete={setPendingDelete} />)}
+            {pages.map((n) => <NoteRow key={n.id} note={n} onTogglePin={togglePin} onDelete={setPendingDelete} />)}
           </div>
         )}
       </section>
+
+        </div>
+
+        {/* Right rail: at-a-glance course context. Hidden on narrow windows so the note
+            lists keep the full width when there's no room for two columns. */}
+        <aside className="hidden w-72 shrink-0 space-y-6 lg:block">
+          <SidePanel icon={<Clock size={13} />} title="Schedule">
+            {schedule.length === 0 ? (
+              <p className="text-sm text-muted">No class times set.</p>
+            ) : (
+              <ul className="space-y-2">
+                {schedule.map((m: ClassMeeting) => (
+                  <li key={m.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="font-medium text-ink">{DAY_LABELS[m.day_of_week]}</span>
+                    <span className="text-muted">
+                      {m.start_time}–{m.end_time}
+                      {m.location ? ` · ${m.location}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SidePanel>
+
+          <SidePanel icon={<ClipboardList size={13} />} title="Upcoming">
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-muted">Nothing due. 🎉</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {upcoming.map((a: Assignment) => {
+                  const deadline = computeDeadlineLabel(a.due_date);
+                  return (
+                    <li key={a.id} className="flex items-baseline justify-between gap-2">
+                      <span className="min-w-0 truncate text-sm text-ink">{a.name}</span>
+                      <span className={cn('shrink-0 rounded px-2 py-0.5 text-xs font-medium', URGENCY_CLASS[deadline.urgency])}>
+                        {deadline.label}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </SidePanel>
+        </aside>
+      </div>
 
       <ConfirmDialog
         isOpen={!!pendingDelete}

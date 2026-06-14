@@ -11,6 +11,7 @@ vi.mock('../connection', () => ({
 import {
   listNotes,
   listLooseNotes,
+  listNotesWithCourse,
   listChildNotes,
   getNote,
   searchNotes,
@@ -94,6 +95,13 @@ describe('noteRepo', () => {
       expect(updateNote(note.id, { archived: false }).archived_at).toBeNull();
     });
 
+    it('pins and unpins via the pinned flag', () => {
+      const note = createNote({});
+      expect(note.is_pinned).toBe(0);
+      expect(updateNote(note.id, { pinned: true }).is_pinned).toBe(1);
+      expect(updateNote(note.id, { pinned: false }).is_pinned).toBe(0);
+    });
+
     it('falls back to "Untitled" when the title is blanked', () => {
       const note = createNote({ title: 'Has title' });
       expect(updateNote(note.id, { title: '   ' }).title).toBe('Untitled');
@@ -152,6 +160,29 @@ describe('noteRepo', () => {
       expect(ids).toContain(loose.id);
       expect(ids).not.toContain(linked.id); // has a course link
       expect(ids).not.toContain(child.id);  // a sub-page, not top-level
+    });
+
+    it('orders pinned notes first, then by most recently updated', () => {
+      const older = createNote({ title: 'Older' });
+      const newer = createNote({ title: 'Newer' });
+      updateNote(newer.id, { title: 'Newer!' }); // bump updated_at so it sorts above older
+      updateNote(older.id, { pinned: true });    // but pin the older one
+
+      const ids = listLooseNotes().map((n) => n.id);
+      expect(ids).toEqual([older.id, newer.id]); // pinned first, despite being older
+    });
+  });
+
+  describe('listNotesWithCourse', () => {
+    it('tags each note with its course id, or null when loose', () => {
+      const course = createCourse({ name: 'Bio', abbreviation: 'BIO', color: '#32b562' });
+      const linked = createNote({ title: 'Lecture 1' });
+      createNoteLink({ noteId: linked.id, entityType: 'course', entityId: course.id });
+      const loose = createNote({ title: 'Random thought' });
+
+      const byId = new Map(listNotesWithCourse().map((n) => [n.id, n.course_id]));
+      expect(byId.get(linked.id)).toBe(course.id);
+      expect(byId.get(loose.id)).toBeNull();
     });
   });
 

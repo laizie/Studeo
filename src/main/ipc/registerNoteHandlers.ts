@@ -3,6 +3,7 @@ import { IPC } from '../../shared/types';
 import type { CreateNoteInput, UpdateNoteInput } from '../../shared/types';
 import {
   listNotes,
+  listNotesWithCourse,
   listLooseNotes,
   listChildNotes,
   getNote,
@@ -35,6 +36,8 @@ export function registerNoteHandlers(): void {
   ipcMain.handle(IPC.NOTES.LIST, (_event, filters?: { archived?: boolean }) =>
     listNotes(filters ?? {})
   );
+
+  ipcMain.handle(IPC.NOTES.LIST_WITH_COURSE, () => listNotesWithCourse());
 
   ipcMain.handle(IPC.NOTES.LIST_LOOSE, () => listLooseNotes());
 

@@ -92,6 +92,7 @@ const api: WindowApi = {
 
   notes: {
     list:   (filters?: { archived?: boolean })  => ipcRenderer.invoke(IPC.NOTES.LIST, filters),
+    listWithCourse: ()                          => ipcRenderer.invoke(IPC.NOTES.LIST_WITH_COURSE),
     listLoose: ()                               => ipcRenderer.invoke(IPC.NOTES.LIST_LOOSE),
     children: (parentId: string)                => ipcRenderer.invoke(IPC.NOTES.CHILDREN, parentId),
     get:    (id)                                => ipcRenderer.invoke(IPC.NOTES.GET, id),
