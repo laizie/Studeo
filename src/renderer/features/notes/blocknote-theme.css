@@ -29,3 +29,56 @@
 .studeo-bn .bn-editor {
   padding-inline: 0;
 }
+
+/* ── Code blocks ───────────────────────────────────────────────────────────────
+   BlockNote's dark code-block styling ships in @blocknote/core's stylesheet, which we
+   don't import (we use the mantine variant). Without it the box has no background, so the
+   Shiki "github-dark" token colors land on the light app surface and look washed out — and
+   like an off-gray box in the dark/warm themes. Reproduce the official rules here, scoped to
+   our editor, so a code block always renders like a code editor: one dark surface in every
+   app theme, with vivid, readable syntax colors. The per-token colors are applied inline by
+   Shiki, so they sit on top of this background automatically. */
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] {
+  position: relative;
+  color: #e6edf3;
+  background-color: #161616;
+  border-radius: 8px;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > pre {
+  margin: 0;
+  padding: 20px 22px;
+  width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div {
+  outline: none !important;
+}
+/* Language picker: hidden until you hover the block, top-left like a code editor. */
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select {
+  position: absolute;
+  top: 8px;
+  left: 18px;
+  appearance: none;
+  user-select: none;
+  cursor: pointer;
+  border: none;
+  outline: none !important;
+  background-color: transparent;
+  color: #e6edf3;
+  font-size: 0.8em;
+  opacity: 0;
+  transition: opacity 0.3s 1s;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select > option {
+  color: #000;
+}
+.studeo-bn .bn-block-content[data-content-type='codeBlock']:hover > div > select,
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select:focus {
+  opacity: 0.6;
+  transition-delay: 0.1s;
+}
