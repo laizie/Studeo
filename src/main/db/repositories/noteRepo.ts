@@ -81,6 +81,12 @@ export function searchNotes(query: string): Note[] {
 export function createNote(input: CreateNoteInput): Note {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  // New notes default to the day they were made (local date) so they land on the class
+  // timeline; the editor lets the user change or clear it afterward. An explicit value
+  // (e.g. a lecture note's session date) still wins.
+  const d = new Date();
+  const localToday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const noteDate = input.noteDate ?? localToday;
   const contentJson = input.contentJson ?? '[]';
   // content_text is derived, never trusted from the caller — recompute it here so search
   // can never drift from the actual document.
@@ -98,7 +104,7 @@ export function createNote(input: CreateNoteInput): Note {
       contentText,
       input.icon ?? null,
       input.parentNoteId ?? null,
-      input.noteDate ?? null,
+      noteDate,
       now,
       now,
     );
