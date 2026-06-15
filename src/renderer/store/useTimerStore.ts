@@ -77,8 +77,26 @@ function logFocusSession(durationSeconds: number): void {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function readMins(key: string, fallback: number): number {
-  const stored = parseInt(localStorage.getItem(key) ?? '', 10);
+// Timer *configuration* (durations, custom flag) persists in the main process — the
+// renderer's localStorage isn't reliable across a relaunch in packaged (file://) builds.
+// The live countdown snapshot below stays in localStorage: it changes every tick and is
+// transient resume state, not a setting. `initialSettings` was read at preload time.
+const appSettings = window.api?.app?.initialSettings ?? {};
+
+function readSetting(key: string, legacyLsKey: string): string | null {
+  if (appSettings[key] !== undefined) return appSettings[key];
+  // Migrate a value still only in old localStorage forward into main.
+  const legacy = localStorage.getItem(legacyLsKey);
+  if (legacy !== null) window.api?.app?.setSetting(key, legacy);
+  return legacy;
+}
+
+function saveSetting(key: string, value: string): void {
+  window.api?.app?.setSetting(key, value);
+}
+
+function readMins(key: string, legacyLsKey: string, fallback: number): number {
+  const stored = parseInt(readSetting(key, legacyLsKey) ?? '', 10);
   return isNaN(stored) ? fallback : stored;
 }
 
@@ -120,9 +138,9 @@ interface TimerState {
   setLongBreakMins: (mins: number) => void;
 }
 
-const initFocusSecs     = readMins('studeo:focusMins', 25)     * 60;
-const initBreakSecs     = readMins('studeo:breakMins', 5)      * 60;
-const initLongBreakSecs = readMins('studeo:longBreakMins', 15) * 60;
+const initFocusSecs     = readMins('focusMins',     'studeo:focusMins',     25) * 60;
+const initBreakSecs     = readMins('breakMins',     'studeo:breakMins',      5) * 60;
+const initLongBreakSecs = readMins('longBreakMins', 'studeo:longBreakMins', 15) * 60;
 
 // ── Restore a previous session ────────────────────────────────────────────────
 // The timer state is snapshotted to localStorage on every change (subscribe at
@@ -217,10 +235,10 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   longBreakSecs: initLongBreakSecs,
   focusCount:    restored.focusCount,
   endsAt:        restored.endsAt,
-  customTechnique: localStorage.getItem('studeo:customTechnique') === 'true',
+  customTechnique: readSetting('customTechnique', 'studeo:customTechnique') === 'true',
 
   setCustomTechnique: (v) => {
-    localStorage.setItem('studeo:customTechnique', String(v));
+    saveSetting('customTechnique', String(v));
     set({ customTechnique: v });
   },
 
@@ -281,21 +299,21 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   setFocusMins: (mins) => {
-    localStorage.setItem('studeo:focusMins', String(mins));
+    saveSetting('focusMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
     set({ focusSecs: secs, ...(phase === 'focus' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
 
   setBreakMins: (mins) => {
-    localStorage.setItem('studeo:breakMins', String(mins));
+    saveSetting('breakMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
     set({ breakSecs: secs, ...(phase === 'short_break' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
 
   setLongBreakMins: (mins) => {
-    localStorage.setItem('studeo:longBreakMins', String(mins));
+    saveSetting('longBreakMins', String(mins));
     const secs = mins * 60;
     const { phase } = get();
     set({ longBreakSecs: secs, ...(phase === 'long_break' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });

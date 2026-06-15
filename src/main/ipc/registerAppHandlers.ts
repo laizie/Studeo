@@ -3,6 +3,24 @@ import { rmSync, existsSync, readdirSync, cpSync } from 'node:fs';
 import { IPC } from '../../shared/types';
 import { getDb, getDbPath } from '../db/connection';
 import { getAssetsRoot } from '../media';
+import { getAllSettings, setSetting } from '../settings';
+
+// Allowlist of preference keys the renderer may persist — IPC input is untrusted, so we
+// never write an arbitrary key. Keep in sync with the settings store in the renderer.
+const SETTING_KEYS = new Set([
+  'theme',
+  'defaultMusicService',
+  'classRemindersEnabled',
+  'reminderLeadMinutes',
+  'dueDigestEnabled',
+  'dueDigestTime',
+  'timerSound',
+  // Pomodoro timer configuration.
+  'focusMins',
+  'breakMins',
+  'longBreakMins',
+  'customTechnique',
+]);
 
 // App-level utilities for a local-first app: let the user see exactly where
 // their data lives, and take a backup copy of it on demand.
@@ -10,6 +28,18 @@ import { getAssetsRoot } from '../media';
 export function registerAppHandlers(): void {
   ipcMain.handle(IPC.APP.REVEAL_DATA, () => {
     shell.showItemInFolder(getDbPath());
+  });
+
+  // Preferences persistence. GET is synchronous (ipcMain.on + event.returnValue) so the
+  // preload can read it before the renderer paints — e.g. the theme applies with no flash.
+  ipcMain.on(IPC.APP.GET_SETTINGS, (event) => {
+    event.returnValue = getAllSettings();
+  });
+
+  ipcMain.handle(IPC.APP.SET_SETTING, (_event, key: string, value: string) => {
+    // Ignore unknown keys / non-string values rather than throwing — a bad call just
+    // doesn't persist anything.
+    if (SETTING_KEYS.has(key) && typeof value === 'string') setSetting(key, value);
   });
 
   ipcMain.handle(IPC.APP.BACKUP_DATA, async () => {
