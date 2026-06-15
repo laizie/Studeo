@@ -463,8 +463,10 @@ export const IPC = {
     TEST:      'reminders:test',
   },
   APP: {
-    REVEAL_DATA: 'app:reveal-data',
-    BACKUP_DATA: 'app:backup-data',
+    REVEAL_DATA:  'app:reveal-data',
+    BACKUP_DATA:  'app:backup-data',
+    GET_SETTINGS: 'app:get-settings',
+    SET_SETTING:  'app:set-setting',
   },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
@@ -594,6 +596,11 @@ export interface WindowApi {
     revealData(): Promise<void>;
     /** Save-dialog + consistent snapshot of the database. saved=false means canceled. */
     backupData(): Promise<{ saved: boolean; path?: string; error?: string }>;
+    /** All saved UI preferences, read synchronously at preload time so they can be applied
+     *  before first paint (e.g. theme, with no flash). Keys absent until first set. */
+    initialSettings: Record<string, string>;
+    /** Persist a UI preference in the main process so it survives a full quit/relaunch. */
+    setSetting(key: string, value: string): Promise<void>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;

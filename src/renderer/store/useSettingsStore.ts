@@ -41,24 +41,45 @@ function applyTheme(theme: Theme) {
   }
 }
 
-const storedTheme = localStorage.getItem('studeo:theme') as Theme | null;
-// Back-compat: migrate old darkMode flag to theme
-const legacyDark  = localStorage.getItem('studeo:darkMode') === 'true';
+// All preferences are persisted by the main process (a file it owns), because the renderer
+// loads from file:// in packaged builds where localStorage isn't reliably kept across a
+// relaunch. `initialSettings` was read synchronously at preload time.
+const initial = window.api?.app?.initialSettings ?? {};
+
+// Read a preference: prefer the main-process value; otherwise fall back to the value still
+// in the old localStorage and push it forward into main so it persists from now on.
+function readSetting(key: string, legacyLsKey: string): string | null {
+  if (initial[key] !== undefined) return initial[key];
+  const legacy = localStorage.getItem(legacyLsKey);
+  if (legacy !== null) window.api?.app?.setSetting(key, legacy);
+  return legacy;
+}
+
+function saveSetting(key: string, value: string): void {
+  window.api?.app?.setSetting(key, value);
+}
+
+const storedTheme = readSetting('theme', 'studeo:theme') as Theme | null;
+// Back-compat: migrate the even older darkMode flag to a theme.
+const legacyDark = !storedTheme && localStorage.getItem('studeo:darkMode') === 'true';
 const initTheme: Theme = storedTheme ?? (legacyDark ? 'warm' : 'light');
+if (!storedTheme && legacyDark) saveSetting('theme', initTheme);
 applyTheme(initTheme);
 
-const storedMusic = localStorage.getItem('studeo:defaultMusicService');
+const storedMusic = readSetting('defaultMusicService', 'studeo:defaultMusicService');
 const initMusic: MusicService | null =
   storedMusic === 'spotify' || storedMusic === 'apple_music' ? storedMusic : null;
 
-const initRemindersEnabled = localStorage.getItem('studeo:classRemindersEnabled') === 'true';
-const storedLead = parseInt(localStorage.getItem('studeo:reminderLeadMinutes') ?? '', 10);
+const initRemindersEnabled = readSetting('classRemindersEnabled', 'studeo:classRemindersEnabled') === 'true';
+const storedLead = parseInt(readSetting('reminderLeadMinutes', 'studeo:reminderLeadMinutes') ?? '', 10);
 const initLeadMinutes = isNaN(storedLead) ? 10 : storedLead;
 
-const initDueDigestEnabled = localStorage.getItem('studeo:dueDigestEnabled') === 'true';
-const storedDigestTime = localStorage.getItem('studeo:dueDigestTime');
+const initDueDigestEnabled = readSetting('dueDigestEnabled', 'studeo:dueDigestEnabled') === 'true';
+const storedDigestTime = readSetting('dueDigestTime', 'studeo:dueDigestTime');
 const initDueDigestTime =
   storedDigestTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(storedDigestTime) ? storedDigestTime : '18:00';
+
+const initTimerSound = readSetting('timerSound', 'studeo:timerSound') !== 'false';
 
 // The reminder scheduler lives in the main process, which can't read
 // localStorage — push the saved preference over IPC on startup and on change.
@@ -78,7 +99,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   theme: initTheme,
 
   setTheme: (t) => {
-    localStorage.setItem('studeo:theme', t);
+    saveSetting('theme', t);   // persisted in main — survives a full quit/relaunch
     applyTheme(t);
     set({ theme: t });
   },
@@ -86,14 +107,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   defaultMusicService: initMusic,
 
   setDefaultMusicService: (s) => {
-    if (s === null) localStorage.removeItem('studeo:defaultMusicService');
-    else localStorage.setItem('studeo:defaultMusicService', s);
+    // Empty string represents "none" — read-side only accepts the two known services.
+    saveSetting('defaultMusicService', s ?? '');
     set({ defaultMusicService: s });
   },
 
   classRemindersEnabled: initRemindersEnabled,
   setClassRemindersEnabled: (v) => {
-    localStorage.setItem('studeo:classRemindersEnabled', String(v));
+    saveSetting('classRemindersEnabled', String(v));
     const s = get();
     pushReminderConfig(v, s.reminderLeadMinutes, s.dueDigestEnabled, s.dueDigestTime);
     set({ classRemindersEnabled: v });
@@ -101,7 +122,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   reminderLeadMinutes: initLeadMinutes,
   setReminderLeadMinutes: (m) => {
-    localStorage.setItem('studeo:reminderLeadMinutes', String(m));
+    saveSetting('reminderLeadMinutes', String(m));
     const s = get();
     pushReminderConfig(s.classRemindersEnabled, m, s.dueDigestEnabled, s.dueDigestTime);
     set({ reminderLeadMinutes: m });
@@ -109,7 +130,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   dueDigestEnabled: initDueDigestEnabled,
   setDueDigestEnabled: (v) => {
-    localStorage.setItem('studeo:dueDigestEnabled', String(v));
+    saveSetting('dueDigestEnabled', String(v));
     const s = get();
     pushReminderConfig(s.classRemindersEnabled, s.reminderLeadMinutes, v, s.dueDigestTime);
     set({ dueDigestEnabled: v });
@@ -118,16 +139,16 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   dueDigestTime: initDueDigestTime,
   setDueDigestTime: (t) => {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) return;
-    localStorage.setItem('studeo:dueDigestTime', t);
+    saveSetting('dueDigestTime', t);
     const s = get();
     pushReminderConfig(s.classRemindersEnabled, s.reminderLeadMinutes, s.dueDigestEnabled, t);
     set({ dueDigestTime: t });
   },
 
   // Default ON — the chime has always played; absence of the key means "keep it".
-  timerSoundEnabled: localStorage.getItem('studeo:timerSound') !== 'false',
+  timerSoundEnabled: initTimerSound,
   setTimerSoundEnabled: (v) => {
-    localStorage.setItem('studeo:timerSound', String(v));
+    saveSetting('timerSound', String(v));
     set({ timerSoundEnabled: v });
   },
 }));

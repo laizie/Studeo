@@ -124,6 +124,10 @@ const api: WindowApi = {
   app: {
     revealData: () => ipcRenderer.invoke(IPC.APP.REVEAL_DATA),
     backupData: () => ipcRenderer.invoke(IPC.APP.BACKUP_DATA),
+    // Read once, synchronously, at preload time. The settings store's init reads this to
+    // apply saved prefs (e.g. theme) before the first paint — no flash of the defaults.
+    initialSettings: ipcRenderer.sendSync(IPC.APP.GET_SETTINGS) as Record<string, string>,
+    setSetting: (key: string, value: string) => ipcRenderer.invoke(IPC.APP.SET_SETTING, key, value),
   },
 
   appleMusic: {
