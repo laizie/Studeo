@@ -135,6 +135,10 @@ const api: WindowApi = {
     fetchIcs: (url: string) => ipcRenderer.invoke(IPC.FEEDS.FETCH_ICS, url),
   },
 
+  syllabus: {
+    extractPdf: () => ipcRenderer.invoke(IPC.SYLLABUS.EXTRACT_PDF),
+  },
+
   appleMusic: {
     status:        ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.STATUS),
     playback:      ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYBACK),

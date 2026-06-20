@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ChevronDown, FileText, Repeat } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, ChevronDown, FileText, Repeat, FileUp, Loader2 } from 'lucide-react';
 import { useCourse } from '../../lib/queries/useCourses';
 import { useCreateAssignments } from '../../lib/queries/useAssignments';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
@@ -43,6 +43,8 @@ export default function BatchAddPage() {
   const [syllabusText, setSyllabusText] = useState('');
   const [importError, setImportError]   = useState('');
   const [importYear, setImportYear]     = useState(() => new Date().getFullYear());
+  const [pdfFileName, setPdfFileName]   = useState('');  // name of the last loaded PDF
+  const [extracting, setExtracting]     = useState(false);
   const [saving, setSaving]         = useState(false);
   const [saveError, setSaveError]   = useState('');
 
@@ -139,6 +141,23 @@ export default function BatchAddPage() {
 
   // ── Import ────────────────────────────────────────────────────────────────
 
+  // Pull text out of a syllabus PDF (file dialog + extraction happen in main).
+  // We only fill the textarea — the user reviews/edits, then hits "Parse & add".
+  async function handlePickPdf() {
+    setExtracting(true);
+    setImportError('');
+    try {
+      const res = await window.api.syllabus.extractPdf();
+      if (res.canceled) return;
+      setSyllabusText(res.text);
+      setPdfFileName(res.fileName);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Couldn't read that PDF.");
+    } finally {
+      setExtracting(false);
+    }
+  }
+
   function handleImport() {
     const parsed = parseSyllabus(syllabusText, importYear);
     if (parsed.length === 0) {
@@ -154,6 +173,7 @@ export default function BatchAddPage() {
     setImportOpen(false);
     setSyllabusText('');
     setImportError('');
+    setPdfFileName('');
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -238,6 +258,23 @@ export default function BatchAddPage() {
               due date for you to fill in.
             </p>
 
+            {/* Upload a PDF instead of pasting — extracts its text into the box below. */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handlePickPdf}
+                disabled={extracting}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-line text-ink-soft rounded-lg hover:bg-surface-hi disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {extracting ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
+                {extracting ? 'Reading PDF…' : 'Choose PDF file'}
+              </button>
+              <span className="text-xs text-muted">
+                {pdfFileName
+                  ? <>Loaded <span className="text-ink-soft font-medium">{pdfFileName}</span> — review the text below.</>
+                  : 'Or upload your syllabus PDF and we\'ll pull the text out.'}
+              </span>
+            </div>
+
             <textarea
               value={syllabusText}
               onChange={e => { setSyllabusText(e.target.value); setImportError(''); }}
@@ -274,7 +311,7 @@ export default function BatchAddPage() {
               </button>
 
               <button
-                onClick={() => { setImportOpen(false); setSyllabusText(''); }}
+                onClick={() => { setImportOpen(false); setSyllabusText(''); setPdfFileName(''); }}
                 className="text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors"
               >
                 Cancel

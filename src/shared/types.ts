@@ -486,6 +486,9 @@ export const IPC = {
   FEEDS: {
     FETCH_ICS: 'feeds:fetch-ics',
   },
+  SYLLABUS: {
+    EXTRACT_PDF: 'syllabus:extract-pdf',
+  },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
     PLAYBACK:       'apple_music:playback',
@@ -513,6 +516,15 @@ export const IPC = {
     SEARCH_PLAYLISTS: 'spotify:search-playlists',
   },
 } as const;
+
+/**
+ * Result of picking + extracting text from a syllabus PDF (main opens the file
+ * dialog, so there are no args). `canceled` discriminates the two outcomes; a
+ * failed/empty extraction rejects the IPC call instead of returning here.
+ */
+export type ExtractPdfResult =
+  | { canceled: true }
+  | { canceled: false; text: string; fileName: string };
 
 // ─── window.api contract ──────────────────────────────────────────────────────
 // This interface is implemented by preload.ts and consumed by the renderer.
@@ -627,6 +639,11 @@ export interface WindowApi {
   feeds: {
     /** Fetch a remote .ics calendar feed by URL (done in main; returns raw text). */
     fetchIcs(url: string): Promise<{ text: string }>;
+  };
+  syllabus: {
+    /** Open-dialog + extract the text from a chosen syllabus PDF (done in main).
+     *  Rejects on a read/extract failure or a scanned PDF with no selectable text. */
+    extractPdf(): Promise<ExtractPdfResult>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;
