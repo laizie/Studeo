@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { COURSE_COLORS, DEFAULT_COURSE_COLOR } from '../../lib/colors';
-import { useCreateCourse } from '../../lib/queries/useCourses';
+import { useCreateCourse, useUpdateCourse } from '../../lib/queries/useCourses';
 import { useTerms } from '../../lib/queries/useTerms';
+import type { Course } from '../../../shared/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  /** Pass a course to edit it; omit to create a new one. */
+  course?: Course;
 }
 
 // Turns "Introduction to Computer Science" → "ICS"
@@ -27,32 +30,48 @@ const INPUT_CLASS =
   'placeholder:text-stone-500 ' +
   'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
-export default function CreateCourseDialog({ isOpen, onClose }: Props) {
+export default function CourseDialog({ isOpen, onClose, course }: Props) {
+  const isEdit = course !== undefined;
+
   const [name, setName] = useState('');
   const [abbreviation, setAbbreviation] = useState('');
   // Track whether user has manually edited abbreviation so we stop auto-deriving
   const [abbreviationEdited, setAbbreviationEdited] = useState(false);
-  const [color, setColor]   = useState(DEFAULT_COURSE_COLOR);
+  // Widened to string: an existing course's color comes from the DB as a plain
+  // string, not necessarily one of the palette literals.
+  const [color, setColor]   = useState<string>(DEFAULT_COURSE_COLOR);
   const [building, setBuilding] = useState('');
   const [termId, setTermId] = useState('');
 
   const createCourse = useCreateCourse();
+  const updateCourse = useUpdateCourse();
+  const mutation = isEdit ? updateCourse : createCourse;
   const { data: terms = [] } = useTerms();
   const nameRef = useRef<HTMLInputElement>(null);
 
-  // Reset all fields when dialog opens so it's always fresh
+  // Seed fields when the dialog opens: prefill from the course when editing,
+  // otherwise start blank so a new course is always fresh.
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    if (course) {
+      setName(course.name);
+      setAbbreviation(course.abbreviation);
+      // Already has an abbreviation — don't auto-overwrite it when the name changes.
+      setAbbreviationEdited(true);
+      setColor(course.color);
+      setBuilding(course.building ?? '');
+      setTermId(course.term_id ?? '');
+    } else {
       setName('');
       setAbbreviation('');
       setAbbreviationEdited(false);
       setColor(DEFAULT_COURSE_COLOR);
       setBuilding('');
       setTermId('');
-      // Small delay so the element is visible before we focus it
-      setTimeout(() => nameRef.current?.focus(), 50);
     }
-  }, [isOpen]);
+    // Small delay so the element is visible before we focus it
+    setTimeout(() => nameRef.current?.focus(), 50);
+  }, [isOpen, course]);
 
   // Close on Escape key
   useEffect(() => {
@@ -80,13 +99,28 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
     e.preventDefault();
     if (!name.trim()) return;
 
-    await createCourse.mutateAsync({
-      name: name.trim(),
-      abbreviation: abbreviation.trim() || deriveAbbreviation(name),
-      color,
-      building: building.trim() || undefined,
-      termId: termId || undefined,
-    });
+    if (course) {
+      // Edit: send null (not undefined) for cleared optional fields so the
+      // update path actually clears them.
+      await updateCourse.mutateAsync({
+        id: course.id,
+        input: {
+          name: name.trim(),
+          abbreviation: abbreviation.trim() || deriveAbbreviation(name),
+          color,
+          building: building.trim() || null,
+          termId: termId || null,
+        },
+      });
+    } else {
+      await createCourse.mutateAsync({
+        name: name.trim(),
+        abbreviation: abbreviation.trim() || deriveAbbreviation(name),
+        color,
+        building: building.trim() || undefined,
+        termId: termId || undefined,
+      });
+    }
 
     onClose();
   }
@@ -104,7 +138,9 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
       <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-ink">New course</h2>
+          <h2 className="text-base font-semibold text-ink">
+            {isEdit ? 'Edit course' : 'New course'}
+          </h2>
           <button
             onClick={onClose}
             className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors"
@@ -204,7 +240,7 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
             </div>
           )}
 
-          {createCourse.isError && (
+          {mutation.isError && (
             <p className="text-sm text-red-600">
               Something went wrong — please try again.
             </p>
@@ -221,10 +257,12 @@ export default function CreateCourseDialog({ isOpen, onClose }: Props) {
             </button>
             <button
               type="submit"
-              disabled={!name.trim() || createCourse.isPending}
+              disabled={!name.trim() || mutation.isPending}
               className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {createCourse.isPending ? 'Creating…' : 'Create course'}
+              {mutation.isPending
+                ? (isEdit ? 'Saving…' : 'Creating…')
+                : (isEdit ? 'Save changes' : 'Create course')}
             </button>
           </div>
         </form>

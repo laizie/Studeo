@@ -14,7 +14,7 @@ import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/typ
 import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
-import CreateCourseDialog from '../courses/CreateCourseDialog';
+import CourseDialog from '../courses/CourseDialog';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -531,7 +531,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      <CreateCourseDialog isOpen={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <CourseDialog isOpen={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }
