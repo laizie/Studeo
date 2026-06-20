@@ -468,6 +468,9 @@ export const IPC = {
     GET_SETTINGS: 'app:get-settings',
     SET_SETTING:  'app:set-setting',
   },
+  FEEDS: {
+    FETCH_ICS: 'feeds:fetch-ics',
+  },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
     PLAYBACK:       'apple_music:playback',
@@ -601,6 +604,10 @@ export interface WindowApi {
     initialSettings: Record<string, string>;
     /** Persist a UI preference in the main process so it survives a full quit/relaunch. */
     setSetting(key: string, value: string): Promise<void>;
+  };
+  feeds: {
+    /** Fetch a remote .ics calendar feed by URL (done in main; returns raw text). */
+    fetchIcs(url: string): Promise<{ text: string }>;
   };
   appleMusic: {
     status():                        Promise<{ running: boolean; authorized: boolean }>;

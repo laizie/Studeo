@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Download } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTerms } from '../../lib/queries/useTerms';
@@ -71,13 +72,22 @@ export default function CoursesPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsDialogOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
-        >
-          <Plus size={15} />
-          Add course
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/import"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+          >
+            <Download size={15} />
+            Import
+          </Link>
+          <button
+            onClick={() => setIsDialogOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+          >
+            <Plus size={15} />
+            Add course
+          </button>
+        </div>
       </div>
 
       {/* Semester filter — only shown when terms exist */}

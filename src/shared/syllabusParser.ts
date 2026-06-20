@@ -27,7 +27,9 @@ const MONTH_PATTERN = Object.keys(MONTHS).join('|');
 
 // ── Type inference ────────────────────────────────────────────────────────────
 
-function inferType(text: string): AssignmentType {
+// Exported so other importers (e.g. the .ics calendar feed parser) infer the
+// assignment type the same way — one source of truth for this mapping.
+export function inferType(text: string): AssignmentType {
   const t = text.toLowerCase();
   if (/\bmidterm\b/.test(t))                          return 'Exam';
   if (/\bfinal\s+exam\b/.test(t))                     return 'Exam';

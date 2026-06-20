@@ -16,6 +16,7 @@ import { registerMediaHandlers } from './main/ipc/registerMediaHandlers';
 import { ASSET_SCHEME, registerAssetProtocol } from './main/media';
 import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
 import { registerAppHandlers } from './main/ipc/registerAppHandlers';
+import { registerFeedHandlers } from './main/ipc/registerFeedHandlers';
 import { startReminderScheduler } from './main/reminders';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
@@ -49,6 +50,7 @@ function registerIpcHandlers(): void {
   registerMediaHandlers();
   registerReminderHandlers();
   registerAppHandlers();
+  registerFeedHandlers();
   registerSpotifyHandlers();
   registerAppleMusicHandlers();
 }
