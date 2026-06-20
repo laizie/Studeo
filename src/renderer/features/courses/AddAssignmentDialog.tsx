@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, NotebookPen } from 'lucide-react';
+import { X, NotebookPen, Repeat } from 'lucide-react';
 import { ASSIGNMENT_TYPES } from '../../../shared/types';
 import type { Assignment, AssignmentType } from '../../../shared/types';
 import { plainTextToBlocks } from '../../../shared/notes';
-import { useCreateAssignment, useUpdateAssignment } from '../../lib/queries/useAssignments';
+import { generateRepeats } from '../../../shared/repeat';
+import { useCreateAssignment, useCreateAssignments, useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import EntityNotesList from '../notes/EntityNotesList';
@@ -31,11 +32,17 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   // Kept as strings so the inputs can be empty; parsed on submit.
   const [score, setScore]           = useState('');
   const [pointsPossible, setPointsPossible] = useState('');
+  // Recurring: when on, the assignment expands into a weekly/biweekly series
+  // (numbered copies) up to an end date. Add mode only.
+  const [repeat, setRepeat]           = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(1); // 1 = weekly, 2 = every 2 weeks
+  const [repeatUntil, setRepeatUntil] = useState('');
   // Tracks the one-time import of a legacy plain-text note, so the banner hides immediately.
   const [legacyImported, setLegacyImported] = useState(false);
 
-  const createAssignment = useCreateAssignment();
-  const updateAssignment = useUpdateAssignment();
+  const createAssignment  = useCreateAssignment();
+  const createAssignments = useCreateAssignments();
+  const updateAssignment  = useUpdateAssignment();
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -57,6 +64,10 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
       setScore('');
       setPointsPossible('');
     }
+    // Repeat is always reset off — it's an add-mode, per-open choice.
+    setRepeat(false);
+    setRepeatWeeks(1);
+    setRepeatUntil('');
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, assignment]);
 
@@ -67,14 +78,35 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // Recurring is add-mode only; a grade doesn't make sense on a future series.
+  const repeating = !isEditing && repeat;
+
   // A grade needs both halves ("18 out of 20"); one half alone is ignored.
-  const gradeComplete = score !== '' && pointsPossible !== '';
+  // Ignored entirely when creating a recurring series.
+  const gradeComplete = !repeating && score !== '' && pointsPossible !== '';
   const gradeInvalid =
     gradeComplete && (Number(score) < 0 || Number(pointsPossible) <= 0 || isNaN(Number(score)) || isNaN(Number(pointsPossible)));
+
+  // Follow-up occurrences after the first (the typed one). Empty until a valid
+  // end date is set; drives the live preview count and the submit button label.
+  const followUps = repeating ? generateRepeats(name, dueDate, repeatUntil, repeatWeeks) : [];
+  const totalOccurrences = followUps.length + 1; // includes the first
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !dueDate || gradeInvalid) return;
+
+    if (repeating) {
+      // Expand into independent, numbered copies and insert them atomically —
+      // either the whole series saves or none of it does (createMany).
+      const series = [
+        { courseId, name: name.trim(), type, dueDate },
+        ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate })),
+      ];
+      await createAssignments.mutateAsync(series);
+      onClose();
+      return;
+    }
 
     const gradeFields = {
       score:          gradeComplete ? Number(score) : null,
@@ -115,8 +147,8 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
   const hasLegacyNote = isEditing && !legacyImported && !!assignment?.notes?.trim();
 
-  const isPending = createAssignment.isPending || updateAssignment.isPending;
-  const isError   = createAssignment.isError   || updateAssignment.isError;
+  const isPending = createAssignment.isPending || createAssignments.isPending || updateAssignment.isPending;
+  const isError   = createAssignment.isError   || createAssignments.isError   || updateAssignment.isError;
 
   if (!isOpen) return null;
 
@@ -175,6 +207,53 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             />
           </div>
 
+          {/* Repeat — add mode only. Expands into a numbered weekly/biweekly series. */}
+          {!isEditing && (
+            <div className="rounded-lg border border-line bg-inset/60 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-ink-soft cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={repeat}
+                  onChange={(e) => setRepeat(e.target.checked)}
+                  className="accent-[var(--color-accent)]"
+                />
+                <Repeat size={14} className="text-muted" />
+                Repeat this assignment
+              </label>
+
+              {repeat && (
+                <div className="mt-3 space-y-2.5">
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-ink-soft">
+                    <select
+                      value={repeatWeeks}
+                      onChange={(e) => setRepeatWeeks(Number(e.target.value))}
+                      className={INPUT_CLASS + ' w-auto'}
+                    >
+                      <option value={1}>every week</option>
+                      <option value={2}>every 2 weeks</option>
+                    </select>
+                    <span className="text-muted">until</span>
+                    <input
+                      type="date"
+                      value={repeatUntil}
+                      min={dueDate || undefined}
+                      onChange={(e) => setRepeatUntil(e.target.value)}
+                      className={INPUT_CLASS + ' w-auto'}
+                    />
+                  </div>
+                  <p className="text-xs text-muted">
+                    {!dueDate
+                      ? 'Set a due date above to start the series.'
+                      : followUps.length === 0
+                      ? 'Pick an end date after the due date to add repeats.'
+                      : `Creates ${totalOccurrences} assignments — last one due ${followUps[followUps.length - 1].dueDate}.`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!repeating && (
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1">
               Grade
@@ -209,6 +288,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
               </p>
             )}
           </div>
+          )}
 
           {isError && (
             <p className="text-sm text-red-600">Something went wrong — please try again.</p>
@@ -227,7 +307,13 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
               disabled={!name.trim() || !dueDate || gradeInvalid || isPending}
               className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add assignment'}
+              {isPending
+                ? 'Saving…'
+                : isEditing
+                ? 'Save changes'
+                : repeating && followUps.length > 0
+                ? `Add ${totalOccurrences} assignments`
+                : 'Add assignment'}
             </button>
           </div>
         </form>
