@@ -465,6 +465,7 @@ export const IPC = {
   APP: {
     REVEAL_DATA:  'app:reveal-data',
     BACKUP_DATA:  'app:backup-data',
+    RESTORE_DATA: 'app:restore-data',
     GET_SETTINGS: 'app:get-settings',
     SET_SETTING:  'app:set-setting',
   },
@@ -599,6 +600,10 @@ export interface WindowApi {
     revealData(): Promise<void>;
     /** Save-dialog + consistent snapshot of the database. saved=false means canceled. */
     backupData(): Promise<{ saved: boolean; path?: string; error?: string }>;
+    /** Open-dialog + validate + (after a safety snapshot of current data) replace the live
+     *  database with a chosen backup, then relaunch. On success the app restarts, so the
+     *  promise only resolves with restored=false (canceled or error). */
+    restoreData(): Promise<{ restored: boolean; canceled?: boolean; error?: string }>;
     /** All saved UI preferences, read synchronously at preload time so they can be applied
      *  before first paint (e.g. theme, with no flash). Keys absent until first set. */
     initialSettings: Record<string, string>;

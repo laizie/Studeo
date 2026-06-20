@@ -43,6 +43,50 @@ export function initDb(): void {
   console.log('[DB] Ready at', dbPath);
 }
 
+// ─── Restore support ──────────────────────────────────────────────────────────
+// Helpers used by the "restore from backup" flow. They keep all node:sqlite
+// usage inside this db module; the IPC handler orchestrates the file swap.
+
+// Close the live connection so the OS releases the file handle before the
+// database file is overwritten (required on Windows, clean everywhere).
+export function closeDb(): void {
+  if (db) {
+    db.close();
+    db = null;
+  }
+}
+
+// Write a consistent single-file snapshot of the live database to targetPath.
+// VACUUM INTO captures a clean copy even in WAL mode — the same mechanism the
+// backup feature uses — so we reuse it to snapshot current data before a restore.
+export function snapshotInto(targetPath: string): void {
+  getDb().prepare('VACUUM INTO ?').run(targetPath);
+}
+
+// Throw a friendly error if filePath is not a readable Studeo database. Opens
+// read-only (so we never create WAL sidecars next to the candidate file) and
+// checks for the core tables every Studeo database has.
+export function validateBackupFile(filePath: string): void {
+  const NOT_A_BACKUP = "That file isn't a Studeo backup.";
+  let test: DatabaseSync | null = null;
+  try {
+    test = new DatabaseSync(filePath, { readOnly: true });
+    const tables = new Set(
+      (test.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[])
+        .map(r => r.name),
+    );
+    for (const required of ['courses', 'assignments', '_migrations']) {
+      if (!tables.has(required)) throw new Error(NOT_A_BACKUP);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message === NOT_A_BACKUP) throw err;
+    // Anything else (not a SQLite file, unreadable, etc.) → same user-facing message.
+    throw new Error("That file couldn't be read as a Studeo backup.");
+  } finally {
+    test?.close();
+  }
+}
+
 // ─── Migration runner ─────────────────────────────────────────────────────────
 // Migrations run in order on every startup; already-applied ones are skipped.
 // To add a new migration: import its SQL above and append a new entry below.
