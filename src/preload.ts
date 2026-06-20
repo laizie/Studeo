@@ -130,6 +130,10 @@ const api: WindowApi = {
     setSetting: (key: string, value: string) => ipcRenderer.invoke(IPC.APP.SET_SETTING, key, value),
   },
 
+  feeds: {
+    fetchIcs: (url: string) => ipcRenderer.invoke(IPC.FEEDS.FETCH_ICS, url),
+  },
+
   appleMusic: {
     status:        ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.STATUS),
     playback:      ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYBACK),
