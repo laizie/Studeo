@@ -32,9 +32,12 @@ const FIELD_INPUT =
   'w-full min-w-0 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-white dark:bg-inset ' +
   'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
 
+// A real, always-bordered field (so it's obviously editable), but font-medium so
+// it still reads as the section's title.
 const NAME_INPUT =
-  'flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-line rounded-lg bg-white dark:bg-inset ' +
-  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
+  'flex-1 min-w-0 px-2.5 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-inset border border-line ' +
+  'text-ink placeholder:text-muted placeholder:font-normal ' +
+  'hover:border-stone-300 dark:hover:border-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted transition-colors';
 
 function rowsFromRaw(raw: string | null): Row[] {
   return parseGradeSections(raw).map(s => ({
