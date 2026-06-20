@@ -9,6 +9,7 @@ import type { Assignment, ClassMeeting } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
+import CourseDialog from './CourseDialog';
 import GradeWeightsCard from './GradeWeightsCard';
 import EntityNotesList from '../notes/EntityNotesList';
 import { computeCourseStanding, formatPercent } from '../../../shared/grades';
@@ -47,6 +48,7 @@ export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const [dueFilter, setDueFilter]               = useState<DueFilter>('all');
+  const [editCourseOpen, setEditCourseOpen]     = useState(false);
   const [dialogOpen, setDialogOpen]             = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
   const [meetingDialogOpen, setMeetingDialogOpen]       = useState(false);
@@ -137,7 +139,7 @@ export default function CourseDetailPage() {
           className="w-1.5 self-stretch rounded-full shrink-0 mt-1"
           style={{ backgroundColor: course.color }}
         />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-semibold text-ink leading-tight">
               {course.name}
@@ -184,6 +186,15 @@ export default function CourseDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Edit course — name, abbreviation, color, building, semester */}
+        <button
+          onClick={() => setEditCourseOpen(true)}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+        >
+          <Pencil size={14} />
+          Edit
+        </button>
       </div>
 
       {/* Two-column layout at lg+: assignments left, schedule right */}
@@ -341,6 +352,11 @@ export default function CourseDetailPage() {
         />
       </div>
 
+      <CourseDialog
+        course={course}
+        isOpen={editCourseOpen}
+        onClose={() => setEditCourseOpen(false)}
+      />
       <AddAssignmentDialog
         courseId={course.id}
         assignment={editingAssignment}

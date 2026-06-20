@@ -6,7 +6,7 @@ import { useTerms } from '../../lib/queries/useTerms';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import CourseCard from './CourseCard';
 import { computeCourseStanding } from '../../../shared/grades';
-import CreateCourseDialog from './CreateCourseDialog';
+import CourseDialog from './CourseDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 
 export default function CoursesPage() {
@@ -141,7 +141,7 @@ export default function CoursesPage() {
         </div>
       )}
 
-      <CreateCourseDialog
+      <CourseDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
       />
