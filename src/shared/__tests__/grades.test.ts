@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { parseGradeWeights, computeCourseStanding, formatPercent } from '../grades';
+import {
+  parseGradeWeights,
+  computeCourseStanding,
+  formatPercent,
+  computeTargetGrade,
+  remainingWeightShare,
+} from '../grades';
 import type { Assignment, AssignmentType } from '../types';
 
 let counter = 0;
@@ -134,5 +140,73 @@ describe('formatPercent', () => {
     expect(formatPercent(90)).toBe('90%');
     expect(formatPercent(89.96)).toBe('90%');
     expect(formatPercent(100)).toBe('100%');
+  });
+});
+
+// ── computeTargetGrade ──────────────────────────────────────────────────────────
+
+describe('computeTargetGrade', () => {
+  it('solves the needed average on the remaining work', () => {
+    // 88% locked over 70% of the grade, final worth 30%, want 90 overall:
+    // (90*100 - 88*70) / 30 = (9000 - 6160) / 30 = 94.666…
+    const r = computeTargetGrade(88, 30, 90);
+    expect(r.status).toBe('reachable');
+    expect(r.neededAverage).toBeCloseTo(94.6667, 3);
+  });
+
+  it('is the exact inverse of the weighted standing', () => {
+    // If you then score exactly the needed average on the remaining slice, the
+    // weighted result equals the target.
+    const current = 88, remaining = 30, target = 90;
+    const { neededAverage } = computeTargetGrade(current, remaining, target);
+    const finalGrade = current * ((100 - remaining) / 100) + neededAverage * (remaining / 100);
+    expect(finalGrade).toBeCloseTo(target, 6);
+  });
+
+  it('flags a target already secured (a zero still keeps it)', () => {
+    // 99% locked over 80%, only 20% left, want 70 → needed is negative.
+    const r = computeTargetGrade(99, 20, 70);
+    expect(r.status).toBe('secured');
+    expect(r.neededAverage).toBeLessThanOrEqual(0);
+  });
+
+  it('flags an out-of-reach target (>100 needed)', () => {
+    // 60% locked over 70%, final 30%, want 95 → needs way over 100.
+    const r = computeTargetGrade(60, 30, 95);
+    expect(r.status).toBe('impossible');
+    expect(r.neededAverage).toBeGreaterThan(100);
+  });
+
+  it('treats no remaining weight as a locked grade', () => {
+    expect(computeTargetGrade(85, 0, 90)).toEqual({ neededAverage: 0, status: 'locked' });
+  });
+
+  it('needs exactly the target when the whole grade is still open', () => {
+    const r = computeTargetGrade(0, 100, 85);
+    expect(r.status).toBe('reachable');
+    expect(r.neededAverage).toBeCloseTo(85, 6);
+  });
+});
+
+// ── remainingWeightShare ────────────────────────────────────────────────────────
+
+describe('remainingWeightShare', () => {
+  it('returns the ungraded share of total scheme weight', () => {
+    // Homework + Exam graded; Project (the "final", 30 of 100) still open → 30%.
+    const weights = { Homework: 30, Exam: 40, Project: 30 };
+    expect(remainingWeightShare(weights, ['Homework', 'Exam'])).toBeCloseTo(30, 6);
+  });
+
+  it('normalizes when the scheme does not sum to 100', () => {
+    // Total 50; Exam (20) ungraded → 20/50 = 40%.
+    expect(remainingWeightShare({ Homework: 30, Exam: 20 }, ['Homework'])).toBeCloseTo(40, 6);
+  });
+
+  it('is 0 when every weighted type already has grades', () => {
+    expect(remainingWeightShare({ Homework: 30, Exam: 70 }, ['Homework', 'Exam'])).toBe(0);
+  });
+
+  it('returns null when there is no usable scheme', () => {
+    expect(remainingWeightShare({}, [])).toBeNull();
   });
 });

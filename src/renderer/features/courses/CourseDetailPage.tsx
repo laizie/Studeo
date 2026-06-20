@@ -11,6 +11,7 @@ import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
 import CourseDialog from './CourseDialog';
 import GradeWeightsCard from './GradeWeightsCard';
+import TargetGradeCard from './TargetGradeCard';
 import EntityNotesList from '../notes/EntityNotesList';
 import { computeCourseStanding, formatPercent } from '../../../shared/grades';
 import ClassMeetingDialog from './ClassMeetingDialog';
@@ -329,6 +330,7 @@ export default function CourseDetailPage() {
           </div>
 
           <GradeWeightsCard course={course} />
+          <TargetGradeCard course={course} standing={standing} />
         </div>
 
       </div>
