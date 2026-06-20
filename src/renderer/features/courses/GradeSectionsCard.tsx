@@ -26,6 +26,12 @@ const NUM_INPUT =
   'w-16 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-white dark:bg-inset ' +
   'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
 
+// Flexible variant for the weight/score fields so they share the row and shrink
+// to fit the narrow column instead of overflowing (the card clips overflow).
+const FIELD_INPUT =
+  'w-full min-w-0 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-white dark:bg-inset ' +
+  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
+
 const NAME_INPUT =
   'flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-line rounded-lg bg-white dark:bg-inset ' +
   'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
@@ -125,60 +131,58 @@ export default function GradeSectionsCard({ course }: Props) {
             Set each weight and type your score as you get it — blank means not taken yet.
           </p>
 
-          {/* Column headers */}
-          {rows.length > 0 && (
-            <div className="flex items-center gap-2 px-0.5 text-[11px] font-medium text-muted">
-              <span className="flex-1">Section</span>
-              <span className="w-16 text-right">Weight</span>
-              <span className="w-16 text-right">Score</span>
-              <span className="w-5" />
-            </div>
-          )}
-
-          {/* Rows */}
+          {/* Rows — each section is its own block: name on top, weight + score below */}
           <div className="space-y-2">
             {rows.map(row => (
-              <div key={row.id} className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={row.name}
-                  onChange={e => updateRow(row.id, 'name', e.target.value)}
-                  placeholder="e.g. Exam 1"
-                  aria-label="Section name"
-                  className={NAME_INPUT}
-                />
-                <div className="flex items-center gap-1 shrink-0">
+              <div key={row.id} className="rounded-lg border border-line p-2.5 space-y-2">
+                {/* Name + remove */}
+                <div className="flex items-center gap-2">
                   <input
-                    type="number"
-                    value={row.weight}
-                    onChange={e => updateRow(row.id, 'weight', e.target.value)}
-                    min={0}
-                    max={100}
-                    placeholder="—"
-                    aria-label={`${row.name || 'Section'} weight percent`}
-                    className={NUM_INPUT}
+                    type="text"
+                    value={row.name}
+                    onChange={e => updateRow(row.id, 'name', e.target.value)}
+                    placeholder="e.g. Exam 1"
+                    aria-label="Section name"
+                    className={NAME_INPUT}
                   />
-                  <span className="text-xs text-muted w-2.5">%</span>
+                  <button
+                    onClick={() => removeRow(row.id)}
+                    aria-label={`Remove ${row.name || 'section'}`}
+                    className="p-1 text-muted hover:text-red-500 rounded transition-colors shrink-0"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={row.score}
-                    onChange={e => updateRow(row.id, 'score', e.target.value)}
-                    min={0}
-                    placeholder="—"
-                    aria-label={`${row.name || 'Section'} score percent`}
-                    className={NUM_INPUT}
-                  />
-                  <span className="text-xs text-muted w-2.5">%</span>
+                {/* Weight + score — each flexes to share the row so they never overflow */}
+                <div className="flex items-center gap-3 pl-2">
+                  <label className="flex flex-1 min-w-0 items-center gap-1.5">
+                    <span className="text-xs text-muted shrink-0">Weight</span>
+                    <input
+                      type="number"
+                      value={row.weight}
+                      onChange={e => updateRow(row.id, 'weight', e.target.value)}
+                      min={0}
+                      max={100}
+                      placeholder="—"
+                      aria-label={`${row.name || 'Section'} weight percent`}
+                      className={FIELD_INPUT}
+                    />
+                    <span className="text-xs text-muted shrink-0">%</span>
+                  </label>
+                  <label className="flex flex-1 min-w-0 items-center gap-1.5">
+                    <span className="text-xs text-muted shrink-0">Score</span>
+                    <input
+                      type="number"
+                      value={row.score}
+                      onChange={e => updateRow(row.id, 'score', e.target.value)}
+                      min={0}
+                      placeholder="—"
+                      aria-label={`${row.name || 'Section'} score percent`}
+                      className={FIELD_INPUT}
+                    />
+                    <span className="text-xs text-muted shrink-0">%</span>
+                  </label>
                 </div>
-                <button
-                  onClick={() => removeRow(row.id)}
-                  aria-label={`Remove ${row.name || 'section'}`}
-                  className="p-1 text-muted hover:text-red-500 rounded transition-colors shrink-0"
-                >
-                  <X size={14} />
-                </button>
               </div>
             ))}
           </div>
