@@ -1,116 +1,88 @@
 // Pure grade math — no Electron/Node imports so this is usable everywhere
-// and unit-testable. The course standing is always COMPUTED from assignment
-// scores; it is never stored (derived-values rule in CLAUDE.md).
+// and unit-testable. The course standing is always COMPUTED from the grade
+// sections; it is never stored (derived-values rule in CLAUDE.md).
 
-import { ASSIGNMENT_TYPES } from './types';
-import type { Assignment, AssignmentType } from './types';
-
-/** Assignment type → weight percent, e.g. { Homework: 30, Exam: 40 }. */
-export type GradeWeights = Partial<Record<AssignmentType, number>>;
+import type { GradeSection } from './types';
 
 /**
- * Parse the courses.grade_weights JSON column. Malformed JSON, unknown types,
- * and non-numeric or negative weights are dropped rather than thrown — a bad
- * config should never crash a page.
+ * Parse the courses.grade_weights JSON column into grade sections. Tolerant by
+ * design — a malformed config should never crash a page:
+ *   - New shape: an array of { id, name, weight, score }.
+ *   - Legacy shape: an object { "Homework": 30, … } (the old type→weight scheme)
+ *     is read forward as sections with those names and no score yet.
+ * Invalid entries (bad name/weight) are dropped.
  */
-export function parseGradeWeights(raw: string | null): GradeWeights {
-  if (!raw) return {};
+export function parseGradeSections(raw: string | null): GradeSection[] {
+  if (!raw) return [];
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return {};
+    return [];
   }
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
 
-  const out: GradeWeights = {};
-  for (const [key, value] of Object.entries(parsed)) {
-    if (
-      (ASSIGNMENT_TYPES as string[]).includes(key) &&
-      typeof value === 'number' &&
-      Number.isFinite(value) &&
-      value > 0
-    ) {
-      out[key as AssignmentType] = value;
+  // Legacy object form { type: weight } → sections, scores blank.
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const out: GradeSection[] = [];
+    for (const [name, weight] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof weight === 'number' && Number.isFinite(weight) && weight > 0) {
+        out.push({ id: `legacy-${name}`, name, weight, score: null });
+      }
     }
+    return out;
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  const out: GradeSection[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== 'object') continue;
+    const { id, name, weight, score } = item as Record<string, unknown>;
+    if (typeof name !== 'string' || !name.trim()) continue;
+    if (typeof weight !== 'number' || !Number.isFinite(weight) || weight <= 0) continue;
+    out.push({
+      id: typeof id === 'string' && id ? id : `s-${out.length}`,
+      name,
+      weight,
+      score: typeof score === 'number' && Number.isFinite(score) ? score : null,
+    });
   }
   return out;
 }
 
-export interface TypeStanding {
-  type: AssignmentType;
-  earned: number;
-  possible: number;
-  /** 0–100 within this type. */
-  percent: number;
-  /** Configured weight, or null when no scheme covers this type. */
-  weight: number | null;
-}
-
-export interface CourseStanding {
-  /** Weighted current grade, 0–100 — or null when nothing is graded yet. */
-  percent: number | null;
-  gradedCount: number;
-  /** Per-type breakdown, only for types with at least one graded assignment. */
-  breakdown: TypeStanding[];
-}
-
-function isGraded(a: Assignment): boolean {
-  return a.score !== null && a.points_possible !== null && a.points_possible > 0;
+export interface SectionStanding {
+  /** Weighted average over SCORED sections (normalized over their weight),
+   *  or null when nothing is scored yet. */
+  currentPercent: number | null;
+  /** Sum of all section weights. */
+  totalWeight: number;
+  /** Sum of weights of sections that have a score. */
+  scoredWeight: number;
+  /** Share (0–100) of the total weight not yet scored — the still-open portion. */
+  remainingWeightPct: number;
 }
 
 /**
- * Current standing in a course, from whatever has been graded so far.
- *
- * With no weight scheme: straight points — total earned / total possible.
- *
- * With a scheme ({ Homework: 30, Exam: 40 }): each type's percent is averaged
- * by points within the type, then types are combined by weight — normalized
- * over the weights of types that HAVE grades, so an ungraded category doesn't
- * drag the standing down before anything in it is returned. Graded types
- * missing from the scheme count for nothing (weight 0), matching how a
- * syllabus weight table works.
+ * Current standing from the grade sections, using the same "normalize over the
+ * scored portion" rule the old type-based standing used — so an unscored Final
+ * doesn't drag the grade down before you take it.
  */
-export function computeCourseStanding(
-  assignments: Assignment[],
-  rawWeights: string | null,
-): CourseStanding {
-  const graded = assignments.filter(isGraded);
-  if (graded.length === 0) return { percent: null, gradedCount: 0, breakdown: [] };
+export function computeSectionStanding(sections: GradeSection[]): SectionStanding {
+  const valid = sections.filter(s => Number.isFinite(s.weight) && s.weight > 0);
+  const totalWeight = valid.reduce((sum, s) => sum + s.weight, 0);
 
-  const weights = parseGradeWeights(rawWeights);
-  const hasScheme = Object.keys(weights).length > 0;
+  const scored = valid.filter(s => s.score !== null && Number.isFinite(s.score));
+  const scoredWeight = scored.reduce((sum, s) => sum + s.weight, 0);
 
-  // Group earned/possible by type.
-  const byType = new Map<AssignmentType, { earned: number; possible: number }>();
-  for (const a of graded) {
-    const t = byType.get(a.type) ?? { earned: 0, possible: 0 };
-    t.earned += a.score!;
-    t.possible += a.points_possible!;
-    byType.set(a.type, t);
-  }
+  const currentPercent =
+    scoredWeight > 0
+      ? scored.reduce((sum, s) => sum + (s.score as number) * s.weight, 0) / scoredWeight
+      : null;
 
-  const breakdown: TypeStanding[] = [...byType.entries()].map(([type, t]) => ({
-    type,
-    earned: t.earned,
-    possible: t.possible,
-    percent: (t.earned / t.possible) * 100,
-    weight: hasScheme ? weights[type] ?? null : null,
-  }));
+  const remainingWeightPct =
+    totalWeight > 0 ? ((totalWeight - scoredWeight) / totalWeight) * 100 : 0;
 
-  let percent: number;
-  const weighted = breakdown.filter(b => b.weight !== null && b.weight > 0);
-  if (hasScheme && weighted.length > 0) {
-    const totalWeight = weighted.reduce((sum, b) => sum + b.weight!, 0);
-    percent = weighted.reduce((sum, b) => sum + b.percent * b.weight!, 0) / totalWeight;
-  } else {
-    // No scheme, or the scheme covers nothing graded yet: straight points.
-    const earned = graded.reduce((sum, a) => sum + a.score!, 0);
-    const possible = graded.reduce((sum, a) => sum + a.points_possible!, 0);
-    percent = (earned / possible) * 100;
-  }
-
-  return { percent, gradedCount: graded.length, breakdown };
+  return { currentPercent, totalWeight, scoredWeight, remainingWeightPct };
 }
 
 /** "91.2%" — one decimal, trailing .0 trimmed. */
@@ -120,7 +92,7 @@ export function formatPercent(percent: number): string {
 }
 
 // ─── Target-grade calculator ────────────────────────────────────────────────
-// The inverse of computeCourseStanding: given the grade locked in so far and
+// The inverse of computeSectionStanding: given the grade locked in so far and
 // the share of the grade still up for grabs, what average do you need on the
 // remaining work to finish at a target? Pure + unit-tested like the rest.
 
@@ -168,26 +140,4 @@ export function computeTargetGrade(
   else if (needed > 100) status = 'impossible';
 
   return { neededAverage: needed, status };
-}
-
-/**
- * The share of the course grade (0–100) that is still ungraded, for prefilling
- * the calculator from the course's weight scheme: the summed weight of types
- * with no grades yet, over the total of all scheme weights. Returns null when
- * there is no usable scheme (so the UI falls back to a manual entry).
- */
-export function remainingWeightShare(
-  weights: GradeWeights,
-  gradedTypes: Iterable<AssignmentType>,
-): number | null {
-  const entries = Object.entries(weights) as [AssignmentType, number][];
-  const total = entries.reduce((sum, [, w]) => sum + w, 0);
-  if (total <= 0) return null;
-
-  const graded = new Set(gradedTypes);
-  const remaining = entries
-    .filter(([type]) => !graded.has(type))
-    .reduce((sum, [, w]) => sum + w, 0);
-
-  return (remaining / total) * 100;
 }

@@ -6,7 +6,7 @@ import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTerms } from '../../lib/queries/useTerms';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import CourseCard from './CourseCard';
-import { computeCourseStanding } from '../../../shared/grades';
+import { parseGradeSections, computeSectionStanding } from '../../../shared/grades';
 import CourseDialog from './CourseDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 
@@ -49,11 +49,11 @@ export default function CoursesPage() {
   const standingByCourse = useMemo(() => {
     const map = new Map<string, number | null>();
     for (const c of filtered) {
-      const courseAssignments = (assignments ?? []).filter(a => a.course_id === c.id);
-      map.set(c.id, computeCourseStanding(courseAssignments, c.grade_weights).percent);
+      // Course grade comes from its custom grade sections.
+      map.set(c.id, computeSectionStanding(parseGradeSections(c.grade_weights)).currentPercent);
     }
     return map;
-  }, [filtered, assignments]);
+  }, [filtered]);
 
   const count = filtered.length;
 

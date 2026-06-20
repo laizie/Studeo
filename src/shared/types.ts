@@ -15,9 +15,23 @@ export interface Course {
   color: string;
   building: string | null;
   term_id: string | null;
-  /** JSON: {"Homework": 30, "Exam": 40} — parse with parseGradeWeights() in shared/grades.ts. */
+  /** JSON GradeSection[] — custom grade sections with weights/scores. Parse with
+   *  parseGradeSections() in shared/grades.ts (also reads the legacy {type: weight} shape). */
   grade_weights: string | null;
   created_at: string;
+}
+
+// A custom grade section in a course's grading scheme: a named bucket with a
+// weight and (once you have it) your score. Stored as a JSON array in
+// courses.grade_weights. Lets a syllabus model "Exam 1 / Exam 2 / Final / …"
+// that the fixed assignment types can't express.
+export interface GradeSection {
+  id: string;
+  name: string;
+  /** Relative weight percent — normalized over the total, need not sum to 100. */
+  weight: number;
+  /** Your achieved score (0–100), or null when not graded/taken yet. */
+  score: number | null;
 }
 
 // Fixed list from PRD §7 — only change here, never as ad-hoc strings.
@@ -207,8 +221,8 @@ export interface UpdateCourseInput {
   color?: string;
   building?: string | null;
   termId?: string | null;
-  /** Map of assignment type → weight percent; null clears the scheme. */
-  gradeWeights?: Record<string, number> | null;
+  /** Custom grade sections (name + weight + score); null clears the scheme. */
+  gradeSections?: GradeSection[] | null;
 }
 
 export interface CreateAssignmentInput {

@@ -10,10 +10,9 @@ import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
 import CourseDialog from './CourseDialog';
-import GradeWeightsCard from './GradeWeightsCard';
-import TargetGradeCard from './TargetGradeCard';
+import GradeSectionsCard from './GradeSectionsCard';
 import EntityNotesList from '../notes/EntityNotesList';
-import { computeCourseStanding, formatPercent } from '../../../shared/grades';
+import { parseGradeSections, computeSectionStanding, formatPercent } from '../../../shared/grades';
 import ClassMeetingDialog from './ClassMeetingDialog';
 import MeetingExceptionDialog from './MeetingExceptionDialog';
 import QueryErrorState from '../../components/QueryErrorState';
@@ -69,8 +68,10 @@ export default function CourseDetailPage() {
   const isLoading  = courseLoading || assignmentsLoading;
   const allAssignments = assignments ?? [];
   const filtered   = applyDueFilter(allAssignments, dueFilter);
-  // Derived, never stored: recomputed from scores + the course's weight scheme.
-  const standing = computeCourseStanding(allAssignments, course?.grade_weights ?? null);
+  // Derived, never stored: the course grade comes from the custom grade sections.
+  const sections = parseGradeSections(course?.grade_weights ?? null);
+  const standing = computeSectionStanding(sections);
+  const scoredCount = sections.filter(s => s.score !== null).length;
 
   function openAdd() {
     setEditingAssignment(undefined);
@@ -158,13 +159,13 @@ export default function CourseDetailPage() {
           {course.building && (
             <p className="mt-1 text-sm text-muted">{course.building}</p>
           )}
-          {standing.percent !== null && (
+          {standing.currentPercent !== null && (
             <p className="mt-1 text-sm text-ink-soft">
               Current grade:{' '}
               <span className="font-semibold tabular-nums" style={{ color: course.color }}>
-                {formatPercent(standing.percent)}
+                {formatPercent(standing.currentPercent)}
               </span>
-              <span className="text-muted"> · {standing.gradedCount} graded</span>
+              <span className="text-muted"> · {scoredCount} of {sections.length} sections</span>
             </p>
           )}
           {/* Semester selector — only shown when at least one term exists */}
@@ -329,8 +330,7 @@ export default function CourseDetailPage() {
           )}
           </div>
 
-          <GradeWeightsCard course={course} />
-          <TargetGradeCard course={course} standing={standing} />
+          <GradeSectionsCard course={course} />
         </div>
 
       </div>

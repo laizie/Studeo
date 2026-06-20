@@ -1,134 +1,95 @@
 import { describe, it, expect } from 'vitest';
 import {
-  parseGradeWeights,
-  computeCourseStanding,
+  parseGradeSections,
+  computeSectionStanding,
   formatPercent,
   computeTargetGrade,
-  remainingWeightShare,
 } from '../grades';
-import type { Assignment, AssignmentType } from '../types';
+import type { GradeSection } from '../types';
 
-let counter = 0;
-function graded(type: AssignmentType, score: number | null, possible: number | null): Assignment {
-  counter += 1;
-  return {
-    id: `a${counter}`,
-    course_id: 'c1',
-    name: `${type} ${counter}`,
-    type,
-    status: 'completed',
-    due_date: '2026-03-01',
-    notes: null,
-    score,
-    points_possible: possible,
-    created_at: '2026-01-01T00:00:00Z',
-  };
+function section(name: string, weight: number, score: number | null): GradeSection {
+  return { id: name, name, weight, score };
 }
 
-// ── parseGradeWeights ──────────────────────────────────────────────────────────
+// ── parseGradeSections ──────────────────────────────────────────────────────────
 
-describe('parseGradeWeights', () => {
-  it('parses a valid scheme', () => {
-    expect(parseGradeWeights('{"Homework": 30, "Exam": 40}')).toEqual({
-      Homework: 30,
-      Exam: 40,
-    });
+describe('parseGradeSections', () => {
+  it('parses the new array shape', () => {
+    const raw = JSON.stringify([
+      { id: 'a', name: 'Exam 1', weight: 20, score: 88 },
+      { id: 'b', name: 'Final', weight: 30, score: null },
+    ]);
+    expect(parseGradeSections(raw)).toEqual([
+      { id: 'a', name: 'Exam 1', weight: 20, score: 88 },
+      { id: 'b', name: 'Final', weight: 30, score: null },
+    ]);
   });
 
-  it('returns empty for null, malformed JSON, and non-objects', () => {
-    expect(parseGradeWeights(null)).toEqual({});
-    expect(parseGradeWeights('not json')).toEqual({});
-    expect(parseGradeWeights('[30, 40]')).toEqual({});
-    expect(parseGradeWeights('"Homework"')).toEqual({});
+  it('reads the legacy { type: weight } object forward as sections with no score', () => {
+    expect(parseGradeSections('{"Homework": 30, "Exam": 40}')).toEqual([
+      { id: 'legacy-Homework', name: 'Homework', weight: 30, score: null },
+      { id: 'legacy-Exam', name: 'Exam', weight: 40, score: null },
+    ]);
   });
 
-  it('drops unknown types and invalid weights', () => {
-    expect(
-      parseGradeWeights('{"Homework": 30, "Attendance": 10, "Exam": "forty", "Quiz": -5, "Lab": 0}')
-    ).toEqual({ Homework: 30 });
+  it('drops invalid entries (bad name, non-positive weight, non-number score)', () => {
+    const raw = JSON.stringify([
+      { id: '1', name: 'Exam 1', weight: 20, score: 90 },
+      { id: '2', name: '', weight: 10, score: null },     // empty name
+      { id: '3', name: 'Lab', weight: 0, score: null },   // zero weight
+      { id: '4', name: 'Quiz', weight: 10, score: 'x' },  // bad score → null
+    ]);
+    expect(parseGradeSections(raw)).toEqual([
+      { id: '1', name: 'Exam 1', weight: 20, score: 90 },
+      { id: '4', name: 'Quiz', weight: 10, score: null },
+    ]);
+  });
+
+  it('returns [] for null and malformed JSON', () => {
+    expect(parseGradeSections(null)).toEqual([]);
+    expect(parseGradeSections('not json')).toEqual([]);
+    expect(parseGradeSections('42')).toEqual([]);
   });
 });
 
-// ── computeCourseStanding ──────────────────────────────────────────────────────
+// ── computeSectionStanding ──────────────────────────────────────────────────────
 
-describe('computeCourseStanding', () => {
-  it('returns null percent when nothing is graded', () => {
-    const result = computeCourseStanding([graded('Homework', null, null)], null);
-    expect(result.percent).toBeNull();
-    expect(result.gradedCount).toBe(0);
+describe('computeSectionStanding', () => {
+  it('is null with the full remaining weight when nothing is scored', () => {
+    const r = computeSectionStanding([section('Exam 1', 50, null), section('Final', 50, null)]);
+    expect(r.currentPercent).toBeNull();
+    expect(r.totalWeight).toBe(100);
+    expect(r.scoredWeight).toBe(0);
+    expect(r.remainingWeightPct).toBeCloseTo(100, 6);
   });
 
-  it('ignores assignments with zero points possible', () => {
-    const result = computeCourseStanding([graded('Homework', 5, 0)], null);
-    expect(result.percent).toBeNull();
+  it('averages scored sections normalized over their own weight', () => {
+    // Exam 1 (20) at 90 and Homework (30) at 80; Final (50) blank.
+    const r = computeSectionStanding([
+      section('Exam 1', 20, 90),
+      section('Homework', 30, 80),
+      section('Final', 50, null),
+    ]);
+    // (90*20 + 80*30) / (20+30) = 4200/50 = 84
+    expect(r.currentPercent).toBeCloseTo(84, 6);
+    expect(r.scoredWeight).toBe(50);
+    expect(r.remainingWeightPct).toBeCloseTo(50, 6); // Final's 50 of 100
   });
 
-  it('uses straight points when no scheme is set', () => {
-    const result = computeCourseStanding(
-      [graded('Homework', 18, 20), graded('Exam', 70, 100)],
-      null
-    );
-    // (18 + 70) / (20 + 100) = 73.33%
-    expect(result.percent).toBeCloseTo(73.333, 2);
-    expect(result.gradedCount).toBe(2);
+  it('normalizes even when weights do not sum to 100', () => {
+    // Total 50; only Midterm (20) scored at 75 → current 75, remaining (30/50)=60%.
+    const r = computeSectionStanding([
+      section('Midterm', 20, 75),
+      section('Paper', 30, null),
+    ]);
+    expect(r.currentPercent).toBeCloseTo(75, 6);
+    expect(r.remainingWeightPct).toBeCloseTo(60, 6);
   });
 
-  it('applies type weights when a scheme is set', () => {
-    const result = computeCourseStanding(
-      [graded('Homework', 18, 20), graded('Exam', 70, 100)],
-      '{"Homework": 30, "Exam": 70}'
-    );
-    // HW 90% * 30 + Exam 70% * 70, over 100 = 76%
-    expect(result.percent).toBeCloseTo(76, 5);
-  });
-
-  it('normalizes over graded categories only — an ungraded category does not drag', () => {
-    const result = computeCourseStanding(
-      [graded('Homework', 18, 20)],
-      '{"Homework": 30, "Exam": 70}'
-    );
-    // Only HW graded: standing is HW's 90%, not 27%.
-    expect(result.percent).toBeCloseTo(90, 5);
-  });
-
-  it('pools points within a type before weighting', () => {
-    const result = computeCourseStanding(
-      [graded('Quiz', 8, 10), graded('Quiz', 2, 10)],
-      '{"Quiz": 100}'
-    );
-    // (8+2)/(10+10) = 50%, not the 65% average of 80% and 20%.
-    expect(result.percent).toBeCloseTo(50, 5);
-  });
-
-  it('gives weight 0 to graded types missing from the scheme', () => {
-    const result = computeCourseStanding(
-      [graded('Homework', 20, 20), graded('Reading', 0, 10)],
-      '{"Homework": 100}'
-    );
-    expect(result.percent).toBeCloseTo(100, 5);
-    const reading = result.breakdown.find(b => b.type === 'Reading');
-    expect(reading?.weight).toBeNull();
-  });
-
-  it('falls back to straight points when the scheme covers nothing graded', () => {
-    const result = computeCourseStanding(
-      [graded('Reading', 9, 10)],
-      '{"Exam": 100}'
-    );
-    expect(result.percent).toBeCloseTo(90, 5);
-  });
-
-  it('reports a per-type breakdown', () => {
-    const result = computeCourseStanding(
-      [graded('Homework', 18, 20), graded('Homework', 16, 20), graded('Exam', 85, 100)],
-      '{"Homework": 40, "Exam": 60}'
-    );
-    expect(result.breakdown).toContainEqual({
-      type: 'Homework', earned: 34, possible: 40, percent: 85, weight: 40,
-    });
-    expect(result.breakdown).toContainEqual({
-      type: 'Exam', earned: 85, possible: 100, percent: 85, weight: 60,
-    });
+  it('ignores sections with non-positive weight', () => {
+    const r = computeSectionStanding([section('Exam', 100, 90), section('Bogus', 0, 50)]);
+    expect(r.currentPercent).toBeCloseTo(90, 6);
+    expect(r.totalWeight).toBe(100);
   });
 });
 
@@ -185,28 +146,5 @@ describe('computeTargetGrade', () => {
     const r = computeTargetGrade(0, 100, 85);
     expect(r.status).toBe('reachable');
     expect(r.neededAverage).toBeCloseTo(85, 6);
-  });
-});
-
-// ── remainingWeightShare ────────────────────────────────────────────────────────
-
-describe('remainingWeightShare', () => {
-  it('returns the ungraded share of total scheme weight', () => {
-    // Homework + Exam graded; Project (the "final", 30 of 100) still open → 30%.
-    const weights = { Homework: 30, Exam: 40, Project: 30 };
-    expect(remainingWeightShare(weights, ['Homework', 'Exam'])).toBeCloseTo(30, 6);
-  });
-
-  it('normalizes when the scheme does not sum to 100', () => {
-    // Total 50; Exam (20) ungraded → 20/50 = 40%.
-    expect(remainingWeightShare({ Homework: 30, Exam: 20 }, ['Homework'])).toBeCloseTo(40, 6);
-  });
-
-  it('is 0 when every weighted type already has grades', () => {
-    expect(remainingWeightShare({ Homework: 30, Exam: 70 }, ['Homework', 'Exam'])).toBe(0);
-  });
-
-  it('returns null when there is no usable scheme', () => {
-    expect(remainingWeightShare({}, [])).toBeNull();
   });
 });

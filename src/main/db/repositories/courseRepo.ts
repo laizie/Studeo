@@ -40,9 +40,10 @@ export function updateCourse(id: string, input: UpdateCourseInput): Course {
   if (input.color !== undefined)        { fields.push('color = ?');        values.push(input.color); }
   if (input.building !== undefined)     { fields.push('building = ?');     values.push(input.building ?? null); }
   if (input.termId !== undefined)       { fields.push('term_id = ?');      values.push(input.termId ?? null); }
-  if (input.gradeWeights !== undefined) {
+  if (input.gradeSections !== undefined) {
+    // Stored in the (legacy-named) grade_weights JSON column as a GradeSection[].
     fields.push('grade_weights = ?');
-    values.push(input.gradeWeights === null ? null : JSON.stringify(input.gradeWeights));
+    values.push(input.gradeSections === null ? null : JSON.stringify(input.gradeSections));
   }
 
   if (fields.length > 0) {
