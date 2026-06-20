@@ -1,7 +1,8 @@
-import { ipcMain, shell, dialog, BrowserWindow } from 'electron';
+import { ipcMain, shell, dialog, BrowserWindow, app } from 'electron';
 import { rmSync, existsSync, readdirSync, cpSync } from 'node:fs';
+import path from 'node:path';
 import { IPC } from '../../shared/types';
-import { getDb, getDbPath } from '../db/connection';
+import { getDb, getDbPath, closeDb, snapshotInto, validateBackupFile } from '../db/connection';
 import { getAssetsRoot } from '../media';
 import { getAllSettings, setSetting } from '../settings';
 
@@ -76,5 +77,71 @@ export function registerAppHandlers(): void {
     } catch (err) {
       return { saved: false, error: err instanceof Error ? err.message : 'Backup failed' };
     }
+  });
+
+  // Restore is the inverse of backup, and the one action that overwrites all
+  // current data — so it validates the chosen file, snapshots the current data
+  // first (recoverable), swaps the file, then relaunches for a clean re-init.
+  ipcMain.handle(IPC.APP.RESTORE_DATA, async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const options = {
+      title: 'Restore Studeo data from a backup',
+      properties: ['openFile' as const],
+      filters: [{ name: 'SQLite database', extensions: ['db'] }],
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, options)
+      : await dialog.showOpenDialog(options);
+    if (canceled || filePaths.length === 0) return { restored: false, canceled: true };
+
+    const backupPath = filePaths[0];
+
+    // 1. Make sure this is actually a Studeo database before touching anything.
+    try {
+      validateBackupFile(backupPath);
+    } catch (err) {
+      return { restored: false, error: err instanceof Error ? err.message : 'Invalid backup file' };
+    }
+
+    const dbPath = getDbPath();
+    const assetsRoot = getAssetsRoot();
+
+    try {
+      // 2. Safety net: snapshot the CURRENT data before we overwrite it, so a
+      //    mistaken restore is itself recoverable. Best-effort on the assets.
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const snapshotPath = path.join(path.dirname(dbPath), `studeo-pre-restore-${stamp}.db`);
+      rmSync(snapshotPath, { force: true });
+      snapshotInto(snapshotPath);
+      if (existsSync(assetsRoot) && readdirSync(assetsRoot).length > 0) {
+        cpSync(assetsRoot, snapshotPath.replace(/\.db$/i, '') + '-assets', { recursive: true });
+      }
+
+      // 3. Swap in the backup. Close the connection first so the file handle is
+      //    released, and drop the stale WAL sidecars so they can't be replayed
+      //    on top of the restored file.
+      closeDb();
+      rmSync(`${dbPath}-wal`, { force: true });
+      rmSync(`${dbPath}-shm`, { force: true });
+      cpSync(backupPath, dbPath);
+
+      // Restore note images if the backup carried its sibling "…-assets" folder.
+      const backupAssets = backupPath.replace(/\.db$/i, '') + '-assets';
+      if (existsSync(backupAssets)) {
+        rmSync(assetsRoot, { recursive: true, force: true });
+        cpSync(backupAssets, assetsRoot, { recursive: true });
+      }
+    } catch (err) {
+      return { restored: false, error: err instanceof Error ? err.message : 'Restore failed' };
+    }
+
+    // 4. Relaunch so everything re-initializes from the restored file (migrations
+    //    re-run, renderer caches rebuild). Delay briefly so this reply reaches the
+    //    renderer before the window is torn down.
+    setTimeout(() => {
+      app.relaunch();
+      app.exit(0);
+    }, 400);
+    return { restored: true };
   });
 }

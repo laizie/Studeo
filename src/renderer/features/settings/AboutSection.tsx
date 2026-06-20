@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { Info, FolderOpen, HardDriveDownload } from 'lucide-react';
+import { Info, FolderOpen, HardDriveDownload, HardDriveUpload } from 'lucide-react';
 import { version as appVersion } from '../../../../package.json';
 import { SectionHeading, SettingsCard, SettingsRow, CardButton } from './components';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function AboutSection() {
   const [backupState, setBackupState] = useState<'idle' | 'saving' | 'done' | 'failed'>('idle');
   const [backupDetail, setBackupDetail] = useState('');
+
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  const [restoreState, setRestoreState] = useState<'idle' | 'restoring' | 'done' | 'failed'>('idle');
+  const [restoreDetail, setRestoreDetail] = useState('');
 
   async function handleBackup() {
     setBackupState('saving');
@@ -26,10 +31,37 @@ export default function AboutSection() {
     }
   }
 
+  async function handleRestore() {
+    setRestoreConfirmOpen(false);
+    setRestoreState('restoring');
+    try {
+      const result = await window.api.app.restoreData();
+      // On success the app relaunches, so we usually never reach the "done" UI —
+      // but set it anyway in case the relaunch is delayed.
+      if (result.restored) {
+        setRestoreState('done');
+      } else if (result.error) {
+        setRestoreState('failed');
+        setRestoreDetail(result.error);
+      } else {
+        setRestoreState('idle'); // user canceled the file picker — not an error
+      }
+    } catch {
+      setRestoreState('failed');
+      setRestoreDetail('');
+    }
+  }
+
   const backupDescription =
     backupState === 'done'   ? `Saved to ${backupDetail}`
     : backupState === 'failed' ? `Backup failed${backupDetail ? ` — ${backupDetail}` : ''}. Please try again.`
     : 'Save a snapshot of your database (note images are copied alongside it) — a safe copy before big changes';
+
+  const restoreDescription =
+    restoreState === 'restoring' ? 'Restoring… the app will restart in a moment.'
+    : restoreState === 'done'     ? 'Restored — restarting…'
+    : restoreState === 'failed'   ? `Restore failed${restoreDetail ? ` — ${restoreDetail}` : ''}. Your data was not changed.`
+    : 'Replace your current data with a backup file. A safety copy of your current data is saved first.';
 
   return (
     <div>
@@ -58,7 +90,28 @@ export default function AboutSection() {
             {backupState === 'saving' ? 'Saving…' : 'Back up now…'}
           </CardButton>
         </SettingsRow>
+        <SettingsRow
+          icon={<HardDriveUpload size={17} />}
+          label="Restore from backup"
+          description={restoreDescription}
+        >
+          <CardButton
+            onClick={() => setRestoreConfirmOpen(true)}
+            disabled={restoreState === 'restoring' || restoreState === 'done'}
+          >
+            {restoreState === 'restoring' ? 'Restoring…' : 'Restore…'}
+          </CardButton>
+        </SettingsRow>
       </SettingsCard>
+
+      <ConfirmDialog
+        isOpen={restoreConfirmOpen}
+        title="Restore from a backup?"
+        message="This replaces all of your current courses, assignments, notes, and settings with the backup you choose. A safety copy of your current data is saved first, and the app will restart."
+        confirmLabel="Restore"
+        onConfirm={handleRestore}
+        onClose={() => setRestoreConfirmOpen(false)}
+      />
     </div>
   );
 }
