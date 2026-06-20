@@ -118,3 +118,76 @@ export function formatPercent(percent: number): string {
   const rounded = Math.round(percent * 10) / 10;
   return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
 }
+
+// ─── Target-grade calculator ────────────────────────────────────────────────
+// The inverse of computeCourseStanding: given the grade locked in so far and
+// the share of the grade still up for grabs, what average do you need on the
+// remaining work to finish at a target? Pure + unit-tested like the rest.
+
+export type TargetStatus =
+  | 'reachable'  // a normal 0–100 score gets you there
+  | 'impossible' // would need more than 100% on what's left
+  | 'secured'    // even a 0 on the rest keeps you at/above target
+  | 'locked';    // nothing left ungraded — the grade is already final
+
+export interface TargetGradeResult {
+  /** Average % needed across the remaining work to hit the target. */
+  neededAverage: number;
+  status: TargetStatus;
+}
+
+/**
+ * What average is needed on the remaining work to finish a course at
+ * `targetPercent`?
+ *
+ * `remainingWeightPct` is the share of the WHOLE course grade (0–100) that is
+ * still ungraded; the rest (100 − remaining) is locked in at `currentPercent`.
+ * Solving `target = current·(locked/100) + needed·(remaining/100)` for needed:
+ *
+ *     needed = (target·100 − current·(100 − remaining)) / remaining
+ *
+ * which is exactly the inverse of the weighted standing the course page shows.
+ */
+export function computeTargetGrade(
+  currentPercent: number,
+  remainingWeightPct: number,
+  targetPercent: number,
+): TargetGradeResult {
+  const w = remainingWeightPct;
+  // Nothing left to earn on (or a nonsensical weight): the grade is settled.
+  if (!Number.isFinite(w) || w <= 0) {
+    return { neededAverage: 0, status: 'locked' };
+  }
+
+  const current = Number.isFinite(currentPercent) ? currentPercent : 0;
+  const lockedShare = Math.max(0, 100 - w); // clamp so remaining > 100 still behaves
+  const needed = (targetPercent * 100 - current * lockedShare) / w;
+
+  let status: TargetStatus = 'reachable';
+  if (needed <= 0) status = 'secured';
+  else if (needed > 100) status = 'impossible';
+
+  return { neededAverage: needed, status };
+}
+
+/**
+ * The share of the course grade (0–100) that is still ungraded, for prefilling
+ * the calculator from the course's weight scheme: the summed weight of types
+ * with no grades yet, over the total of all scheme weights. Returns null when
+ * there is no usable scheme (so the UI falls back to a manual entry).
+ */
+export function remainingWeightShare(
+  weights: GradeWeights,
+  gradedTypes: Iterable<AssignmentType>,
+): number | null {
+  const entries = Object.entries(weights) as [AssignmentType, number][];
+  const total = entries.reduce((sum, [, w]) => sum + w, 0);
+  if (total <= 0) return null;
+
+  const graded = new Set(gradedTypes);
+  const remaining = entries
+    .filter(([type]) => !graded.has(type))
+    .reduce((sum, [, w]) => sum + w, 0);
+
+  return (remaining / total) * 100;
+}
