@@ -184,6 +184,10 @@ export interface StudySession {
   duration_seconds: number;
   kind: 'focus' | 'short_break' | 'long_break';
   course_id: string | null;
+  /** One-line intention set in Focus Mode before the block started. */
+  intention: string | null;
+  /** One-line reflection jotted right after the block ended. */
+  reflection: string | null;
 }
 
 // ─── Input types ──────────────────────────────────────────────────────────────
@@ -205,6 +209,12 @@ export interface CreateStudySessionInput {
   durationSeconds: number;
   kind: 'focus' | 'short_break' | 'long_break';
   courseId?: string;
+  intention?: string;
+}
+
+export interface UpdateStudySessionInput {
+  reflection?: string | null;
+  intention?: string | null;
 }
 
 export interface CreateCourseInput {
@@ -448,6 +458,7 @@ export const IPC = {
   STUDY_SESSIONS: {
     LIST:   'study_sessions:list',
     CREATE: 'study_sessions:create',
+    UPDATE: 'study_sessions:update',
   },
   NOTES: {
     LIST:            'notes:list',
@@ -579,6 +590,8 @@ export interface WindowApi {
   studySessions: {
     list(): Promise<StudySession[]>;
     create(input: CreateStudySessionInput): Promise<StudySession>;
+    /** Attach an intention/reflection to an already-logged session. */
+    update(id: string, input: UpdateStudySessionInput): Promise<StudySession>;
   };
   notes: {
     /** Defaults to non-archived notes; pass { archived: true } for the trash. */

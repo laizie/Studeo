@@ -64,13 +64,19 @@ function sendNotification(completed: Phase, next: Phase): void {
 }
 
 // Persist finished focus sessions so study stats are possible later.
-// Fire-and-forget: a failed write must never break the timer itself.
-function logFocusSession(durationSeconds: number): void {
+// Fire-and-forget: a failed write must never break the timer itself. The
+// intention (if any) rides along, and the resulting session id is stashed so
+// Focus Mode can prompt for a reflection on the block that just ended.
+function logFocusSession(durationSeconds: number, intention: string): void {
   window.api.studySessions
     .create({
       startedAt: new Date(Date.now() - durationSeconds * 1000).toISOString(),
       durationSeconds,
       kind: 'focus',
+      intention: intention.trim() || undefined,
+    })
+    .then((s) => {
+      useTimerStore.setState({ lastFocusSessionId: s.id, awaitingReflection: true });
     })
     .catch(() => { /* best-effort logging */ });
 }
@@ -125,9 +131,18 @@ interface TimerState {
    * technique fact that needs storing — and it persists across navigation.
    */
   customTechnique: boolean;
+  /** Focus Mode: the one-line intention for the current/next focus block. */
+  intention: string;
+  /** The session logged by the most recently completed focus block (for the reflection prompt). */
+  lastFocusSessionId: string | null;
+  /** True right after a focus block ends, until the user writes or skips a reflection. */
+  awaitingReflection: boolean;
 
   setPhase: (phase: Phase) => void;
   setCustomTechnique: (v: boolean) => void;
+  setIntention: (v: string) => void;
+  /** Dismiss the reflection prompt (after submitting or skipping). */
+  clearReflectionPrompt: () => void;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -152,6 +167,7 @@ interface TimerSnapshot {
   isRunning: boolean;
   endsAt: number | null;
   focusCount: number;
+  intention: string;
 }
 
 function readSnapshot(): TimerSnapshot | null {
@@ -173,11 +189,13 @@ const restored = (() => {
     isRunning: false,
     endsAt: null as number | null,
     focusCount: 0,
+    intention: '',
   };
   const s = readSnapshot();
   if (!s) return fresh;
 
   const focusCount = Number.isFinite(s.focusCount) ? s.focusCount : 0;
+  const intention  = typeof s.intention === 'string' ? s.intention : '';
 
   // Still mid-session: resume running exactly where the wall clock says.
   if (s.isRunning && typeof s.endsAt === 'number' && s.endsAt > Date.now()) {
@@ -187,6 +205,7 @@ const restored = (() => {
       isRunning: true,
       endsAt: s.endsAt,
       focusCount,
+      intention,
     };
   }
 
@@ -195,17 +214,21 @@ const restored = (() => {
   if (s.isRunning && typeof s.endsAt === 'number') {
     let nextCount = focusCount;
     let nextPhase: Phase;
+    let nextIntention = intention;
     if (s.phase === 'focus') {
-      // The focus block genuinely completed — persist it with its real timestamps.
+      // The focus block genuinely completed — persist it with its real timestamps
+      // and intention. No reflection prompt: the block ended while the app was shut.
       window.api.studySessions
         .create({
           startedAt: new Date(s.endsAt - initFocusSecs * 1000).toISOString(),
           durationSeconds: initFocusSecs,
           kind: 'focus',
+          intention: intention.trim() || undefined,
         })
         .catch(() => { /* best-effort */ });
       nextCount = focusCount + 1;
       nextPhase = nextCount % LONG_BREAK_EVERY === 0 ? 'long_break' : 'short_break';
+      nextIntention = '';
     } else {
       nextPhase = 'focus';
     }
@@ -215,6 +238,7 @@ const restored = (() => {
       isRunning: false,
       endsAt: null,
       focusCount: nextCount,
+      intention: nextIntention,
     };
   }
 
@@ -222,7 +246,7 @@ const restored = (() => {
   const timeLeft = Number.isFinite(s.timeLeft) && s.timeLeft > 0
     ? s.timeLeft
     : phaseSecs(s.phase, initFocusSecs, initBreakSecs, initLongBreakSecs);
-  return { phase: s.phase, timeLeft, isRunning: false, endsAt: null, focusCount };
+  return { phase: s.phase, timeLeft, isRunning: false, endsAt: null, focusCount, intention };
 })();
 
 export const useTimerStore = create<TimerState>((set, get) => ({
@@ -236,11 +260,17 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   focusCount:    restored.focusCount,
   endsAt:        restored.endsAt,
   customTechnique: readSetting('customTechnique', 'studeo:customTechnique') === 'true',
+  intention:          restored.intention,
+  lastFocusSessionId: null,
+  awaitingReflection: false,
 
   setCustomTechnique: (v) => {
     saveSetting('customTechnique', String(v));
     set({ customTechnique: v });
   },
+
+  setIntention: (v) => set({ intention: v }),
+  clearReflectionPrompt: () => set({ awaitingReflection: false, lastFocusSessionId: null }),
 
   setPhase: (phase) => {
     const { focusSecs, breakSecs, longBreakSecs } = get();
@@ -266,7 +296,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // Driven once a second from the app shell. Remaining time is derived from
   // endsAt rather than decremented, so a missed tick can't accumulate drift.
   tick: () => {
-    const { isRunning, endsAt, phase, autoAdvance, focusSecs, breakSecs, longBreakSecs, focusCount } = get();
+    const { isRunning, endsAt, phase, autoAdvance, focusSecs, breakSecs, longBreakSecs, focusCount, intention } = get();
     if (!isRunning || endsAt == null) return;
     const remaining = Math.round((endsAt - Date.now()) / 1000);
     if (remaining > 0) {
@@ -279,7 +309,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     let next: Phase;
     let nextFocusCount = focusCount;
     if (phase === 'focus') {
-      logFocusSession(focusSecs);
+      logFocusSession(focusSecs, intention);  // logs the session + arms the reflection prompt
       nextFocusCount = focusCount + 1;
       next = nextFocusCount % LONG_BREAK_EVERY === 0 ? 'long_break' : 'short_break';
     } else {
@@ -295,6 +325,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       timeLeft: nextSecs,
       isRunning: autoAdvance,
       endsAt: autoAdvance ? Date.now() + nextSecs * 1000 : null,
+      // The intention belonged to the block that just ended — clear it for the next one.
+      ...(phase === 'focus' ? { intention: '' } : {}),
     });
   },
 
@@ -328,6 +360,7 @@ useTimerStore.subscribe((s) => {
     isRunning: s.isRunning,
     endsAt: s.endsAt,
     focusCount: s.focusCount,
+    intention: s.intention,
   };
   localStorage.setItem('studeo:timerState', JSON.stringify(snapshot));
 });

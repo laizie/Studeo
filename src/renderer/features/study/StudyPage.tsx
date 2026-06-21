@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2, Maximize2 } from 'lucide-react';
 import {
   useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
   PHASE_LABELS, PHASE_COLORS, formatClock,
@@ -15,6 +15,8 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import StudySessionsNotesCard from './StudySessionsNotesCard';
+import ProgressRing from './ProgressRing';
+import { useFocusStore } from '../../store/useFocusStore';
 
 // ── Study technique presets ───────────────────────────────────────────────────
 
@@ -75,33 +77,6 @@ function segBtn(active: boolean): string {
     active
       ? 'bg-surface text-ink shadow-sm'
       : 'text-ink-soft hover:bg-surface-hi',
-  );
-}
-
-// ── Progress ring ─────────────────────────────────────────────────────────────
-
-const RADIUS        = 88;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-function ProgressRing({ phase, timeLeft, totalSecs }: { phase: Phase; timeLeft: number; totalSecs: number }) {
-  const progress = totalSecs > 0 ? timeLeft / totalSecs : 1;
-  const offset   = CIRCUMFERENCE * (1 - progress);
-  const color    = PHASE_COLORS[phase];
-
-  return (
-    <svg viewBox="0 0 200 200" className="-rotate-90 w-[200px] h-[200px] lg:w-[220px] lg:h-[220px]">
-      <circle cx={100} cy={100} r={RADIUS}
-        fill="none" stroke="currentColor" strokeWidth={7}
-        className="text-stone-100 dark:text-line"
-      />
-      <circle cx={100} cy={100} r={RADIUS}
-        fill="none" stroke={color} strokeWidth={7}
-        strokeLinecap="round"
-        strokeDasharray={CIRCUMFERENCE}
-        strokeDashoffset={offset}
-        style={{ transition: 'stroke-dashoffset 0.6s linear, stroke 0.3s ease' }}
-      />
-    </svg>
   );
 }
 
@@ -325,7 +300,16 @@ export default function StudyPage() {
   return (
     <div className="p-8">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-semibold text-ink mb-6">Study</h1>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-ink">Study</h1>
+          <button
+            onClick={() => useFocusStore.getState().open()}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink shadow-sm hover:bg-accent-deep transition-colors"
+          >
+            <Maximize2 size={15} />
+            Enter Focus Mode
+          </button>
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-5">
 

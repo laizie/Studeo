@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import QuickAddDialog from '../features/quickadd/QuickAddDialog';
 import CommandPalette from './CommandPalette';
+import FocusMode from '../features/study/FocusMode';
 import { useTimerDriver } from '../lib/useTimerDriver';
 
 export default function Layout() {
@@ -34,6 +35,7 @@ export default function Layout() {
       </main>
       <QuickAddDialog isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <FocusMode />
     </div>
   );
 }
