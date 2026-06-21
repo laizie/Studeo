@@ -15,6 +15,7 @@ import migration008 from './migrations/008_note_versions.sql?raw';
 import migration009 from './migrations/009_note_date.sql?raw';
 import migration010 from './migrations/010_note_pin.sql?raw';
 import migration011 from './migrations/011_study_session_reflection.sql?raw';
+import migration012 from './migrations/012_study_blocks.sql?raw';
 
 let db: DatabaseSync | null = null;
 let dbPath: string | null = null;
@@ -104,6 +105,7 @@ const MIGRATIONS: { name: string; sql: string }[] = [
   { name: '009_note_date.sql', sql: migration009 },
   { name: '010_note_pin.sql', sql: migration010 },
   { name: '011_study_session_reflection.sql', sql: migration011 },
+  { name: '012_study_blocks.sql', sql: migration012 },
 ];
 
 function runMigrations(database: DatabaseSync): void {

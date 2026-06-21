@@ -25,6 +25,8 @@ interface PageFiltersState {
   setCalendarView:      (v: CalendarView) => void;
   calendarShowTasks:    boolean;
   setCalendarShowTasks: (v: boolean) => void;
+  calendarShowStudyBlocks:    boolean;
+  setCalendarShowStudyBlocks: (v: boolean) => void;
 
   // Semester filter (null = all terms)
   termFilter:           string | null;
@@ -48,6 +50,8 @@ export const usePageFiltersStore = create<PageFiltersState>()((set) => ({
   setCalendarView:       (calendarView)        => set({ calendarView }),
   calendarShowTasks:     false,
   setCalendarShowTasks:  (calendarShowTasks)   => set({ calendarShowTasks }),
+  calendarShowStudyBlocks:    false,
+  setCalendarShowStudyBlocks: (calendarShowStudyBlocks) => set({ calendarShowStudyBlocks }),
 
   termFilter:            null,
   setTermFilter:         (termFilter)          => set({ termFilter }),

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo } from 'lucide-react';
+import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo, CalendarPlus } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SubtaskChecklist from './SubtaskChecklist';
+import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
@@ -33,6 +34,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const inFocusList = focusItems.some(i => i.id === assignment.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
 
   const { data: allSubtasks } = useSubtasks();
   const subtasks = (allSubtasks ?? []).filter(s => s.assignment_id === assignment.id);
@@ -141,6 +143,18 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         {subtasks.length > 0 && <span>{doneSteps}/{subtasks.length}</span>}
       </button>
 
+      {/* Plan study sessions — only for exams, where back-planning makes sense */}
+      {assignment.type === 'Exam' && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setPlanOpen(true); }}
+          aria-label={`Plan study sessions for ${assignment.name}`}
+          title="Plan study sessions"
+          className="shrink-0 p-1 rounded text-muted hover:text-accent transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <CalendarPlus size={13} />
+        </button>
+      )}
+
       {/* Focus list toggle */}
       <button
         onClick={handleFocusToggle}
@@ -184,6 +198,10 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         onConfirm={() => deleteAssignment.mutate(assignment.id)}
         onClose={() => setConfirmOpen(false)}
       />
+
+      {planOpen && (
+        <PlanStudyDialog assignment={assignment} course={course} onClose={() => setPlanOpen(false)} />
+      )}
     </div>
 
     {stepsOpen && (

@@ -190,6 +190,20 @@ export interface StudySession {
   reflection: string | null;
 }
 
+export type StudyBlockStatus = 'planned' | 'done' | 'skipped';
+
+// A planned study session written onto the calendar by exam back-planning.
+export interface StudyBlock {
+  id: string;
+  assignment_id: string | null;
+  course_id: string | null;
+  title: string;
+  scheduled_date: string;        // 'YYYY-MM-DD' (local), all-day
+  duration_minutes: number;
+  status: StudyBlockStatus;
+  created_at: string;
+}
+
 // ─── Input types ──────────────────────────────────────────────────────────────
 // Separate from the domain models so we never accidentally pass DB row shapes
 // as creation inputs (different fields, no id/created_at yet).
@@ -215,6 +229,19 @@ export interface CreateStudySessionInput {
 export interface UpdateStudySessionInput {
   reflection?: string | null;
   intention?: string | null;
+}
+
+export interface CreateStudyBlockInput {
+  assignmentId?: string | null;
+  courseId?: string | null;
+  title: string;
+  scheduledDate: string;         // 'YYYY-MM-DD'
+  durationMinutes: number;
+}
+
+export interface UpdateStudyBlockInput {
+  status?: StudyBlockStatus;
+  scheduledDate?: string;
 }
 
 export interface CreateCourseInput {
@@ -460,6 +487,13 @@ export const IPC = {
     CREATE: 'study_sessions:create',
     UPDATE: 'study_sessions:update',
   },
+  STUDY_BLOCKS: {
+    LIST:        'study_blocks:list',
+    CREATE_MANY: 'study_blocks:create-many',
+    UPDATE:      'study_blocks:update',
+    DELETE:      'study_blocks:delete',
+    DELETE_FOR_ASSIGNMENT: 'study_blocks:delete-for-assignment',
+  },
   NOTES: {
     LIST:            'notes:list',
     LIST_WITH_COURSE:'notes:list-with-course',
@@ -592,6 +626,15 @@ export interface WindowApi {
     create(input: CreateStudySessionInput): Promise<StudySession>;
     /** Attach an intention/reflection to an already-logged session. */
     update(id: string, input: UpdateStudySessionInput): Promise<StudySession>;
+  };
+  studyBlocks: {
+    list(): Promise<StudyBlock[]>;
+    /** Atomic batch insert of a generated study plan — all rows save or none do. */
+    createMany(inputs: CreateStudyBlockInput[]): Promise<StudyBlock[]>;
+    update(id: string, input: UpdateStudyBlockInput): Promise<StudyBlock>;
+    delete(id: string): Promise<void>;
+    /** Clear an exam's existing plan before regenerating it (the "Replace" flow). */
+    deleteForAssignment(assignmentId: string): Promise<void>;
   };
   notes: {
     /** Defaults to non-archived notes; pass { archived: true } for the trash. */
