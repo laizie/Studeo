@@ -76,13 +76,23 @@ export default function StudySessionsNotesCard() {
             <button
               key={s.id}
               onClick={() => setSelected(s)}
-              className="group flex w-full items-center gap-3 px-1 py-2.5 text-left hover:bg-surface-hi rounded-lg transition-colors"
+              className="group flex w-full items-start gap-3 px-1 py-2.5 text-left hover:bg-surface-hi rounded-lg transition-colors"
             >
-              <span className="flex-1 text-sm text-ink-soft">{sessionLabel(s)}</span>
-              <span className="text-xs text-muted tabular-nums">{durationLabel(s)}</span>
+              <div className="min-w-0 flex-1">
+                <span className="text-sm text-ink-soft">{sessionLabel(s)}</span>
+                {s.intention && (
+                  <p className="mt-0.5 truncate text-xs text-muted">
+                    <span className="text-muted/80">Intention:</span> {s.intention}
+                  </p>
+                )}
+                {s.reflection && (
+                  <p className="mt-0.5 truncate text-xs italic text-muted">“{s.reflection}”</p>
+                )}
+              </div>
+              <span className="mt-0.5 shrink-0 text-xs text-muted tabular-nums">{durationLabel(s)}</span>
               <NotebookPen
                 size={14}
-                className="shrink-0 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                className="mt-0.5 shrink-0 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-hidden="true"
               />
             </button>
