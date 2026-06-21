@@ -12,8 +12,9 @@ import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
 import { buildExceptionIndex, resolveOccurrence, type ExceptionIndex } from '../../../shared/meetingExceptions';
 import { useTasks } from '../../lib/queries/useTasks';
+import { useStudyBlocks, useUpdateStudyBlock } from '../../lib/queries/useStudyBlocks';
 import { parseDateLocal } from '../../../shared/deadlines';
-import type { Assignment, ClassMeeting, Course, Task } from '../../../shared/types';
+import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
 import { contrastTextColor } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
 import LectureNotesDialog from '../notes/LectureNotesDialog';
@@ -53,7 +54,15 @@ type TaskEvent = {
   resource: { type: 'task'; task: Task };
 };
 
-type CalEvent = AssignmentEvent | MeetingEvent | TaskEvent;
+type StudyBlockEvent = {
+  title: string;
+  start: Date;
+  end: Date;
+  allDay: true;
+  resource: { type: 'studyBlock'; block: StudyBlock; course: Course | undefined };
+};
+
+type CalEvent = AssignmentEvent | MeetingEvent | TaskEvent | StudyBlockEvent;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -123,6 +132,8 @@ export default function CalendarPage() {
   const { data: allMeetings, isError: meetingsError,    refetch: refetchMeetings    } = useClassMeetings();
   const { data: exceptions }   = useMeetingExceptions();
   const { data: tasks }        = useTasks();
+  const { data: studyBlocks }  = useStudyBlocks();
+  const updateStudyBlock       = useUpdateStudyBlock();
 
   const hasError = coursesError || assignmentsError || meetingsError;
 
@@ -132,6 +143,8 @@ export default function CalendarPage() {
   const setCalView          = usePageFiltersStore(s => s.setCalendarView);
   const calendarShowTasks   = usePageFiltersStore(s => s.calendarShowTasks);
   const setCalendarShowTasks = usePageFiltersStore(s => s.setCalendarShowTasks);
+  const calendarShowStudyBlocks    = usePageFiltersStore(s => s.calendarShowStudyBlocks);
+  const setCalendarShowStudyBlocks = usePageFiltersStore(s => s.setCalendarShowStudyBlocks);
   const [calDate, setCalDate] = useState(new Date());
   // The dated lecture whose notes dialog is open (set when a meeting event is clicked).
   const [lectureSel, setLectureSel] = useState<{ meeting: ClassMeeting; course?: Course; date: string } | null>(null);
@@ -186,13 +199,27 @@ export default function CalendarPage() {
       });
   }, [tasks]);
 
+  const studyBlockEvents = useMemo((): StudyBlockEvent[] => {
+    if (!studyBlocks) return [];
+    return studyBlocks.map(b => {
+      const date = parseDateLocal(b.scheduled_date);
+      return {
+        title: b.title,
+        start: date,
+        end:   date,
+        allDay: true as const,
+        resource: { type: 'studyBlock' as const, block: b, course: b.course_id ? courseMap.get(b.course_id) : undefined },
+      };
+    });
+  }, [studyBlocks, courseMap]);
+
   const events: CalEvent[] = useMemo(() => {
-    const base: CalEvent[] = mode === 'assignments' ? assignmentEvents : lectureEvents;
-    if (mode === 'assignments' && calendarShowTasks) {
-      return [...base, ...taskEvents];
-    }
+    if (mode !== 'assignments') return lectureEvents;
+    const base: CalEvent[] = [...assignmentEvents];
+    if (calendarShowTasks)       base.push(...taskEvents);
+    if (calendarShowStudyBlocks) base.push(...studyBlockEvents);
     return base;
-  }, [mode, assignmentEvents, lectureEvents, taskEvents, calendarShowTasks]);
+  }, [mode, assignmentEvents, lectureEvents, taskEvents, studyBlockEvents, calendarShowTasks, calendarShowStudyBlocks]);
 
   // ── Calendar callbacks ───────────────────────────────────────────────────────
 
@@ -213,6 +240,13 @@ export default function CalendarPage() {
         navigate(`/courses/${event.resource.course.id}`);
       } else if (event.resource.type === 'task') {
         navigate('/tasks');
+      } else if (event.resource.type === 'studyBlock') {
+        // Tick a planned block off (or back on) right from the calendar.
+        const block = event.resource.block;
+        updateStudyBlock.mutate({
+          id: block.id,
+          input: { status: block.status === 'done' ? 'planned' : 'done' },
+        });
       } else if (event.resource.type === 'meeting') {
         // Open notes for this specific dated lecture.
         setLectureSel({
@@ -222,10 +256,28 @@ export default function CalendarPage() {
         });
       }
     },
-    [navigate]
+    [navigate, updateStudyBlock]
   );
 
   const eventPropGetter = useCallback((event: CalEvent) => {
+    if (event.resource.type === 'studyBlock') {
+      // Study blocks read as the app's amber accent, in an outlined/soft style so
+      // they're visibly "planned time" rather than a hard deadline. Done/skipped dim.
+      const block = event.resource.block;
+      const settled = block.status !== 'planned';
+      return {
+        style: {
+          backgroundColor: settled ? '#d6d3d1' : 'color-mix(in srgb, #e2a53b 22%, white)',
+          borderLeft: `3px solid ${settled ? '#a8a29e' : '#e2a53b'}`,
+          borderColor: settled ? '#a8a29e' : '#e2a53b',
+          color: '#5c4a1f',
+          borderRadius: '4px',
+          opacity: settled ? 0.6 : 1,
+          textDecoration: block.status === 'done' ? 'line-through' : undefined,
+          fontSize: '0.75rem',
+        },
+      };
+    }
     if (event.resource.type === 'task') {
       const done = event.resource.task.status === 'completed';
       const bg = done ? '#d6d3d1' : '#7c6abf';
@@ -283,6 +335,25 @@ export default function CalendarPage() {
                 )} />
               </span>
               Tasks
+            </button>
+          )}
+
+          {/* Study plan toggle — the back-planned study blocks */}
+          {mode === 'assignments' && (
+            <button
+              onClick={() => setCalendarShowStudyBlocks(!calendarShowStudyBlocks)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors"
+            >
+              <span className={cn(
+                'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
+                calendarShowStudyBlocks ? 'bg-accent' : 'bg-stone-300 dark:bg-surface'
+              )}>
+                <span className={cn(
+                  'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
+                  calendarShowStudyBlocks ? 'translate-x-3.5' : 'translate-x-0.5'
+                )} />
+              </span>
+              Study plan
             </button>
           )}
 

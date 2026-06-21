@@ -26,6 +26,8 @@ import type {
   UpdateTermInput,
   CreateStudySessionInput,
   UpdateStudySessionInput,
+  CreateStudyBlockInput,
+  UpdateStudyBlockInput,
   CreateNoteInput,
   UpdateNoteInput,
   CreateNoteLinkInput,
@@ -90,6 +92,14 @@ const api: WindowApi = {
     list:   ()                                       => ipcRenderer.invoke(IPC.STUDY_SESSIONS.LIST),
     create: (input: CreateStudySessionInput)         => ipcRenderer.invoke(IPC.STUDY_SESSIONS.CREATE, input),
     update: (id, input: UpdateStudySessionInput)     => ipcRenderer.invoke(IPC.STUDY_SESSIONS.UPDATE, id, input),
+  },
+
+  studyBlocks: {
+    list:       ()                                   => ipcRenderer.invoke(IPC.STUDY_BLOCKS.LIST),
+    createMany: (inputs: CreateStudyBlockInput[])    => ipcRenderer.invoke(IPC.STUDY_BLOCKS.CREATE_MANY, inputs),
+    update:     (id, input: UpdateStudyBlockInput)   => ipcRenderer.invoke(IPC.STUDY_BLOCKS.UPDATE, id, input),
+    delete:     (id)                                 => ipcRenderer.invoke(IPC.STUDY_BLOCKS.DELETE, id),
+    deleteForAssignment: (assignmentId: string)      => ipcRenderer.invoke(IPC.STUDY_BLOCKS.DELETE_FOR_ASSIGNMENT, assignmentId),
   },
 
   notes: {
