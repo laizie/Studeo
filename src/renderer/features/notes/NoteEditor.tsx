@@ -7,6 +7,8 @@ import {
 } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { filterSuggestionItems } from '@blocknote/core';
+// eslint-disable-next-line import/no-unresolved -- subpath export; resolved by TS via the package "exports" map
+import { en } from '@blocknote/core/locales';
 import { History, CalendarDays, X } from 'lucide-react';
 import { studeoSchema } from './codeBlock';
 import ImageLightbox from './ImageLightbox';
@@ -45,6 +47,22 @@ function fileExt(file: File): string {
 function todayStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Cozy relative "edited" time for the note meta line. updated_at is a full ISO
+// string (new Date().toISOString() in the repo), so Date parsing is reliable.
+function formatEditedAt(iso: string): string {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return '';
+  const min = Math.round((Date.now() - then.getTime()) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`;
+  const day = Math.round(hr / 24);
+  if (day === 1) return 'yesterday';
+  if (day < 7) return `${day} days ago`;
+  return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 // Plain text of a BlockNote block's inline content. The content shape is BlockNote-internal,
@@ -103,6 +121,15 @@ export default function NoteEditor({ note }: { note: Note }) {
 
   const editor = useCreateBlockNote({
     schema: studeoSchema,
+    // Friendlier, cozier empty-state prompts than BlockNote's stock copy.
+    dictionary: {
+      ...en,
+      placeholders: {
+        ...en.placeholders,
+        emptyDocument: 'Start writing… press / for blocks',
+        default: 'Write, or press / for blocks',
+      },
+    },
     initialContent: parseInitial(note.content_json),
     // Drag-drop / paste / file-picker all funnel here. We persist the bytes via the media
     // IPC and hand BlockNote back a studeo-asset:// URL to store in the image block.
@@ -259,7 +286,9 @@ export default function NoteEditor({ note }: { note: Note }) {
   }));
 
   return (
-    <div className="mx-auto max-w-[760px] px-6 py-10">
+    <div className="mx-auto max-w-[800px] px-4 py-10">
+      {/* The note as a warm "sheet" floating on the app background. */}
+      <div className="rounded-2xl border border-line bg-paper px-10 py-12 shadow-sm">
       <div className="mb-2 flex items-center justify-end gap-1">
         <button
           onClick={() => setDateOpen(true)}
@@ -301,8 +330,9 @@ export default function NoteEditor({ note }: { note: Note }) {
         }}
         placeholder="Untitled"
         aria-label="Note title"
-        className="mb-3 w-full bg-transparent text-3xl font-bold text-ink placeholder:text-muted focus:outline-none"
+        className="w-full bg-transparent font-serif text-4xl font-semibold tracking-tight text-ink placeholder:text-muted focus:outline-none"
       />
+      <p className="mb-4 mt-1.5 text-xs text-muted">Edited {formatEditedAt(note.updated_at)}</p>
       <div
         className="studeo-bn"
         onClick={(e) => {
@@ -337,6 +367,7 @@ export default function NoteEditor({ note }: { note: Note }) {
             }
           />
         </BlockNoteView>
+      </div>
       </div>
 
       {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}

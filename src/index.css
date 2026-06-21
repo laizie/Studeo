@@ -2,6 +2,13 @@
 @import '@fontsource/dm-sans/400.css';
 @import '@fontsource/dm-sans/500.css';
 @import '@fontsource/dm-sans/600.css';
+/* Newsreader — warm reading serif, used only for note body/title (cozy notes).
+   Self-hosted like DM Sans so it works offline. Swapping serifs = change these
+   imports + the --font-serif value below; nothing else names the family. */
+@import '@fontsource/newsreader/400.css';
+@import '@fontsource/newsreader/500.css';
+@import '@fontsource/newsreader/600.css';
+@import '@fontsource/newsreader/400-italic.css';
 
 /* Enable class-based dark mode: dark: utilities apply when .dark is on any ancestor */
 @variant dark (&:where(.dark, .dark *));
@@ -25,6 +32,14 @@
   --accent:      #e2a53b;  /* Lamplight Amber — actions & selection only */
   --accent-deep: #d49530;  /* accent hover/pressed */
   --accent-ink:  #1e1208;  /* text ON accent */
+  --paper:       #fffdf8;  /* the note "sheet" — a soft warm white lifted off --bg */
+}
+
+/* Editorial serif for the note surface (body + title); UI chrome stays DM Sans.
+   In a @theme block so it both powers the `font-serif` utility AND is emitted as
+   a :root custom property that blocknote-theme.css reads via var(--font-serif). */
+@theme {
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
 }
 
 /* Dark = "the espresso room at night" (DESIGN.md North Star): near-neutral
@@ -39,6 +54,7 @@
   --ink:        #f0e0cc;
   --ink-soft:   #e8d5c0;
   --muted:      #c9b594;  /* calm warm tan — the old gold (#e0b870) made meta text shout */
+  --paper:      #2c241b;  /* note sheet = the roasted surface, lifted off the darker --bg */
 }
 
 /* Warm keeps its committed mid-brown identity, but one notch deeper and
@@ -53,6 +69,7 @@ html[data-theme="warm"] {
   /* ink / ink-soft inherit the .dark creams (now ≥5.4:1 on surface);
      muted brightened so it clears AA on the brown surfaces */
   --muted:      #ecca8a;
+  --paper:      #6a4b2f;  /* note sheet = the mid-brown surface, lifted off --bg */
 }
 
 /* Expose the tokens as Tailwind utilities (bg-surface, text-ink, border-line,
@@ -70,6 +87,7 @@ html[data-theme="warm"] {
   --color-accent:      var(--accent);
   --color-accent-deep: var(--accent-deep);
   --color-accent-ink:  var(--accent-ink);
+  --color-paper:       var(--paper);
 }
 
 @layer base {

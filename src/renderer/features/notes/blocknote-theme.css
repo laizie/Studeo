@@ -30,18 +30,93 @@
   padding-inline: 0;
 }
 
-/* Pin the editor surface to the app's theme tokens. The rule that paints
-   var(--bn-colors-editor-background) ships in @blocknote/react's stylesheet, which we don't
-   import (we use the mantine variant), and every non-light app theme maps to BlockNote's
-   "dark" base — so without this, Mantine's own cold-dark body colour shows through and
-   clashes badly in the warm (espresso) theme. Setting the surface and text directly keeps
-   regular notes matching the active theme in light, dark, and warm. (Code blocks re-assert
-   their own dark surface below via higher specificity.) */
+/* Let the editor surface be transparent so the warm "paper" sheet that wraps the
+   editor (see NoteEditor.tsx) shows through in every theme. We still set the text
+   colour directly: BlockNote's mantine variant otherwise leaves its own body colour
+   in place, which clashes in the warm (espresso) theme. (Code blocks re-assert their
+   own dark surface below via higher specificity.) */
 .studeo-bn,
 .studeo-bn .bn-container,
 .studeo-bn .bn-editor {
-  background-color: var(--bg);
+  background-color: transparent;
   color: var(--ink);
+}
+
+/* ── Reading typography ─────────────────────────────────────────────────────────
+   Notes read like a journal, not an app form: a warm serif, a larger size, and
+   generous leading. Scoped to the editor body so the UI chrome stays DM Sans. */
+.studeo-bn .bn-editor {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;  /* 17px */
+  line-height: 1.75;
+}
+
+/* Heading hierarchy + rhythm: distinct sizes with room above each so sections
+   breathe. BlockNote tags heading level via data-level. */
+.studeo-bn .bn-block-content[data-content-type='heading'] {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.studeo-bn .bn-block-content[data-content-type='heading'][data-level='1'] {
+  font-size: 1.9rem;
+  margin-top: 1.6rem;
+}
+.studeo-bn .bn-block-content[data-content-type='heading'][data-level='2'] {
+  font-size: 1.5rem;
+  margin-top: 1.4rem;
+}
+.studeo-bn .bn-block-content[data-content-type='heading'][data-level='3'] {
+  font-size: 1.22rem;
+  margin-top: 1.1rem;
+}
+
+/* ── Warm block formatting ──────────────────────────────────────────────────────
+   Blockquote: an amber lamp-rule + italic serif, set in muted ink. */
+.studeo-bn .bn-block-content[data-content-type='quote'] {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+/* Inline code: a warm cream chip rather than bare monospace. */
+.studeo-bn .bn-inline-content code,
+.studeo-bn code {
+  background-color: var(--inset);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.08em 0.34em;
+  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+/* Never let the inline-code chip leak into a syntax-highlighted code block. */
+.studeo-bn .bn-block-content[data-content-type='codeBlock'] code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* Links: amber, with a soft underline that sits a little off the text. */
+.studeo-bn a {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+  text-underline-offset: 2px;
+}
+.studeo-bn a:hover {
+  color: var(--accent-deep);
+}
+
+/* Images: rounded with a soft shadow so they feel mounted, not pasted; caption muted. */
+.studeo-bn .bn-block-content[data-content-type='image'] img {
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.10);
+}
+.studeo-bn .bn-block-content[data-content-type='image'] figcaption {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.85em;
 }
 
 /* ── Code blocks ───────────────────────────────────────────────────────────────
