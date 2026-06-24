@@ -85,6 +85,17 @@ export async function getPlaybackState(): Promise<SpotifyPlaybackState | null> {
   };
 }
 
+// Upcoming tracks for the "Up next" list. The Web API is the only source for this —
+// AppleScript can't read the queue — so it needs an active device the Web API can see
+// (Spotify Connect). Returns [] when nothing's queued or no visible device.
+export async function getQueue(): Promise<SpotifyTrack[]> {
+  const data = await apiFetch('/me/player/queue');
+  if (!data?.queue) return [];
+  // The queue can include podcast episodes (no `artists`); keep only real tracks.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data.queue as any[]).filter(t => t && t.type === 'track').map(toTrack).slice(0, 20);
+}
+
 export async function play(contextUri?: string): Promise<void> {
   const body = contextUri ? JSON.stringify({ context_uri: contextUri }) : undefined;
   await apiFetch('/me/player/play', { method: 'PUT', body });

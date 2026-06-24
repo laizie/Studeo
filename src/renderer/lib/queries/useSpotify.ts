@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 export const SPOTIFY_KEYS = {
   status:    ['spotify', 'status']    as const,
   playback:  ['spotify', 'playback']  as const,
+  queue:     ['spotify', 'queue']     as const,
   playlists: ['spotify', 'playlists'] as const,
   search:    (q: string) => ['spotify', 'search', q] as const,
 };
@@ -43,6 +44,18 @@ export function useSpotifyPlayback() {
     queryFn:  () => window.api.spotify.playback(),
     enabled:  status?.connected === true,
     refetchInterval: 2_000,  // 2 s gives near-real-time progress
+  });
+}
+
+// ── Up-next queue ───────────────────────────────────────────────────────────────
+
+export function useSpotifyQueue() {
+  const { data: status } = useSpotifyStatus();
+  return useQuery({
+    queryKey: SPOTIFY_KEYS.queue,
+    queryFn:  () => window.api.spotify.queue(),
+    enabled:  status?.connected === true,
+    refetchInterval: 8_000,  // the queue changes slowly; no need to poll as fast as playback
   });
 }
 

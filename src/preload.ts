@@ -141,6 +141,13 @@ const api: WindowApi = {
     // apply saved prefs (e.g. theme) before the first paint — no flash of the defaults.
     initialSettings: ipcRenderer.sendSync(IPC.APP.GET_SETTINGS) as Record<string, string>,
     setSetting: (key: string, value: string) => ipcRenderer.invoke(IPC.APP.SET_SETTING, key, value),
+    setFullscreen: (on: boolean) => ipcRenderer.invoke(IPC.APP.SET_FULLSCREEN, on),
+    isFullscreen: () => ipcRenderer.invoke(IPC.APP.GET_FULLSCREEN) as Promise<boolean>,
+    onFullscreenChange: (cb: (isFullscreen: boolean) => void) => {
+      const listener = (_e: IpcRendererEvent, data: { isFullscreen: boolean }) => cb(data.isFullscreen);
+      ipcRenderer.on('app:fullscreen-changed', listener);
+      return () => ipcRenderer.removeListener('app:fullscreen-changed', listener);
+    },
   },
 
   feeds: {
@@ -174,6 +181,7 @@ const api: WindowApi = {
     pause:           ()                  => ipcRenderer.invoke(IPC.SPOTIFY.PAUSE),
     next:            ()                  => ipcRenderer.invoke(IPC.SPOTIFY.NEXT),
     previous:        ()                  => ipcRenderer.invoke(IPC.SPOTIFY.PREVIOUS),
+    queue:           ()                  => ipcRenderer.invoke(IPC.SPOTIFY.QUEUE),
     volume:          (percent: number)   => ipcRenderer.invoke(IPC.SPOTIFY.VOLUME, percent),
     userPlaylists:   ()                  => ipcRenderer.invoke(IPC.SPOTIFY.USER_PLAYLISTS),
     searchPlaylists: (query: string)     => ipcRenderer.invoke(IPC.SPOTIFY.SEARCH_PLAYLISTS, query),

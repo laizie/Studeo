@@ -4,7 +4,7 @@ import {
   getClientId, setClientId, initiateAuth, clearTokens, loadTokens,
 } from '../spotify/spotifyAuth';
 import {
-  getUserProfile, getUserPlaylists, searchPlaylists,
+  getUserProfile, getUserPlaylists, searchPlaylists, getQueue,
 } from '../spotify/spotifyApi';
 import {
   getSpotifyPlaybackState, spotifyPlay, spotifyPause, spotifyNext, spotifyPrevious,
@@ -79,6 +79,13 @@ export function registerSpotifyHandlers(): void {
   ipcMain.handle(IPC.SPOTIFY.PREVIOUS, async () => {
     try { await spotifyPrevious(); return { ok: true }; }
     catch (e) { return { ok: false, error: String(e) }; }
+  });
+
+  // Up-next queue comes from the Web API (AppleScript can't read it). Best-effort:
+  // returns [] if there's no visible active device or the call fails.
+  ipcMain.handle(IPC.SPOTIFY.QUEUE, async () => {
+    try { return await getQueue(); }
+    catch { return []; }
   });
 
   ipcMain.handle(IPC.SPOTIFY.VOLUME, async () => {

@@ -87,6 +87,13 @@ const createWindow = () => {
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Keep the renderer's Focus Mode in sync with OS fullscreen — including the exits
+  // it can't initiate itself (Esc, the green traffic-light button, Ctrl+Cmd+F).
+  const sendFullscreen = (isFullscreen: boolean) =>
+    mainWindow.webContents.send('app:fullscreen-changed', { isFullscreen });
+  mainWindow.on('enter-full-screen', () => sendFullscreen(true));
+  mainWindow.on('leave-full-screen', () => sendFullscreen(false));
 };
 
 app.on('ready', () => {

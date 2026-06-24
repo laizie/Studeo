@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2, Maximize2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2, Maximize2, Activity } from 'lucide-react';
 import {
   useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
   PHASE_LABELS, PHASE_COLORS, formatClock,
@@ -15,8 +15,10 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import StudySessionsNotesCard from './StudySessionsNotesCard';
+import StudyHeatmap from './StudyHeatmap';
 import ProgressRing from './ProgressRing';
 import { useFocusStore } from '../../store/useFocusStore';
+import { useStudySessions } from '../../lib/queries/useStudySessions';
 
 // ── Study technique presets ───────────────────────────────────────────────────
 
@@ -296,6 +298,7 @@ export default function StudyPage() {
 
   const color           = PHASE_COLORS[phase];
   const activeTechnique = TECHNIQUES.find(t => t.id === techniqueId) ?? TECHNIQUES[0];
+  const { data: studySessions = [] } = useStudySessions();
 
   return (
     <div className="p-8">
@@ -470,6 +473,15 @@ export default function StudyPage() {
         {/* ── Focus list card ───────────────────────────────────────────────── */}
         <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
           <FocusListPanel />
+        </div>
+
+        {/* ── Study activity heatmap ────────────────────────────────────────── */}
+        <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Activity size={14} className="text-muted" />
+            <h2 className="text-sm font-semibold text-ink-soft tracking-tight">Study activity</h2>
+          </div>
+          <StudyHeatmap sessions={studySessions} />
         </div>
 
         {/* ── Recent sessions + notes ───────────────────────────────────────── */}
