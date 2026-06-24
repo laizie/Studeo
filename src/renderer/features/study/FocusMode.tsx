@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock } from 'lucide-react';
 import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
 } from '../../store/useTimerStore';
@@ -8,8 +8,10 @@ import { useFocusStore } from '../../store/useFocusStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useUpdateTask } from '../../lib/queries/useTasks';
-import { useUpdateStudySession } from '../../lib/queries/useStudySessions';
+import { useUpdateStudySession, useStudySessions } from '../../lib/queries/useStudySessions';
+import { focusMinutesSince, startOfDay } from '../../../shared/studyStats';
 import AppleMusicMiniPlayer from '../applemusic/AppleMusicMiniPlayer';
+import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
 import SpotifyMiniPlayer from '../spotify/SpotifyMiniPlayer';
 import SpotifyUpNext from '../spotify/SpotifyUpNext';
 import ProgressRing from './ProgressRing';
@@ -36,6 +38,219 @@ const GLOW: Record<Phase, string> = {
   short_break: '#5fa37a',
   long_break:  '#4f9270',
 };
+
+// A tiny, opinionated set of presets for the in-room method switch — the same three
+// techniques as the Study page minus Custom, which belongs to the fuller settings there.
+const METHODS = [
+  { id: 'pomodoro', label: 'Pomodoro',  focus: 25, brk: 5  },
+  { id: '5217',     label: '52 / 17',   focus: 52, brk: 17 },
+  { id: 'deepwork', label: 'Deep Work', focus: 90, brk: 20 },
+] as const;
+
+// ── Draggable panels ─────────────────────────────────────────────────────────────
+// Lets the floating rails be repositioned. We offset with left/top (not transform) so
+// it doesn't fight the rails' transform-based entrance animation, and divide the cursor
+// delta by the fullscreen zoom so the panel tracks the pointer 1:1. Position persists
+// in localStorage; double-clicking the grip resets it.
+//
+// Crucially, the offset is *clamped to the viewport* so a rail can never be dragged so
+// far that its grip leaves the screen (and so becomes un-grabbable). We also raise the
+// panel's z-index while dragging so overlapping the clock can never bury its handle.
+interface Offset { x: number; y: number }
+
+function readOffset(key: string): Offset {
+  try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw) as Offset; } catch { /* ignore */ }
+  return { x: 0, y: 0 };
+}
+
+function clampNum(v: number, a: number, b: number): number {
+  return Math.min(Math.max(v, Math.min(a, b)), Math.max(a, b));
+}
+
+// ── Viewport scale ────────────────────────────────────────────────────────────────
+// The whole room scales with the window — bigger window, bigger room — rather than only
+// snapping bigger on OS fullscreen (fullscreen is just the largest window, so it's
+// covered too). Width drives it since the layout is width-constrained; the height term
+// only caps the scale so a short, wide window can't overflow vertically.
+function useViewportScale(): number {
+  const compute = () => clampNum(Math.min(window.innerWidth / 1280, window.innerHeight / 720), 1, 1.5);
+  const [scale, setScale] = useState(compute);
+  useEffect(() => {
+    const onResize = () => setScale(compute());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return scale;
+}
+
+function useDraggable(storageKey: string, scale: number) {
+  const [offset, setOffset]     = useState<Offset>(() => readOffset(storageKey));
+  const [dragging, setDragging] = useState(false);
+  const ref    = useRef<HTMLElement | null>(null);
+  const drag   = useRef<{ px: number; py: number; ox: number; oy: number; bx: number; by: number; w: number; h: number } | null>(null);
+  const latest = useRef<Offset>(offset);
+
+  // Keep `value` so the panel stays fully on-screen (with an 8px margin), given the
+  // element's un-offset top-left `base` and size — all in rendered (post-zoom) px.
+  function clampAxis(value: number, base: number, size: number, viewport: number): number {
+    const M = 8;
+    const lo = (M - base) / scale;                       // don't cross the near edge
+    const hi = (viewport - M - size - base) / scale;      // don't cross the far edge
+    return clampNum(value, lo, hi);
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    const rect = ref.current?.getBoundingClientRect();
+    drag.current = {
+      px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y,
+      // base = where the element sits with zero offset (strip the current offset back out)
+      bx: rect ? rect.left - offset.x * scale : 0,
+      by: rect ? rect.top  - offset.y * scale : 0,
+      w:  rect?.width  ?? 0,
+      h:  rect?.height ?? 0,
+    };
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    const d = drag.current;
+    if (!d) return;
+    const next = {
+      x: clampAxis(d.ox + (e.clientX - d.px) / scale, d.bx, d.w, window.innerWidth),
+      y: clampAxis(d.oy + (e.clientY - d.py) / scale, d.by, d.h, window.innerHeight),
+    };
+    latest.current = next;
+    setOffset(next);
+  }
+  function onPointerUp(e: React.PointerEvent) {
+    if (!drag.current) return;
+    drag.current = null;
+    setDragging(false);
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    try { localStorage.setItem(storageKey, JSON.stringify(latest.current)); } catch { /* ignore */ }
+  }
+  function reset() {
+    latest.current = { x: 0, y: 0 };
+    setOffset({ x: 0, y: 0 });
+    try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+  }
+
+  // A saved position can fall off-screen if the window shrinks or fullscreen toggles
+  // (the layout shifts). Re-clamp on mount, on those changes, and on resize so the
+  // panel is always reachable, never stranded past an edge.
+  useEffect(() => {
+    function clampToView() {
+      const el = ref.current;
+      if (!el || drag.current) return;
+      setOffset(prev => {
+        const rect = el.getBoundingClientRect();
+        const bx = rect.left - prev.x * scale;
+        const by = rect.top  - prev.y * scale;
+        const next = {
+          x: clampAxis(prev.x, bx, rect.width,  window.innerWidth),
+          y: clampAxis(prev.y, by, rect.height, window.innerHeight),
+        };
+        if (next.x === prev.x && next.y === prev.y) return prev;
+        latest.current = next;
+        return next;
+      });
+    }
+    clampToView();
+    window.addEventListener('resize', clampToView);
+    return () => window.removeEventListener('resize', clampToView);
+  }, [scale]);
+
+  return { offset, dragging, reset, ref, handleProps: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp } };
+}
+
+// The grip that turns a rail into a draggable panel.
+function DragHandle({ handleProps, onReset }: { handleProps: React.HTMLAttributes<HTMLDivElement>; onReset: () => void }) {
+  return (
+    <div
+      {...handleProps}
+      onDoubleClick={onReset}
+      title="Drag to move · double-click to reset"
+      className="mb-1 flex cursor-grab touch-none select-none items-center justify-center rounded-md py-0.5 transition-colors hover:bg-white/[0.05] active:cursor-grabbing"
+    >
+      <GripHorizontal size={15} style={{ color: ROOM.muted }} />
+    </div>
+  );
+}
+
+// ── Method switch (simple) ───────────────────────────────────────────────────────
+// Three preset chips. Picking one applies its focus/break durations (which resets the
+// current phase's countdown, same as on the Study page) and clears the Custom flag.
+function MethodSwitcher() {
+  const focusSecs          = useTimerStore(s => s.focusSecs);
+  const breakSecs          = useTimerStore(s => s.breakSecs);
+  const setFocusMins       = useTimerStore(s => s.setFocusMins);
+  const setBreakMins       = useTimerStore(s => s.setBreakMins);
+  const setCustomTechnique = useTimerStore(s => s.setCustomTechnique);
+
+  const fMin = Math.round(focusSecs / 60);
+  const bMin = Math.round(breakSecs / 60);
+
+  function apply(m: (typeof METHODS)[number]) {
+    setCustomTechnique(false);
+    setFocusMins(m.focus);
+    setBreakMins(m.brk);
+  }
+
+  return (
+    <div className="flex items-center gap-1 rounded-full p-1" style={{ backgroundColor: '#ffffff0d' }}>
+      {METHODS.map(m => {
+        const active = fMin === m.focus && bMin === m.brk;
+        return (
+          <button
+            key={m.id}
+            onClick={() => apply(m)}
+            className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+            style={active ? { backgroundColor: ROOM.line, color: ROOM.ink } : { color: ROOM.muted }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.color = ROOM.soft; }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.color = ROOM.muted; }}
+          >
+            {m.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Total studied today (corner) ─────────────────────────────────────────────────
+// Logged focus time today plus the live elapsed of the block in progress, so it ticks
+// like a stopwatch while you work and holds steady on breaks.
+function formatHms(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.floor(totalSec % 60);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+function TotalStudyToday() {
+  const { data: sessions = [] } = useStudySessions();
+  const phase     = useTimerStore(s => s.phase);
+  const timeLeft  = useTimerStore(s => s.timeLeft);
+  const focusSecs = useTimerStore(s => s.focusSecs);
+
+  const loggedSec = useMemo(
+    () => Math.round(focusMinutesSince(sessions, startOfDay(new Date())) * 60),
+    [sessions],
+  );
+  // Elapsed of the block in progress. Counted whenever we're in a focus phase (not only
+  // while running) so pausing holds the total steady instead of dropping the elapsed and
+  // snapping it back on resume. It's only added to the logged total once the block ends.
+  const liveSec = phase === 'focus' ? Math.max(0, focusSecs - timeLeft) : 0;
+
+  return (
+    <div className="flex items-center gap-2" style={{ color: ROOM.muted }}>
+      <Clock size={14} />
+      <span className="text-sm font-medium tabular-nums" style={{ color: ROOM.soft }}>{formatHms(loggedSec + liveSec)}</span>
+      <span className="text-xs">studied today</span>
+    </div>
+  );
+}
 
 // ── Intention line ─────────────────────────────────────────────────────────────
 // Before a block, an open invitation: "I'm here to ___". Once running we stop
@@ -254,11 +469,9 @@ function MusicSidebar() {
           >
             {defaultMusicService === 'spotify' ? <SpotifyMiniPlayer borderless /> : <AppleMusicMiniPlayer borderless />}
           </div>
-          {defaultMusicService === 'spotify' && (
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <SpotifyUpNext />
-            </div>
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            {defaultMusicService === 'spotify' ? <SpotifyUpNext /> : <AppleMusicPlaylistsList />}
+          </div>
         </div>
       )}
     </div>
@@ -291,6 +504,12 @@ export default function FocusMode() {
     phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
   const color = PHASE_COLORS[phase];
   const glow  = GLOW[phase];
+
+  // The scene scales with the window size; the drag math divides the cursor delta by it
+  // so a dragged rail still tracks the pointer 1:1.
+  const zoom = useViewportScale();
+  const leftRail  = useDraggable('studeo:focusRail:list',  zoom);
+  const rightRail = useDraggable('studeo:focusRail:music', zoom);
 
   // Read the current state on open, then track every change — including the OS-driven
   // exits the renderer can't initiate (Esc, the green button, Ctrl+Cmd+F).
@@ -330,14 +549,15 @@ export default function FocusMode() {
 
   if (!isOpen) return null;
 
-  // Fullscreen gives the room far more space, so the whole scene scales up as one unit
-  // (clock, rails, type, art) via CSS zoom — simpler and more uniform than tuning a
-  // dozen sizes, and it keeps the layout's proportions identical to the windowed view.
-  const zoom      = isFullscreen ? 1.2 : 1;
+  // The scene scales up as one unit (clock, rails, type, art) via CSS zoom — simpler and
+  // more uniform than tuning a dozen sizes, and it keeps the layout's proportions
+  // identical at every window size. Rails cap their height *before* zoom so they stay on
+  // screen at any scale.
   const ringSize  = 336;
   const clockText = 'text-7xl';
   const glowSize  = 'h-[460px] w-[460px] blur-[80px]';
   const heroGap   = 'gap-9';
+  const railMaxHeight = `${78 / zoom}vh`;
 
   return (
     <div
@@ -368,21 +588,30 @@ export default function FocusMode() {
         </button>
       </div>
 
+      {/* Total studied today — quiet, bottom-left corner */}
+      {!awaitingReflection && (
+        <div className="absolute bottom-5 left-6 z-10">
+          <TotalStudyToday />
+        </div>
+      )}
+
       {awaitingReflection ? (
-        <div className="flex min-h-full w-full flex-col items-center justify-center px-6 py-16" style={{ zoom }}>
+        <div className="my-auto flex w-full flex-col items-center justify-center px-6 py-16" style={{ zoom }}>
           <ReflectionCard />
         </div>
       ) : (
         // Three columns: focus-list rail · clock · music rail. The rails float as glass
-        // cards beside the clock (not edge-attached), and the whole scene zooms up in
-        // fullscreen. The clock stays dead-centre because both rails share a width;
-        // below lg they stack under it so a narrow window never squeezes the ring.
-        <div className="flex min-h-full w-full flex-col lg:flex-row lg:items-center" style={{ zoom }}>
+        // cards beside the clock (not edge-attached), and the whole scene scales with the
+        // window. The clock stays dead-centre because both rails share a width; below lg
+        // they stack under it so a narrow window never squeezes the ring.
+        <div className="my-auto flex w-full flex-col lg:flex-row lg:items-center" style={{ zoom }}>
           {/* Left rail — focus list */}
           <aside
-            className="focus-rise order-2 m-4 flex max-h-[80vh] w-full max-w-md flex-col self-center rounded-2xl border px-4 py-5 shadow-2xl backdrop-blur-md lg:order-1 lg:m-5 lg:w-72 lg:max-w-none xl:w-80"
-            style={{ borderColor: ROOM.line, backgroundColor: 'rgba(28, 20, 14, 0.55)' }}
+            ref={leftRail.ref}
+            className="focus-rise relative order-2 m-4 flex w-full max-w-md flex-col self-center rounded-2xl border px-4 py-5 shadow-2xl backdrop-blur-md lg:order-1 lg:m-5 lg:w-72 lg:max-w-none xl:w-80"
+            style={{ borderColor: ROOM.line, backgroundColor: 'rgba(28, 20, 14, 0.55)', left: leftRail.offset.x, top: leftRail.offset.y, zIndex: leftRail.dragging ? 30 : 20, maxHeight: railMaxHeight }}
           >
+            <DragHandle handleProps={leftRail.handleProps} onReset={leftRail.reset} />
             <FocusList onAdd={() => setPickerOpen(true)} />
           </aside>
 
@@ -444,6 +673,8 @@ export default function FocusMode() {
                 <div className="w-[42px]" />
               </div>
 
+              <MethodSwitcher />
+
               <p className="text-xs" style={{ color: ROOM.muted }}>
                 <kbd className="rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Space</kbd>
                 <span className="mx-1.5">start / pause</span>·
@@ -455,9 +686,11 @@ export default function FocusMode() {
 
           {/* Right rail — music */}
           <aside
-            className="focus-rise order-3 m-4 flex max-h-[80vh] w-full max-w-md flex-col self-center rounded-2xl border px-4 py-5 shadow-2xl backdrop-blur-md lg:m-5 lg:w-72 lg:max-w-none xl:w-80"
-            style={{ borderColor: ROOM.line, backgroundColor: 'rgba(28, 20, 14, 0.55)', animationDelay: '0.1s' }}
+            ref={rightRail.ref}
+            className="focus-rise relative order-3 m-4 flex w-full max-w-md flex-col self-center rounded-2xl border px-4 py-5 shadow-2xl backdrop-blur-md lg:m-5 lg:w-72 lg:max-w-none xl:w-80"
+            style={{ borderColor: ROOM.line, backgroundColor: 'rgba(28, 20, 14, 0.55)', animationDelay: '0.1s', left: rightRail.offset.x, top: rightRail.offset.y, zIndex: rightRail.dragging ? 30 : 20, maxHeight: railMaxHeight }}
           >
+            <DragHandle handleProps={rightRail.handleProps} onReset={rightRail.reset} />
             <MusicSidebar />
           </aside>
         </div>
