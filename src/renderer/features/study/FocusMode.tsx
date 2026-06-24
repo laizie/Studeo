@@ -70,15 +70,37 @@ function clampNum(v: number, a: number, b: number): number {
 // ── Viewport scale ────────────────────────────────────────────────────────────────
 // The whole room scales with the window — bigger window, bigger room — rather than only
 // snapping bigger on OS fullscreen (fullscreen is just the largest window, so it's
-// covered too). Width drives it since the layout is width-constrained; the height term
-// only caps the scale so a short, wide window can't overflow vertically.
+// covered too). Both dimensions are measured so the scale "fits" the window; rounding to
+// a 0.05 step keeps the CSS zoom crisp and stops it jittering on drag-resize.
+function computeViewportScale(): number {
+  const w = window.visualViewport?.width  ?? window.innerWidth;
+  const h = window.visualViewport?.height ?? window.innerHeight;
+  const raw = Math.min(w / 1280, h / 820);
+  return clampNum(Math.round(raw * 20) / 20, 1, 1.35);
+}
+
 function useViewportScale(): number {
-  const compute = () => clampNum(Math.min(window.innerWidth / 1280, window.innerHeight / 720), 1, 1.5);
-  const [scale, setScale] = useState(compute);
+  const [scale, setScale] = useState(computeViewportScale);
   useEffect(() => {
-    const onResize = () => setScale(compute());
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    // A bare `resize` listener misses moves between monitors of a different resolution or
+    // pixel-ratio (the window's size can change with no `resize`, and a DPR change never
+    // fires one). So we also watch the visualViewport and re-arm a media query for the
+    // *current* devicePixelRatio after every change — catching each subsequent screen hop.
+    let dpr: MediaQueryList | null = null;
+    function update() {
+      setScale(computeViewportScale());
+      dpr?.removeEventListener('change', update);
+      dpr = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+      dpr.addEventListener('change', update);
+    }
+    update();
+    window.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('resize', update);
+      dpr?.removeEventListener('change', update);
+    };
   }, []);
   return scale;
 }
