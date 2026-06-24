@@ -522,11 +522,13 @@ export const IPC = {
     TEST:      'reminders:test',
   },
   APP: {
-    REVEAL_DATA:  'app:reveal-data',
-    BACKUP_DATA:  'app:backup-data',
-    RESTORE_DATA: 'app:restore-data',
-    GET_SETTINGS: 'app:get-settings',
-    SET_SETTING:  'app:set-setting',
+    REVEAL_DATA:    'app:reveal-data',
+    BACKUP_DATA:    'app:backup-data',
+    RESTORE_DATA:   'app:restore-data',
+    GET_SETTINGS:   'app:get-settings',
+    SET_SETTING:    'app:set-setting',
+    SET_FULLSCREEN: 'app:set-fullscreen',
+    GET_FULLSCREEN: 'app:get-fullscreen',
   },
   FEEDS: {
     FETCH_ICS: 'feeds:fetch-ics',
@@ -556,6 +558,7 @@ export const IPC = {
     PAUSE:            'spotify:pause',
     NEXT:             'spotify:next',
     PREVIOUS:         'spotify:previous',
+    QUEUE:            'spotify:queue',
     VOLUME:           'spotify:volume',
     USER_PLAYLISTS:   'spotify:user-playlists',
     SEARCH_PLAYLISTS: 'spotify:search-playlists',
@@ -691,6 +694,14 @@ export interface WindowApi {
     initialSettings: Record<string, string>;
     /** Persist a UI preference in the main process so it survives a full quit/relaunch. */
     setSetting(key: string, value: string): Promise<void>;
+    /** Put the window into (or out of) true OS fullscreen — no title bar/chrome.
+     *  Used by Focus Mode for an immersive, distraction-free environment. */
+    setFullscreen(on: boolean): Promise<void>;
+    /** Whether the window is currently in OS fullscreen. */
+    isFullscreen(): Promise<boolean>;
+    /** Subscribe to fullscreen changes (covers the OS exit gestures: Esc, green button,
+     *  Ctrl+Cmd+F), so the UI stays in sync. Returns a cleanup function. */
+    onFullscreenChange(cb: (isFullscreen: boolean) => void): () => void;
   };
   feeds: {
     /** Fetch a remote .ics calendar feed by URL (done in main; returns raw text). */
@@ -723,6 +734,8 @@ export interface WindowApi {
     pause(): Promise<{ ok: boolean; error?: string }>;
     next(): Promise<{ ok: boolean; error?: string }>;
     previous(): Promise<{ ok: boolean; error?: string }>;
+    /** Upcoming tracks (the "Up next" queue). Empty when unavailable. */
+    queue(): Promise<SpotifyTrack[]>;
     volume(percent: number): Promise<{ ok: boolean; error?: string }>;
     userPlaylists(): Promise<SpotifyPlaylist[]>;
     searchPlaylists(query: string): Promise<SpotifyPlaylist[]>;

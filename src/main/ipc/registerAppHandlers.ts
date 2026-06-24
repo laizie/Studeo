@@ -43,6 +43,18 @@ export function registerAppHandlers(): void {
     if (SETTING_KEYS.has(key) && typeof value === 'string') setSetting(key, value);
   });
 
+  // True OS fullscreen for Focus Mode. The HTML Fullscreen API can leave the window
+  // chrome visible; driving the BrowserWindow directly hides the title bar entirely.
+  // We resolve the window from the calling webContents so this is window-correct.
+  ipcMain.handle(IPC.APP.SET_FULLSCREEN, (event, on: boolean) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win?.setFullScreen(Boolean(on));
+  });
+
+  ipcMain.handle(IPC.APP.GET_FULLSCREEN, (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false;
+  });
+
   ipcMain.handle(IPC.APP.BACKUP_DATA, async () => {
     const win = BrowserWindow.getFocusedWindow();
     const today = new Date().toISOString().slice(0, 10);

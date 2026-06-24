@@ -12,9 +12,12 @@ interface Props {
   /** Rendered width/height in px. The 200×200 viewBox scales to fit. */
   size?: number;
   className?: string;
+  /** Explicit track (unfilled) stroke. Focus Mode passes a dim warm tone for its
+      dark room; left undefined the track follows the theme via currentColor. */
+  trackColor?: string;
 }
 
-export default function ProgressRing({ phase, timeLeft, totalSecs, size = 200, className }: Props) {
+export default function ProgressRing({ phase, timeLeft, totalSecs, size = 200, className, trackColor }: Props) {
   const progress = totalSecs > 0 ? timeLeft / totalSecs : 1;
   const offset   = CIRCUMFERENCE * (1 - progress);
   const color    = PHASE_COLORS[phase];
@@ -28,8 +31,8 @@ export default function ProgressRing({ phase, timeLeft, totalSecs, size = 200, c
       style={{ transform: 'rotate(-90deg)' }}
     >
       <circle cx={100} cy={100} r={RADIUS}
-        fill="none" stroke="currentColor" strokeWidth={7}
-        className="text-stone-100 dark:text-line"
+        fill="none" stroke={trackColor ?? 'currentColor'} strokeWidth={7}
+        className={trackColor ? undefined : 'text-stone-100 dark:text-line'}
       />
       <circle cx={100} cy={100} r={RADIUS}
         fill="none" stroke={color} strokeWidth={7}
