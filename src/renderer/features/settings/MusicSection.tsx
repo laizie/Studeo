@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Music, Check } from 'lucide-react';
+import { Music, Check, Minimize2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useSpotifyStatus } from '../../lib/queries/useSpotify';
 import { useAppleMusicStatus } from '../../lib/queries/useAppleMusic';
 import SpotifySetupDialog from '../spotify/SpotifySetupDialog';
-import { SectionHeading, SettingsCard } from './components';
+import { SectionHeading, SettingsCard, SettingsRow, Toggle } from './components';
 import { cn } from '../../lib/utils';
 
 function MusicServiceCard({
@@ -54,7 +54,7 @@ function MusicServiceCard({
 }
 
 export default function MusicSection() {
-  const { defaultMusicService, setDefaultMusicService } = useSettingsStore();
+  const { defaultMusicService, setDefaultMusicService, nowPlayingOnly, setNowPlayingOnly } = useSettingsStore();
   const { data: spotifyStatus } = useSpotifyStatus();
   const { data: amStatus }      = useAppleMusicStatus();
   const [setupOpen, setSetupOpen] = useState(false);
@@ -109,6 +109,13 @@ export default function MusicSection() {
           isDefault={defaultMusicService === 'apple_music'}
           onSetDefault={() => setDefaultMusicService('apple_music')}
         />
+        <SettingsRow
+          icon={<Minimize2 size={16} />}
+          label="Now playing only"
+          description="Hide playlists and search — show just the current track and controls."
+        >
+          <Toggle checked={nowPlayingOnly} onChange={setNowPlayingOnly} />
+        </SettingsRow>
       </SettingsCard>
       <SpotifySetupDialog isOpen={setupOpen} onClose={() => setSetupOpen(false)} />
     </div>

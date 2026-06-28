@@ -13,7 +13,10 @@ export default defineConfig({
       // load (pdf.worker.mjs) and its optional native canvas polyfill. As a
       // production dependency it ships in the packaged app's node_modules. See
       // src/main/pdf/extractPdfText.ts.
-      external: ['electron', /^node:/, /^pdfjs-dist/],
+      // @coooookies/windows-smtc-monitor is a prebuilt native (.node) addon loaded
+      // at runtime from node_modules on Windows only (see windowsMediaSession.ts).
+      // Vite must not try to bundle it — the binary can't be inlined.
+      external: ['electron', /^node:/, /^pdfjs-dist/, /^@coooookies\/windows-smtc-monitor/],
     },
   },
 });

@@ -5,7 +5,7 @@ import {
   play, pause, next, previous,
   getUserPlaylists, playPlaylist,
   searchLibrary, playTrack,
-} from '../applemusic/appleMusicScript';
+} from '../applemusic';
 
 export function registerAppleMusicHandlers(): void {
 

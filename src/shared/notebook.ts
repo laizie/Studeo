@@ -62,6 +62,48 @@ export function groupNotesByWeek<T extends { note_date: string | null }>(
   return bucketByWeek(termStart, items, (i) => i.note_date);
 }
 
+export interface MonthBucket<T> {
+  key: string;   // 'YYYY-MM' — used as a stable sort/identity key.
+  label: string; // human label, e.g. 'June 2026'
+  items: T[];
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/**
+ * Group items into month buckets, most recent month first, with items inside each month
+ * sorted newest-first. `getDate` may return a 'YYYY-MM-DD' date or a full ISO timestamp
+ * (e.g. updated_at) — only the leading 'YYYY-MM' is used, so both work. Items whose date
+ * is null or malformed are dropped. Powers the notebook's Board view.
+ *
+ * We deliberately slice the string instead of building a Date: the month is already encoded
+ * in the first 7 chars, and avoiding `new Date()` sidesteps timezone drift (a UTC timestamp
+ * near midnight could otherwise land in the previous month when shifted to local time).
+ */
+export function groupByMonth<T>(items: T[], getDate: (item: T) => string | null): MonthBucket<T>[] {
+  const buckets = new Map<string, MonthBucket<T>>();
+  for (const item of items) {
+    const date = getDate(item);
+    if (!date || date.length < 7) continue;
+    const key = date.slice(0, 7); // 'YYYY-MM'
+    const month = Number(key.slice(5, 7));
+    if (!Number.isInteger(month) || month < 1 || month > 12) continue;
+    if (!buckets.has(key)) {
+      buckets.set(key, { key, label: `${MONTH_NAMES[month - 1]} ${key.slice(0, 4)}`, items: [] });
+    }
+    buckets.get(key)!.items.push(item);
+  }
+
+  const months = [...buckets.values()].sort((a, b) => b.key.localeCompare(a.key)); // newest month first
+  for (const m of months) {
+    m.items.sort((a, b) => (getDate(b) ?? '').localeCompare(getDate(a) ?? '')); // newest item first
+  }
+  return months;
+}
+
 export interface ClassSession {
   date: string; // YYYY-MM-DD
   meetingId: string;

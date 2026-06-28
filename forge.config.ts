@@ -10,7 +10,10 @@ const isSigning = !!(process.env.APPLE_ID && process.env.APPLE_TEAM_ID && proces
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    // unpack native addons (.node) so they can be loaded from disk at runtime —
+    // Node can't dlopen a binary that's still inside the asar archive.
+    // Used by the Windows now-playing module (@coooookies/windows-smtc-monitor).
+    asar: { unpack: '**/*.node' },
     name: 'Studeo',
     // Forge appends the right extension per platform: .icns on macOS, .ico on Windows
     icon: './assets/icon',

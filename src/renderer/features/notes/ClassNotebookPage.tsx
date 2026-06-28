@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, CalendarDays, Trash2, Pin, Clock, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CalendarDays, Trash2, Pin, Clock, ClipboardList, List, LayoutGrid } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { useCourse } from '../../lib/queries/useCourses';
@@ -10,7 +10,7 @@ import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useCreateNote, useDeleteNote } from '../../lib/queries/useNotes';
 import { useEntityNotes, useCreateNoteLink, useSetNotePin } from '../../lib/queries/useNoteLinks';
-import { bucketByWeek, expandClassSessions, type ClassSession } from '../../../shared/notebook';
+import { bucketByWeek, groupByMonth, expandClassSessions, type ClassSession } from '../../../shared/notebook';
 import { buildExceptionIndex } from '../../../shared/meetingExceptions';
 import { useCreateLectureNote } from './useLectureNote';
 import TemplatePickerDialog from './TemplatePickerDialog';
@@ -37,6 +37,42 @@ function SidePanel({ icon, title, children }: { icon: ReactNode; title: string; 
 type TimelineEntry =
   | { kind: 'session'; date: string; session: ClassSession; notes: EntityNote[] }
   | { kind: 'note'; date: string; note: EntityNote };
+
+// The three lenses on a class's notes. 'timeline' keeps the term-anchored weeks + sessions;
+// 'list' is a flat newest-first scan; 'board' lays notes out in month columns.
+type NotebookView = 'timeline' | 'list' | 'board';
+
+// Segmented control to switch between the notebook views. One button per view; the active
+// one fills with the accent color, matching the calm light theme used elsewhere.
+function ViewToggle({ view, onChange }: { view: NotebookView; onChange: (v: NotebookView) => void }) {
+  const options: { id: NotebookView; label: string; icon: ReactNode }[] = [
+    { id: 'timeline', label: 'Timeline', icon: <CalendarDays size={14} /> },
+    { id: 'list', label: 'List', icon: <List size={14} /> },
+    { id: 'board', label: 'Board', icon: <LayoutGrid size={14} /> },
+  ];
+  return (
+    <div role="tablist" aria-label="Notebook view" className="inline-flex gap-0.5 rounded-lg border border-line bg-surface p-0.5">
+      {options.map((o) => {
+        const active = o.id === view;
+        return (
+          <button
+            key={o.id}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.id)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              active ? 'bg-accent text-accent-ink' : 'text-muted hover:bg-surface-hi hover:text-ink',
+            )}
+          >
+            {o.icon}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function snippet(note: EntityNote): string {
   const text = note.content_text.trim().replace(/\n+/g, ' ');
@@ -115,6 +151,7 @@ export default function ClassNotebookPage() {
   const deleteNote = useDeleteNote();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<EntityNote | null>(null);
+  const [view, setView] = useState<NotebookView>('timeline');
 
   const term = terms?.find((t) => t.id === course?.term_id);
   const termStart = term?.start_date ?? null;
@@ -126,6 +163,13 @@ export default function ClassNotebookPage() {
   const pinnedNotes = all.filter((n) => n.is_pinned === 1);
   const datedNotes = all.filter((n) => n.note_date && n.is_pinned !== 1);
   const pages = all.filter((n) => !n.note_date && n.is_pinned !== 1);
+
+  // List + Board lenses both work off the same set: every non-pinned note (dated or not).
+  // List shows it flat, newest-edited first; Board buckets it into months by note_date,
+  // falling back to updated_at for undated notes so nothing is dropped.
+  const unpinned = all.filter((n) => n.is_pinned !== 1);
+  const listNotes = [...unpinned].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  const monthGroups = groupByMonth(unpinned, (n) => n.note_date ?? n.updated_at);
 
   function togglePin(note: EntityNote) {
     setPin.mutate({ linkId: note.link_id, pinned: note.is_pinned !== 1 });
@@ -244,7 +288,14 @@ export default function ClassNotebookPage() {
         </section>
       )}
 
-      {/* ── Timeline ─────────────────────────────────────────────────────────── */}
+      {/* View switcher — governs everything below it (Pinned stays lifted above). */}
+      <div className="mb-6">
+        <ViewToggle view={view} onChange={setView} />
+      </div>
+
+      {/* ── Timeline view ────────────────────────────────────────────────────── */}
+      {view === 'timeline' && (
+        <>
       <section className="mb-8">
         <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           <CalendarDays size={13} /> Timeline
@@ -321,6 +372,52 @@ export default function ClassNotebookPage() {
           </div>
         )}
       </section>
+        </>
+      )}
+
+      {/* ── List view ────────────────────────────────────────────────────────── */}
+      {view === 'list' && (
+        <section>
+          {listNotes.length === 0 ? (
+            <p className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-muted">
+              No notes in this class yet. Use “New note” to start one.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {listNotes.map((n) => (
+                <NoteRow key={n.id} note={n} showDate onTogglePin={togglePin} onDelete={setPendingDelete} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Board view ───────────────────────────────────────────────────────── */}
+      {view === 'board' && (
+        <section>
+          {monthGroups.length === 0 ? (
+            <p className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-muted">
+              No notes in this class yet. Use “New note” to start one.
+            </p>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {monthGroups.map((m) => (
+                <div key={m.key} className="flex w-72 shrink-0 flex-col">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-ink-soft">{m.label}</h3>
+                    <span className="text-xs text-muted">{m.items.length}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {m.items.map((n) => (
+                      <NoteRow key={n.id} note={n} showDate onTogglePin={togglePin} onDelete={setPendingDelete} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
         </div>
 

@@ -473,7 +473,7 @@ function FocusList({ onAdd }: { onAdd: () => void }) {
 // Now-playing card at the top; for Spotify the upcoming queue ("Up next") sits under
 // it and scrolls. Apple Music can't expose its queue, so it shows the player alone.
 function MusicSidebar() {
-  const { defaultMusicService } = useSettingsStore();
+  const { defaultMusicService, nowPlayingOnly } = useSettingsStore();
   return (
     <div className="flex h-full min-h-0 flex-col">
       <p className="mb-2 px-3 text-[0.7rem] font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
@@ -491,9 +491,11 @@ function MusicSidebar() {
           >
             {defaultMusicService === 'spotify' ? <SpotifyMiniPlayer borderless /> : <AppleMusicMiniPlayer borderless />}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            {defaultMusicService === 'spotify' ? <SpotifyUpNext /> : <AppleMusicPlaylistsList />}
-          </div>
+          {!nowPlayingOnly && (
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              {defaultMusicService === 'spotify' ? <SpotifyUpNext /> : <AppleMusicPlaylistsList />}
+            </div>
+          )}
         </div>
       )}
     </div>

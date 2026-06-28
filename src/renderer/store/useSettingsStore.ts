@@ -10,6 +10,10 @@ interface SettingsState {
   defaultMusicService: MusicService | null;
   setDefaultMusicService: (s: MusicService | null) => void;
 
+  /** Collapse the music UI to just the now-playing card (hide playlists + search). */
+  nowPlayingOnly: boolean;
+  setNowPlayingOnly: (v: boolean) => void;
+
   classRemindersEnabled: boolean;
   setClassRemindersEnabled: (v: boolean) => void;
   reminderLeadMinutes: number;
@@ -70,6 +74,8 @@ const storedMusic = readSetting('defaultMusicService', 'studeo:defaultMusicServi
 const initMusic: MusicService | null =
   storedMusic === 'spotify' || storedMusic === 'apple_music' ? storedMusic : null;
 
+const initNowPlayingOnly = readSetting('nowPlayingOnly', 'studeo:nowPlayingOnly') === 'true';
+
 const initRemindersEnabled = readSetting('classRemindersEnabled', 'studeo:classRemindersEnabled') === 'true';
 const storedLead = parseInt(readSetting('reminderLeadMinutes', 'studeo:reminderLeadMinutes') ?? '', 10);
 const initLeadMinutes = isNaN(storedLead) ? 10 : storedLead;
@@ -110,6 +116,12 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     // Empty string represents "none" — read-side only accepts the two known services.
     saveSetting('defaultMusicService', s ?? '');
     set({ defaultMusicService: s });
+  },
+
+  nowPlayingOnly: initNowPlayingOnly,
+  setNowPlayingOnly: (v) => {
+    saveSetting('nowPlayingOnly', String(v));
+    set({ nowPlayingOnly: v });
   },
 
   classRemindersEnabled: initRemindersEnabled,

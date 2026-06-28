@@ -214,7 +214,7 @@ function FocusListPanel() {
 // ── Music study column ────────────────────────────────────────────────────────
 
 function MusicStudyColumn() {
-  const { defaultMusicService } = useSettingsStore();
+  const { defaultMusicService, nowPlayingOnly } = useSettingsStore();
 
   if (!defaultMusicService) {
     return (
@@ -240,7 +240,9 @@ function MusicStudyColumn() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {defaultMusicService === 'spotify' ? <SpotifyStudyPanel /> : <AppleMusicStudyPanel />}
+      {defaultMusicService === 'spotify'
+        ? <SpotifyStudyPanel nowPlayingOnly={nowPlayingOnly} />
+        : <AppleMusicStudyPanel nowPlayingOnly={nowPlayingOnly} />}
     </div>
   );
 }

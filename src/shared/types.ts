@@ -434,6 +434,15 @@ export interface AppleMusicPlaylist {
   isLibrary: boolean;
 }
 
+export interface AppleMusicStatus {
+  /** Is a controllable Apple Music session available right now? */
+  running: boolean;
+  /** macOS Automation permission granted (always true on Windows — SMTC needs no grant). */
+  authorized: boolean;
+  /** macOS can list playlists & search the library; Windows (SMTC) can only show now-playing. */
+  canBrowseLibrary: boolean;
+}
+
 // ─── IPC channel names ────────────────────────────────────────────────────────
 // Defined once as constants so main/preload/renderer all use the exact same
 // string — a typo anywhere would be a compile error instead of a silent bug.
@@ -713,7 +722,7 @@ export interface WindowApi {
     extractPdf(): Promise<ExtractPdfResult>;
   };
   appleMusic: {
-    status():                        Promise<{ running: boolean; authorized: boolean }>;
+    status():                        Promise<AppleMusicStatus>;
     playback():                      Promise<{ isPlaying: boolean; progressMs: number; track: AppleMusicTrack | null } | null>;
     play():                          Promise<{ ok: boolean; error?: string }>;
     pause():                         Promise<{ ok: boolean; error?: string }>;

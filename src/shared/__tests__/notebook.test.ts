@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupNotesByWeek, expandClassSessions, findActiveOrNextSession } from '../notebook';
+import { groupNotesByWeek, groupByMonth, expandClassSessions, findActiveOrNextSession } from '../notebook';
 import { buildExceptionIndex } from '../meetingExceptions';
 import type { ClassMeeting, MeetingException } from '../types';
 
@@ -49,6 +49,43 @@ describe('groupNotesByWeek', () => {
     expect(weeks[0].start).toBe('2026-09-01');
     // 9 days apart → second week
     expect(weeks[weeks.length - 1].items.map((n) => n.id)).toContain('later');
+  });
+});
+
+describe('groupByMonth', () => {
+  type D = { id: string; date: string | null };
+  const get = (d: D) => d.date;
+
+  it('groups by month, newest month first, newest item first within a month', () => {
+    const items: D[] = [
+      { id: 'may', date: '2026-05-30' },
+      { id: 'jun-early', date: '2026-06-02' },
+      { id: 'jun-late', date: '2026-06-20' },
+    ];
+    const months = groupByMonth(items, get);
+    expect(months.map((m) => m.key)).toEqual(['2026-06', '2026-05']);
+    expect(months[0].label).toBe('June 2026');
+    expect(months[0].items.map((i) => i.id)).toEqual(['jun-late', 'jun-early']);
+    expect(months[1].items.map((i) => i.id)).toEqual(['may']);
+  });
+
+  it('accepts full ISO timestamps and buckets by their month', () => {
+    const months = groupByMonth(
+      [{ id: 'ts', date: '2026-06-28T23:30:00.000Z' }],
+      get,
+    );
+    expect(months).toHaveLength(1);
+    expect(months[0].key).toBe('2026-06');
+    expect(months[0].label).toBe('June 2026');
+  });
+
+  it('drops items with a null or malformed date', () => {
+    const months = groupByMonth(
+      [{ id: 'ok', date: '2026-06-01' }, { id: 'nil', date: null }, { id: 'bad', date: 'xx' }],
+      get,
+    );
+    expect(months).toHaveLength(1);
+    expect(months[0].items.map((i) => i.id)).toEqual(['ok']);
   });
 });
 

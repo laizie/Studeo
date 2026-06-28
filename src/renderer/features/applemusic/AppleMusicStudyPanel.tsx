@@ -184,7 +184,7 @@ function SearchInput({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export default function AppleMusicStudyPanel() {
+export default function AppleMusicStudyPanel({ nowPlayingOnly = false }: { nowPlayingOnly?: boolean } = {}) {
   const { data: status }                              = useAppleMusicStatus();
   const { data: playlists = [], isLoading: playlistsLoading } = useAppleMusicPlaylists();
   const playPlaylist = useAppleMusicPlayPlaylist();
@@ -245,6 +245,24 @@ export default function AppleMusicStudyPanel() {
             </p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Now-playing-only: either the user chose it, or the platform can't browse the
+  // library (Windows SMTC exposes the current track but not playlists/search).
+  const compact = nowPlayingOnly || status.canBrowseLibrary === false;
+  if (compact) {
+    return (
+      <div className="w-full flex flex-col">
+        <div className="flex items-center justify-between mb-4 shrink-0">
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">Music</h2>
+          <span className="flex items-center gap-1 text-[10px] text-[#fc3c44]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#fc3c44]" />
+            Apple Music
+          </span>
+        </div>
+        <PlaybackControls />
       </div>
     );
   }
