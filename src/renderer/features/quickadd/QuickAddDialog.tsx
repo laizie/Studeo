@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, NotebookPen } from 'lucide-react';
 import { format } from 'date-fns';
@@ -10,6 +10,7 @@ import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateLectureNote } from '../notes/useLectureNote';
 import { findActiveOrNextSession } from '../../../shared/notebook';
 import { parseDateLocal } from '../../../shared/deadlines';
+import { parseQuickAdd } from '../../../shared/quickParse';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { cn } from '../../lib/utils';
 
@@ -43,6 +44,12 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   const [dueDate, setDueDate] = useState('');
   const [courseId, setCourseId] = useState('');
 
+  // Once the user hand-picks a field, stop letting the parser overwrite it — the
+  // same "don't fight the user" pattern as CourseDialog's abbreviation-edited flag.
+  const [courseTouched, setCourseTouched] = useState(false);
+  const [typeTouched, setTypeTouched]     = useState(false);
+  const [dateTouched, setDateTouched]     = useState(false);
+
   const nameRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
@@ -55,6 +62,27 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
 
   // For the Note tab: the class happening now or next, for one-tap lecture capture.
   const nextSession = isOpen && tab === 'note' ? findActiveOrNextSession(meetings, new Date()) : null;
+
+  // Natural-language parse of the assignment line ("phys quiz 2 fri"). Recomputed
+  // as the user types; drives the live preview and auto-fills the fields below.
+  const parsed = useMemo(
+    () => (tab === 'assignment' && name.trim()
+      ? parseQuickAdd(name, courses.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation })), new Date())
+      : null),
+    [tab, name, courses],
+  );
+
+  // Apply the parse to any field the user hasn't overridden yet.
+  useEffect(() => {
+    if (!parsed) return;
+    if (parsed.courseId && !courseTouched) setCourseId(parsed.courseId);
+    if (!typeTouched) setType(parsed.type);
+    if (parsed.dueDate && !dateTouched) setDueDate(parsed.dueDate);
+  }, [parsed, courseTouched, typeTouched, dateTouched]);
+
+  // What we'll actually save: the cleaned name (date/course words stripped),
+  // falling back to the raw text if the parser stripped everything.
+  const assignmentName = (parsed?.name || name).trim();
 
   async function captureLecture() {
     if (!nextSession) return;
@@ -75,6 +103,9 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     setName('');
     setType('Assignment');
     setDueDate('');
+    setCourseTouched(false);
+    setTypeTouched(false);
+    setDateTouched(false);
     // Pre-select the first course if none selected yet
     setCourseId(prev => prev || (courses[0]?.id ?? ''));
     setTimeout(() => nameRef.current?.focus(), 50);
@@ -99,8 +130,8 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     if (tab !== 'note' && !dueDate) return;
 
     if (tab === 'assignment') {
-      if (!courseId) return;
-      await createAssignment.mutateAsync({ courseId, name: name.trim(), type, dueDate });
+      if (!courseId || !assignmentName) return;
+      await createAssignment.mutateAsync({ courseId, name: assignmentName, type, dueDate });
     } else if (tab === 'task') {
       await createTask.mutateAsync({ name: name.trim(), dueDate });
     } else {
@@ -116,7 +147,9 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
 
   const isPending = createAssignment.isPending || createTask.isPending || createNote.isPending;
   const isError   = createAssignment.isError   || createTask.isError   || createNote.isError;
-  const canSubmit = name.trim() && (tab === 'note' || dueDate) && (tab !== 'assignment' || courseId);
+  const canSubmit = name.trim()
+    && (tab === 'note' || dueDate)
+    && (tab !== 'assignment' || (courseId && assignmentName));
 
   if (!isOpen) return null;
 
@@ -183,17 +216,36 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder={tab === 'assignment' ? 'Assignment name…' : tab === 'task' ? 'Task name…' : 'Note title…'}
+            placeholder={tab === 'assignment' ? 'e.g. phys quiz 2 fri' : tab === 'task' ? 'Task name…' : 'Note title…'}
             className={INPUT}
             required
           />
+
+          {/* Live parse preview — mirrors exactly what will be saved */}
+          {tab === 'assignment' && name.trim() && (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-muted">Saving</span>
+              <span className="font-medium text-ink">“{assignmentName || '…'}”</span>
+              {courseId && (
+                <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">
+                  {courses.find(c => c.id === courseId)?.abbreviation ?? 'Course'}
+                </span>
+              )}
+              <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">{type}</span>
+              {dueDate && (
+                <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">
+                  {format(parseDateLocal(dueDate), 'EEE, MMM d')}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Assignment-only fields */}
           {tab === 'assignment' && (
             <div className="grid grid-cols-2 gap-2">
               <select
                 value={courseId}
-                onChange={e => setCourseId(e.target.value)}
+                onChange={e => { setCourseTouched(true); setCourseId(e.target.value); }}
                 className={INPUT}
                 required
               >
@@ -204,7 +256,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
               </select>
               <select
                 value={type}
-                onChange={e => setType(e.target.value as AssignmentType)}
+                onChange={e => { setTypeTouched(true); setType(e.target.value as AssignmentType); }}
                 className={INPUT}
               >
                 {ASSIGNMENT_TYPES.map(t => (
@@ -219,7 +271,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             <input
               type="date"
               value={dueDate}
-              onChange={e => setDueDate(e.target.value)}
+              onChange={e => { setDateTouched(true); setDueDate(e.target.value); }}
               className={INPUT}
               required
             />

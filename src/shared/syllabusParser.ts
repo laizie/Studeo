@@ -8,7 +8,9 @@ export interface ParsedRow {
 
 // ── Month lookup ──────────────────────────────────────────────────────────────
 
-const MONTHS: Record<string, number> = {
+// Exported so the natural-language Quick Add parser (shared/quickParse.ts) reuses
+// the same month spellings — one source of truth for month names.
+export const MONTHS: Record<string, number> = {
   january: 1, jan: 1,
   february: 2, feb: 2,
   march: 3, mar: 3,
