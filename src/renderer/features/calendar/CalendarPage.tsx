@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parse, startOfWeek, endOfWeek, getDay, startOfMonth, endOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import type { View } from 'react-big-calendar';
 import { usePageFiltersStore, type CalendarMode, type CalendarView } from '../../store/usePageFiltersStore';
@@ -150,9 +150,13 @@ export default function CalendarPage() {
   const [lectureSel, setLectureSel] = useState<{ meeting: ClassMeeting; course?: Course; date: string } | null>(null);
 
   // Track the visible range so we only expand meetings for what's on screen.
+  // react-big-calendar only reports a range on NAVIGATION, so the initial value
+  // must already cover everything the first paint can show: the month grid's
+  // leading/trailing days, and (in week view) a current week that spans a month
+  // boundary. Padding the month out to full weeks covers both.
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date }>(() => ({
-    start: startOfMonth(new Date()),
-    end:   endOfMonth(new Date()),
+    start: startOfWeek(startOfMonth(new Date())),
+    end:   endOfWeek(endOfMonth(new Date())),
   }));
 
   const courseMap = useMemo(

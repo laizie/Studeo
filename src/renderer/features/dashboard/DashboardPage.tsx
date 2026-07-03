@@ -12,6 +12,7 @@ import { useStudySessions } from '../../lib/queries/useStudySessions';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
+import { localDayKey } from '../../../shared/studyStats';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 import CourseDialog from '../courses/CourseDialog';
@@ -225,18 +226,22 @@ export default function DashboardPage() {
     return secs >= 3600 ? `${(secs / 3600).toFixed(1)} hrs` : `${Math.round(secs / 60)} min`;
   }, [studySessions]);
 
-  const termFilter    = usePageFiltersStore(s => s.termFilter);
-  const setTermFilter = usePageFiltersStore(s => s.setTermFilter);
+  const termFilter            = usePageFiltersStore(s => s.termFilter);
+  const setTermFilter         = usePageFiltersStore(s => s.setTermFilter);
+  const termFilterInitialized = usePageFiltersStore(s => s.termFilterInitialized);
+  const initTermFilter        = usePageFiltersStore(s => s.initTermFilter);
 
-  // Auto-select the term whose date range contains today, once terms load
+  // Auto-select the term whose date range contains today, once terms load.
+  // One-time (guarded by termFilterInitialized): re-running on every null would
+  // snap the dropdown back when the user explicitly picks "All semesters".
   useEffect(() => {
-    if (termFilter !== null || terms.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
+    if (termFilterInitialized || terms.length === 0) return;
+    const today = localDayKey(new Date()); // local date — toISOString() is UTC and drifts a day in the evening
     const current = terms.find(t =>
       t.start_date && t.end_date && t.start_date <= today && today <= t.end_date
     );
-    if (current) setTermFilter(current.id);
-  }, [terms, termFilter, setTermFilter]);
+    initTermFilter(current?.id ?? null);
+  }, [terms, termFilterInitialized, initTermFilter]);
 
   const isLoading = coursesLoading || assignmentsLoading;
 

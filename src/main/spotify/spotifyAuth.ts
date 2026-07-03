@@ -101,6 +101,17 @@ export function clearTokens(): void {
 
 let callbackServer: http.Server | null = null;
 
+// `detail` comes from the redirect's query string (attacker-influencable), so it
+// must be HTML-escaped before being interpolated into the response page.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function callbackPage(success: boolean, detail?: string): string {
   const color = success ? '#15803d' : '#be123c';
   const bg    = success ? '#f0fdf4' : '#fff1f2';
@@ -109,7 +120,7 @@ function callbackPage(success: boolean, detail?: string): string {
     ? 'You can close this tab and return to Studeo.'
     : 'You can close this tab and try again in Studeo.';
   const detailHtml = detail
-    ? `<p style="margin-top:8px;font-size:12px;color:#9ca3af;font-family:monospace">${detail}</p>`
+    ? `<p style="margin-top:8px;font-size:12px;color:#9ca3af;font-family:monospace">${escapeHtml(detail)}</p>`
     : '';
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>body{font-family:-apple-system,sans-serif;display:flex;align-items:center;

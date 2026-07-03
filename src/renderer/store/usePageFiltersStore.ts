@@ -31,6 +31,11 @@ interface PageFiltersState {
   // Semester filter (null = all terms)
   termFilter:           string | null;
   setTermFilter:        (id: string | null) => void;
+  /** True once the filter has a value — set by the user OR the one-time auto-select.
+   *  Guards the auto-select so it can't override an explicit "All semesters" (null). */
+  termFilterInitialized: boolean;
+  /** One-time auto-select of the current term; a no-op after any choice was made. */
+  initTermFilter:       (id: string | null) => void;
 }
 
 export const usePageFiltersStore = create<PageFiltersState>()((set) => ({
@@ -54,5 +59,8 @@ export const usePageFiltersStore = create<PageFiltersState>()((set) => ({
   setCalendarShowStudyBlocks: (calendarShowStudyBlocks) => set({ calendarShowStudyBlocks }),
 
   termFilter:            null,
-  setTermFilter:         (termFilter)          => set({ termFilter }),
+  setTermFilter:         (termFilter)          => set({ termFilter, termFilterInitialized: true }),
+  termFilterInitialized: false,
+  initTermFilter:        (id) =>
+    set((s) => (s.termFilterInitialized ? s : { termFilter: id, termFilterInitialized: true })),
 }));
