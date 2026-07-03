@@ -16,6 +16,7 @@ import { localDayKey } from '../../../shared/studyStats';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 import CourseDialog from '../courses/CourseDialog';
+import SemesterTimelineStrip from './SemesterTimelineStrip';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -348,6 +349,7 @@ export default function DashboardPage() {
   }
 
   const hasCourses = allCourses.length > 0;
+  const selectedTerm = terms.find(t => t.id === termFilter);
 
   return (
     <div className="p-8">
@@ -401,6 +403,15 @@ export default function DashboardPage() {
 
       {hasCourses && (
         <>
+          {/* ── Semester timeline: every course across the term, exam/project
+               markers, and the per-week pileup. Self-hides unless the selected
+               term has start/end dates. ──────────────────────────────────── */}
+          <SemesterTimelineStrip
+            term={selectedTerm}
+            courses={allCourses}
+            assignments={allAssignments}
+          />
+
           {/* ── Overdue alert (only when something is actually overdue) ───── */}
           {overdue.length > 0 && (
             <div className="flex items-center gap-2.5 w-fit mb-8 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300">
