@@ -8,7 +8,7 @@ vi.mock('../connection', () => ({
   getDb: () => mockDb.current!,
 }));
 
-import { listTasks, getTask, createTask, updateTask, deleteTask } from '../repositories/taskRepo';
+import { listTasks, getTask, createTask, createTasks, updateTask, deleteTask } from '../repositories/taskRepo';
 
 beforeEach(() => {
   mockDb.current = createTestDb();
@@ -81,6 +81,31 @@ describe('taskRepo', () => {
     it('stores due_date correctly', () => {
       const t = createTask({ name: 'T', dueDate: '2026-12-25' });
       expect(t.due_date).toBe('2026-12-25');
+    });
+  });
+
+  // ── createTasks (batch) ───────────────────────────────────────────────────────
+
+  describe('createTasks', () => {
+    it('inserts every row in one batch', () => {
+      const created = createTasks([
+        { name: 'Reading 1', dueDate: '2026-09-01' },
+        { name: 'Reading 2', dueDate: '2026-09-08' },
+        { name: 'Reading 3', dueDate: '2026-09-15' },
+      ]);
+      expect(created).toHaveLength(3);
+      expect(listTasks()).toHaveLength(3);
+    });
+
+    it('is atomic — a failing row rolls back the whole batch', () => {
+      expect(() =>
+        createTasks([
+          { name: 'Good row', dueDate: '2026-09-01' },
+          // NOT NULL violation on name — the insert of this row must fail
+          { name: null as unknown as string, dueDate: '2026-09-02' },
+        ])
+      ).toThrow();
+      expect(listTasks()).toHaveLength(0);
     });
   });
 

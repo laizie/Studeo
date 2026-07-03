@@ -469,10 +469,11 @@ export const IPC = {
     DELETE: 'subtasks:delete',
   },
   TASKS: {
-    LIST:   'tasks:list',
-    CREATE: 'tasks:create',
-    UPDATE: 'tasks:update',
-    DELETE: 'tasks:delete',
+    LIST:        'tasks:list',
+    CREATE:      'tasks:create',
+    CREATE_MANY: 'tasks:create-many',
+    UPDATE:      'tasks:update',
+    DELETE:      'tasks:delete',
   },
   CLASS_MEETINGS: {
     LIST:   'class_meetings:list',
@@ -612,6 +613,8 @@ export interface WindowApi {
   tasks: {
     list(): Promise<Task[]>;
     create(input: CreateTaskInput): Promise<Task>;
+    /** Atomic batch insert — all rows save or none do (recurring task series). */
+    createMany(inputs: CreateTaskInput[]): Promise<Task[]>;
     update(id: string, input: UpdateTaskInput): Promise<Task>;
     delete(id: string): Promise<void>;
   };

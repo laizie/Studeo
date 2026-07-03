@@ -21,6 +21,15 @@ export function useCreateTask() {
   });
 }
 
+/** Batch-create a recurring task series atomically (mirrors useCreateAssignments). */
+export function useCreateTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inputs: CreateTaskInput[]) => window.api.tasks.createMany(inputs),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
 export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({

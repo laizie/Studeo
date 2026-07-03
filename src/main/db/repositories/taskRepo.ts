@@ -27,6 +27,24 @@ export function createTask(input: CreateTaskInput): Task {
   return getTask(id)!;
 }
 
+/**
+ * Insert a whole batch atomically (a recurring task series).
+ * Wrapped in a transaction so one bad row can't leave a half-saved series:
+ * either every task lands or none do. Mirrors createAssignments().
+ */
+export function createTasks(inputs: CreateTaskInput[]): Task[] {
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const created = inputs.map(createTask);
+    db.exec('COMMIT');
+    return created;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
 export function updateTask(id: string, input: UpdateTaskInput): Task {
   const fields: string[] = [];
   const values: (string | null)[] = [];

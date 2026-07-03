@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Repeat } from 'lucide-react';
 import type { Task } from '../../../shared/types';
-import { useCreateTask, useUpdateTask } from '../../lib/queries/useTasks';
+import { generateRepeats } from '../../../shared/repeat';
+import { useCreateTask, useCreateTasks, useUpdateTask } from '../../lib/queries/useTasks';
 
 interface Props {
   task?: Task;
@@ -20,9 +21,15 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
 
   const [name, setName]       = useState('');
   const [dueDate, setDueDate] = useState('');
+  // Recurring: when on, the task expands into a weekly/biweekly series (numbered
+  // copies) up to an end date. Add mode only — same model as recurring assignments.
+  const [repeat, setRepeat]           = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(1); // 1 = weekly, 2 = every 2 weeks
+  const [repeatUntil, setRepeatUntil] = useState('');
 
-  const createTask = useCreateTask();
-  const updateTask = useUpdateTask();
+  const createTask  = useCreateTask();
+  const createTasks = useCreateTasks();
+  const updateTask  = useUpdateTask();
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -34,6 +41,10 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
       setName('');
       setDueDate('');
     }
+    // Repeat is always reset off — it's an add-mode, per-open choice.
+    setRepeat(false);
+    setRepeatWeeks(1);
+    setRepeatUntil('');
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, task]);
 
@@ -44,9 +55,27 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // Recurring is add-mode only. Follow-up occurrences after the first (the typed
+  // one); empty until a valid end date is set. Drives the preview + button label.
+  const repeating = !isEditing && repeat;
+  const followUps = repeating ? generateRepeats(name, dueDate, repeatUntil, repeatWeeks) : [];
+  const totalOccurrences = followUps.length + 1; // includes the first
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !dueDate) return;
+
+    if (repeating) {
+      // Expand into independent, numbered copies and insert them atomically —
+      // either the whole series saves or none of it does (createMany).
+      const series = [
+        { name: name.trim(), dueDate },
+        ...followUps.map(o => ({ name: o.name, dueDate: o.dueDate })),
+      ];
+      await createTasks.mutateAsync(series);
+      onClose();
+      return;
+    }
 
     if (isEditing) {
       await updateTask.mutateAsync({ id: task.id, input: { name: name.trim(), dueDate } });
@@ -56,8 +85,8 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
     onClose();
   }
 
-  const isPending = createTask.isPending || updateTask.isPending;
-  const isError   = createTask.isError   || updateTask.isError;
+  const isPending = createTask.isPending || createTasks.isPending || updateTask.isPending;
+  const isError   = createTask.isError   || createTasks.isError   || updateTask.isError;
 
   if (!isOpen) return null;
 
@@ -102,6 +131,52 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
             />
           </div>
 
+          {/* Repeat — add mode only. Expands into a numbered weekly/biweekly series. */}
+          {!isEditing && (
+            <div className="rounded-lg border border-line bg-inset/60 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-ink-soft cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={repeat}
+                  onChange={e => setRepeat(e.target.checked)}
+                  className="accent-[var(--color-accent)]"
+                />
+                <Repeat size={14} className="text-muted" />
+                Repeat this task
+              </label>
+
+              {repeat && (
+                <div className="mt-3 space-y-2.5">
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-ink-soft">
+                    <select
+                      value={repeatWeeks}
+                      onChange={e => setRepeatWeeks(Number(e.target.value))}
+                      className={INPUT_CLASS + ' w-auto'}
+                    >
+                      <option value={1}>every week</option>
+                      <option value={2}>every 2 weeks</option>
+                    </select>
+                    <span className="text-muted">until</span>
+                    <input
+                      type="date"
+                      value={repeatUntil}
+                      min={dueDate || undefined}
+                      onChange={e => setRepeatUntil(e.target.value)}
+                      className={INPUT_CLASS + ' w-auto'}
+                    />
+                  </div>
+                  <p className="text-xs text-muted">
+                    {!dueDate
+                      ? 'Set a due date above to start the series.'
+                      : followUps.length === 0
+                      ? 'Pick an end date after the due date to add repeats.'
+                      : `Creates ${totalOccurrences} tasks — last one due ${followUps[followUps.length - 1].dueDate}.`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {isError && (
             <p className="text-sm text-red-600">Something went wrong — please try again.</p>
           )}
@@ -119,7 +194,13 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
               disabled={!name.trim() || !dueDate || isPending}
               className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Add task'}
+              {isPending
+                ? 'Saving…'
+                : isEditing
+                ? 'Save changes'
+                : repeating && followUps.length > 0
+                ? `Add ${totalOccurrences} tasks`
+                : 'Add task'}
             </button>
           </div>
         </form>

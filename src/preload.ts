@@ -55,10 +55,11 @@ const api: WindowApi = {
   },
 
   tasks: {
-    list:   ()                             => ipcRenderer.invoke(IPC.TASKS.LIST),
-    create: (input: CreateTaskInput)       => ipcRenderer.invoke(IPC.TASKS.CREATE, input),
-    update: (id, input: UpdateTaskInput)   => ipcRenderer.invoke(IPC.TASKS.UPDATE, id, input),
-    delete: (id)                           => ipcRenderer.invoke(IPC.TASKS.DELETE, id),
+    list:       ()                             => ipcRenderer.invoke(IPC.TASKS.LIST),
+    create:     (input: CreateTaskInput)       => ipcRenderer.invoke(IPC.TASKS.CREATE, input),
+    createMany: (inputs: CreateTaskInput[])    => ipcRenderer.invoke(IPC.TASKS.CREATE_MANY, inputs),
+    update:     (id, input: UpdateTaskInput)   => ipcRenderer.invoke(IPC.TASKS.UPDATE, id, input),
+    delete:     (id)                           => ipcRenderer.invoke(IPC.TASKS.DELETE, id),
   },
 
   subtasks: {
