@@ -11,6 +11,7 @@ import StudyPage from '../features/study/StudyPage';
 import SettingsPage from '../features/settings/SettingsPage';
 import BatchAddPage from '../features/courses/BatchAddPage';
 import ImportFeedPage from '../features/import/ImportFeedPage';
+import SetupWizardPage from '../features/setup/SetupWizardPage';
 import NotebooksLandingPage from '../features/notes/NotebooksLandingPage';
 import LooseNotesPage from '../features/notes/LooseNotesPage';
 import ClassNotebookPage from '../features/notes/ClassNotebookPage';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="courses" element={<CoursesPage />} />
           <Route path="courses/:id" element={<CourseDetailPage />} />
           <Route path="courses/:id/batch" element={<BatchAddPage />} />
+          <Route path="setup" element={<SetupWizardPage />} />
           <Route path="import" element={<ImportFeedPage />} />
           <Route path="this-week" element={<ThisWeekPage />} />
           <Route path="tasks" element={<TasksPage />} />

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, GraduationCap } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTerms } from '../../lib/queries/useTerms';
@@ -79,6 +79,13 @@ export default function CoursesPage() {
 
         <div className="flex items-center gap-2">
           <Link
+            to="/setup"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+          >
+            <GraduationCap size={15} />
+            New semester
+          </Link>
+          <Link
             to="/import"
             className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
           >
@@ -129,12 +136,21 @@ export default function CoursesPage() {
       {!isLoading && !isError && count === 0 && (
         <div className="text-center py-24">
           <p className="text-stone-500 text-sm">No courses yet.</p>
-          <button
-            onClick={() => setIsDialogOpen(true)}
-            className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
+          <Link
+            to="/setup"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
           >
-            Add your first course
-          </button>
+            <GraduationCap size={15} />
+            Set up a semester
+          </Link>
+          <div>
+            <button
+              onClick={() => setIsDialogOpen(true)}
+              className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
+            >
+              Or add a single course
+            </button>
+          </div>
         </div>
       )}
 
