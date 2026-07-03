@@ -17,6 +17,9 @@ const config: ForgeConfig = {
     name: 'Studeo',
     // Forge appends the right extension per platform: .icns on macOS, .ico on Windows
     icon: './assets/icon',
+    // Copied into the packaged app's resources so the system-tray icon can be
+    // loaded at runtime (process.resourcesPath) on Windows/Linux.
+    extraResource: ['./assets/icon.png'],
     appBundleId: 'com.studeo.app',
     appCategoryType: 'public.app-category.education',
     ...(isSigning && {

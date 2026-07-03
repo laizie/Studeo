@@ -24,6 +24,7 @@ import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/register
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
 import { initAutoUpdater } from './main/updater';
+import { initTray, destroyTray } from './main/tray';
 
 if (started) {
   app.quit();
@@ -59,8 +60,11 @@ function registerIpcHandlers(): void {
   registerAppleMusicHandlers();
 }
 
+// Kept at module scope so the tray's "Open Studeo" can find (or recreate) it.
+let mainWindow: BrowserWindow | null = null;
+
 const createWindow = () => {
-  const mainWindow = new BrowserWindow({
+  const win = new BrowserWindow({
     width: 1280,
     height: 960,
     minWidth: 900,
@@ -75,26 +79,40 @@ const createWindow = () => {
       sandbox: true,
     },
   });
+  mainWindow = win;
+  win.on('closed', () => { mainWindow = null; });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
+    win.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.webContents.openDevTools();
+    win.webContents.openDevTools();
   }
 
   // Keep the renderer's Focus Mode in sync with OS fullscreen — including the exits
   // it can't initiate itself (Esc, the green traffic-light button, Ctrl+Cmd+F).
   const sendFullscreen = (isFullscreen: boolean) =>
-    mainWindow.webContents.send('app:fullscreen-changed', { isFullscreen });
-  mainWindow.on('enter-full-screen', () => sendFullscreen(true));
-  mainWindow.on('leave-full-screen', () => sendFullscreen(false));
+    win.webContents.send('app:fullscreen-changed', { isFullscreen });
+  win.on('enter-full-screen', () => sendFullscreen(true));
+  win.on('leave-full-screen', () => sendFullscreen(false));
 };
+
+// Show the main window, recreating it if it was closed (macOS keeps the app
+// running with no window). Used by the tray's "Open Studeo".
+function showMainWindow(): void {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    createWindow();
+  }
+}
 
 app.on('ready', () => {
   app.setAppUserModelId(app.getName());
@@ -114,6 +132,7 @@ app.on('ready', () => {
   registerIpcHandlers();
   startReminderScheduler(); // after initDb — the scheduler reads class meetings
   createWindow();
+  initTray(showMainWindow); // menu-bar "Up next" item — reads class meetings, so after initDb
   initAutoUpdater(); // checks GitHub for newer published releases (packaged builds only)
 });
 
@@ -121,6 +140,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Tear the tray down cleanly on quit (stops the poll, removes the menu-bar item).
+app.on('before-quit', () => {
+  destroyTray();
 });
 
 app.on('activate', () => {
