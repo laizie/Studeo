@@ -29,6 +29,8 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const [name, setName]       = useState('');
   const [type, setType]       = useState<AssignmentType>('Assignment');
   const [dueDate, setDueDate] = useState('');
+  // Optional time of day. Empty string = all-day (stored as null).
+  const [dueTime, setDueTime] = useState('');
   // Kept as strings so the inputs can be empty; parsed on submit.
   const [score, setScore]           = useState('');
   const [pointsPossible, setPointsPossible] = useState('');
@@ -55,12 +57,14 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
       setName(assignment.name);
       setType(assignment.type);
       setDueDate(assignment.due_date.slice(0, 10)); // strip any time component → YYYY-MM-DD
+      setDueTime(assignment.due_time ?? '');
       setScore(assignment.score?.toString() ?? '');
       setPointsPossible(assignment.points_possible?.toString() ?? '');
     } else {
       setName('');
       setType('Assignment');
       setDueDate('');
+      setDueTime('');
       setScore('');
       setPointsPossible('');
     }
@@ -96,12 +100,15 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     e.preventDefault();
     if (!name.trim() || !dueDate || gradeInvalid) return;
 
+    // Empty string → all-day (null); the same time applies to every occurrence.
+    const dueTimeValue = dueTime || null;
+
     if (repeating) {
       // Expand into independent, numbered copies and insert them atomically —
       // either the whole series saves or none of it does (createMany).
       const series = [
-        { courseId, name: name.trim(), type, dueDate },
-        ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate })),
+        { courseId, name: name.trim(), type, dueDate, dueTime: dueTimeValue },
+        ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate, dueTime: dueTimeValue })),
       ];
       await createAssignments.mutateAsync(series);
       onClose();
@@ -116,7 +123,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     if (isEditing) {
       await updateAssignment.mutateAsync({
         id: assignment.id,
-        input: { name: name.trim(), type, dueDate, ...gradeFields },
+        input: { name: name.trim(), type, dueDate, dueTime: dueTimeValue, ...gradeFields },
       });
     } else {
       await createAssignment.mutateAsync({
@@ -124,6 +131,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
         name: name.trim(),
         type,
         dueDate,
+        dueTime: dueTimeValue,
         ...gradeFields,
       });
     }
@@ -196,15 +204,29 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className={INPUT_CLASS}
-              required
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={INPUT_CLASS}
+                required
+              />
+            </div>
+            <div className="w-32">
+              <label className="block text-sm font-medium text-ink-soft mb-1">
+                Time <span className="text-stone-500 font-normal">(optional)</span>
+              </label>
+              <input
+                type="time"
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
+                aria-label="Due time (optional)"
+                className={INPUT_CLASS}
+              />
+            </div>
           </div>
 
           {/* Repeat — add mode only. Expands into a numbered weekly/biweekly series. */}

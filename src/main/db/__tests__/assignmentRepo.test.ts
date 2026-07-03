@@ -47,6 +47,14 @@ describe('assignmentRepo', () => {
       expect(list[1].name).toBe('Later');
     });
 
+    it('orders by time within a day: all-day first, then chronological', () => {
+      createAssignment({ courseId, name: 'Noon',    dueDate: '2026-09-01', dueTime: '12:00' });
+      createAssignment({ courseId, name: 'AllDay',  dueDate: '2026-09-01' });
+      createAssignment({ courseId, name: 'Morning', dueDate: '2026-09-01', dueTime: '09:00' });
+      createAssignment({ courseId, name: 'NextDay', dueDate: '2026-09-02', dueTime: '08:00' });
+      expect(listAssignments().map(a => a.name)).toEqual(['AllDay', 'Morning', 'Noon', 'NextDay']);
+    });
+
     it('filters by courseId', () => {
       const other = createCourse({ name: 'Bio', abbreviation: 'BIO', color: '#0f0' });
       createAssignment({ courseId,       name: 'Mine',  dueDate: '2026-09-01' });
@@ -115,6 +123,16 @@ describe('assignmentRepo', () => {
       expect(a.notes).toBe('Read ch. 3');
     });
 
+    it('defaults due_time to null (all-day)', () => {
+      const a = createAssignment({ courseId, name: 'AllDay', dueDate: '2026-09-01' });
+      expect(a.due_time).toBeNull();
+    });
+
+    it('stores an explicit due_time', () => {
+      const a = createAssignment({ courseId, name: 'Timed', dueDate: '2026-09-01', dueTime: '23:59' });
+      expect(a.due_time).toBe('23:59');
+    });
+
     it('stores the courseId correctly', () => {
       const a = createAssignment({ courseId, name: 'Test', dueDate: '2026-09-01' });
       expect(a.course_id).toBe(courseId);
@@ -158,6 +176,12 @@ describe('assignmentRepo', () => {
     it('nulls out notes', () => {
       const a = createAssignment({ courseId, name: 'T', dueDate: '2026-09-01', notes: 'Old' });
       expect(updateAssignment(a.id, { notes: null }).notes).toBeNull();
+    });
+
+    it('sets and clears due_time', () => {
+      const a = createAssignment({ courseId, name: 'T', dueDate: '2026-09-01' });
+      expect(updateAssignment(a.id, { dueTime: '09:30' }).due_time).toBe('09:30');
+      expect(updateAssignment(a.id, { dueTime: null }).due_time).toBeNull();
     });
 
     it('returns the unchanged row when input is empty', () => {

@@ -63,6 +63,9 @@ export interface Assignment {
   type: AssignmentType;
   status: AssignmentStatus;
   due_date: string;
+  /** Optional time of day, "HH:MM" (24h). Null = all-day. Affects display + intra-day
+   *  sort only; the date still governs urgency (see shared/deadlines.ts). */
+  due_time: string | null;
   notes: string | null;
   /** Grade earned ("18 out of 20"). Both null until the user records one. */
   score: number | null;
@@ -268,6 +271,8 @@ export interface CreateAssignmentInput {
   type?: AssignmentType;
   status?: AssignmentStatus;
   dueDate: string;
+  /** Optional "HH:MM" (24h) time of day; omit/null for an all-day due date. */
+  dueTime?: string | null;
   notes?: string;
   score?: number | null;
   pointsPossible?: number | null;
@@ -278,6 +283,8 @@ export interface UpdateAssignmentInput {
   type?: AssignmentType;
   status?: AssignmentStatus;
   dueDate?: string;
+  /** "HH:MM" (24h) to set a time, or null to clear it back to all-day. */
+  dueTime?: string | null;
   notes?: string | null;
   score?: number | null;
   pointsPossible?: number | null;

@@ -3,7 +3,7 @@ import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
 import type { Assignment, Task } from '../../../shared/types';
-import { parseDateLocal } from '../../../shared/deadlines';
+import { parseDateLocal, dueSortValue } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import AssignmentRow from '../courses/AssignmentRow';
 import TaskRow from '../tasks/TaskRow';
@@ -129,7 +129,12 @@ export default function ThisWeekPage() {
       }
     }
 
-    return items.sort((a, b) => a.data.due_date.localeCompare(b.data.due_date));
+    // Sort by due date, then by time within a day (tasks have no time → all-day).
+    return items.sort((a, b) => {
+      const av = dueSortValue(a.data.due_date, a.kind === 'assignment' ? a.data.due_time : null);
+      const bv = dueSortValue(b.data.due_date, b.kind === 'assignment' ? b.data.due_time : null);
+      return av.localeCompare(bv);
+    });
   }, [assignments, tasks, windowConfig, showCompleted, showTasks]);
 
   // Group by display-day label so we can render dividers.

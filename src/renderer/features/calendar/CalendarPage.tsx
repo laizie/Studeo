@@ -13,7 +13,7 @@ import { useMeetingExceptions } from '../../lib/queries/useMeetingExceptions';
 import { buildExceptionIndex, resolveOccurrence, type ExceptionIndex } from '../../../shared/meetingExceptions';
 import { useTasks } from '../../lib/queries/useTasks';
 import { useStudyBlocks, useUpdateStudyBlock } from '../../lib/queries/useStudyBlocks';
-import { parseDateLocal } from '../../../shared/deadlines';
+import { parseDateLocal, formatClock12 } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
 import { contrastTextColor } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
@@ -171,8 +171,9 @@ export default function CalendarPage() {
     return assignments.map(a => {
       const date = parseDateLocal(a.due_date);
       const course = courseMap.get(a.course_id);
+      const base = course ? `[${course.abbreviation}] ${a.name}` : a.name;
       return {
-        title: course ? `[${course.abbreviation}] ${a.name}` : a.name,
+        title: a.due_time ? `${base} · ${formatClock12(a.due_time)}` : base,
         start: date,
         end:   date,
         allDay: true,

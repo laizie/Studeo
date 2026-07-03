@@ -11,7 +11,7 @@ import { useTerms } from '../../lib/queries/useTerms';
 import { useStudySessions } from '../../lib/queries/useStudySessions';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
-import { parseDateLocal, computeDeadlineLabel } from '../../../shared/deadlines';
+import { parseDateLocal, computeDeadlineLabel, dueSortValue } from '../../../shared/deadlines';
 import { localDayKey } from '../../../shared/studyStats';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
@@ -278,7 +278,7 @@ export default function DashboardPage() {
   const overdue = useMemo(() =>
     allAssignments
       .filter(a => parseDateLocal(a.due_date) < todayMidnight && a.status !== 'completed')
-      .sort((a, b) => a.due_date.localeCompare(b.due_date)),
+      .sort((a, b) => dueSortValue(a.due_date, a.due_time).localeCompare(dueSortValue(b.due_date, b.due_time))),
     [allAssignments, todayMidnight],
   );
 
@@ -288,7 +288,7 @@ export default function DashboardPage() {
         const d = parseDateLocal(a.due_date);
         return d >= todayMidnight && d <= weekEnd && a.status !== 'completed';
       })
-      .sort((a, b) => a.due_date.localeCompare(b.due_date)),
+      .sort((a, b) => dueSortValue(a.due_date, a.due_time).localeCompare(dueSortValue(b.due_date, b.due_time))),
     [allAssignments, todayMidnight, weekEnd],
   );
 

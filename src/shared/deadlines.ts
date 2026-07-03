@@ -49,3 +49,20 @@ export function formatDueDate(dueDate: string): string {
     day: 'numeric',
   });
 }
+
+// Format an "HH:MM" (24h) clock time for display ("9:05 AM"). Shared by the
+// assignment due-time display and the menu-bar/tray formatting.
+export function formatClock12(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hr = h % 12 || 12;
+  return `${hr}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+// A sortable key that orders items by due date, then within a day puts all-day
+// items (no time) before timed ones, which then run in chronological order.
+// Mirrors the SQL `ORDER BY due_date, (due_time IS NULL) DESC, due_time` so the
+// renderer's re-sorts agree with the repository's list order.
+export function dueSortValue(dueDate: string, dueTime: string | null | undefined): string {
+  return `${dueDate}T${dueTime ?? ''}`;
+}

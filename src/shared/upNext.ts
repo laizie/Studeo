@@ -4,7 +4,10 @@
 
 import type { ClassMeeting, Course } from './types';
 import { resolveOccurrence, type ExceptionIndex } from './meetingExceptions';
-import { parseDateLocal } from './deadlines';
+import { parseDateLocal, formatClock12 } from './deadlines';
+
+// Re-exported so existing importers (tray, tests) keep getting it from here.
+export { formatClock12 };
 
 export interface UpcomingClass {
   meeting: ClassMeeting;
@@ -107,14 +110,6 @@ export function findUpNextClass(
 }
 
 // ── Formatting ────────────────────────────────────────────────────────────────
-
-/** "9:05 AM" from "09:05". */
-export function formatClock12(hhmm: string): string {
-  const [h, m] = hhmm.split(':').map(Number);
-  const period = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 || 12;
-  return `${hr}:${String(m).padStart(2, '0')} ${period}`;
-}
 
 /**
  * Compact countdown for the menu-bar title:

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDateLocal, computeDeadlineLabel, formatDueDate } from '../deadlines';
+import { parseDateLocal, computeDeadlineLabel, formatDueDate, formatClock12, dueSortValue } from '../deadlines';
 
 function offsetDate(days: number): Date {
   const d = new Date();
@@ -125,5 +125,38 @@ describe('formatDueDate', () => {
 
   it('formats December 31 correctly', () => {
     expect(formatDueDate('2026-12-31')).toBe('Dec 31');
+  });
+});
+
+// ── formatClock12 ──────────────────────────────────────────────────────────────
+
+describe('formatClock12', () => {
+  it('formats morning times', () => {
+    expect(formatClock12('09:05')).toBe('9:05 AM');
+  });
+
+  it('formats afternoon times', () => {
+    expect(formatClock12('13:00')).toBe('1:00 PM');
+  });
+
+  it('handles midnight and noon', () => {
+    expect(formatClock12('00:30')).toBe('12:30 AM');
+    expect(formatClock12('12:00')).toBe('12:00 PM');
+  });
+});
+
+// ── dueSortValue ───────────────────────────────────────────────────────────────
+
+describe('dueSortValue', () => {
+  it('orders earlier dates before later ones', () => {
+    expect(dueSortValue('2026-09-01', null) < dueSortValue('2026-09-02', null)).toBe(true);
+  });
+
+  it('puts an all-day item before a timed item on the same day', () => {
+    expect(dueSortValue('2026-09-01', null) < dueSortValue('2026-09-01', '00:00')).toBe(true);
+  });
+
+  it('orders timed items chronologically within a day', () => {
+    expect(dueSortValue('2026-09-01', '09:00') < dueSortValue('2026-09-01', '13:30')).toBe(true);
   });
 });

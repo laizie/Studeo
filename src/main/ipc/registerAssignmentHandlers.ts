@@ -25,6 +25,14 @@ function validateGradeFields(input: { score?: number | null; pointsPossible?: nu
   }
 }
 
+// dueTime: absent or null = all-day; otherwise a strict "HH:MM" 24h clock time.
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+function validateDueTime(input: { dueTime?: string | null }): void {
+  if (input.dueTime != null && !HHMM_RE.test(input.dueTime)) {
+    throw new Error('dueTime must be "HH:MM" (24-hour), or null for all-day');
+  }
+}
+
 export function registerAssignmentHandlers(): void {
   ipcMain.handle(
     IPC.ASSIGNMENTS.LIST,
@@ -37,6 +45,7 @@ export function registerAssignmentHandlers(): void {
     if (!input.name?.trim())  throw new Error('Assignment name is required');
     if (!input.dueDate)       throw new Error('dueDate is required');
     validateGradeFields(input);
+    validateDueTime(input);
     return createAssignment(input);
   });
 
@@ -47,6 +56,7 @@ export function registerAssignmentHandlers(): void {
       if (!input.courseId)     throw new Error('courseId is required on every row');
       if (!input.name?.trim()) throw new Error('Assignment name is required on every row');
       if (!input.dueDate)      throw new Error('dueDate is required on every row');
+      validateDueTime(input);
     }
     return createAssignments(inputs);
   });
@@ -54,6 +64,7 @@ export function registerAssignmentHandlers(): void {
   ipcMain.handle(IPC.ASSIGNMENTS.UPDATE, (_event, id: string, input: UpdateAssignmentInput) => {
     if (!id) throw new Error('Assignment id is required');
     validateGradeFields(input);
+    validateDueTime(input);
     return updateAssignment(id, input);
   });
 

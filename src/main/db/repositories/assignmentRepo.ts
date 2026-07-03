@@ -24,7 +24,9 @@ export function listAssignments(filters: AssignmentFilters = {}): Assignment[] {
   if (filters.status)   { clauses.push('status = ?');    params.push(filters.status); }
 
   if (clauses.length > 0) sql += ' WHERE ' + clauses.join(' AND ');
-  sql += ' ORDER BY due_date ASC';
+  // Within a day, all-day items (NULL time) come first, then timed ones in
+  // chronological order — matches dueSortValue() used on the renderer side.
+  sql += ' ORDER BY due_date ASC, (due_time IS NULL) DESC, due_time ASC';
 
   return (getDb().prepare(sql).all(...params) as unknown[]).map(row);
 }
@@ -39,7 +41,7 @@ export function createAssignment(input: CreateAssignmentInput): Assignment {
   const now = new Date().toISOString();
   getDb()
     .prepare(
-      'INSERT INTO assignments (id, course_id, name, type, status, due_date, notes, score, points_possible, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
     .run(
       id,
@@ -48,6 +50,7 @@ export function createAssignment(input: CreateAssignmentInput): Assignment {
       input.type ?? 'Assignment',
       input.status ?? 'not_started',
       input.dueDate,
+      input.dueTime ?? null,
       input.notes ?? null,
       input.score ?? null,
       input.pointsPossible ?? null,
@@ -82,6 +85,7 @@ export function updateAssignment(id: string, input: UpdateAssignmentInput): Assi
   if (input.type !== undefined)    { fields.push('type = ?');     values.push(input.type); }
   if (input.status !== undefined)  { fields.push('status = ?');   values.push(input.status); }
   if (input.dueDate !== undefined) { fields.push('due_date = ?'); values.push(input.dueDate); }
+  if (input.dueTime !== undefined) { fields.push('due_time = ?'); values.push(input.dueTime ?? null); }
   if (input.notes !== undefined)   { fields.push('notes = ?');    values.push(input.notes ?? null); }
   if (input.score !== undefined)          { fields.push('score = ?');           values.push(input.score ?? null); }
   if (input.pointsPossible !== undefined) { fields.push('points_possible = ?'); values.push(input.pointsPossible ?? null); }

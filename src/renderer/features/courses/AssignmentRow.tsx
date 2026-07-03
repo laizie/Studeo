@@ -4,7 +4,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import SubtaskChecklist from './SubtaskChecklist';
 import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
-import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
+import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../shared/deadlines';
 import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
 import { useSubtasks } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
@@ -108,9 +108,10 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         {assignment.type}
       </span>
 
-      {/* Due date */}
+      {/* Due date (with time of day when the assignment has one) */}
       <span className="shrink-0 text-xs text-muted bg-inset px-2 py-0.5 rounded hidden md:block">
         {formatDueDate(assignment.due_date)}
+        {assignment.due_time && ` · ${formatClock12(assignment.due_time)}`}
       </span>
 
       {/* Deadline label */}
