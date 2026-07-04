@@ -70,6 +70,10 @@ export interface Assignment {
   /** Grade earned ("18 out of 20"). Both null until the user records one. */
   score: number | null;
   points_possible: number | null;
+  /** ISO/UTC timestamp of when status last became 'completed'; null otherwise.
+   *  Set/cleared by the repo on status transitions — never authored directly.
+   *  Powers time-windowed views like the Weekly Review's "what got done". */
+  completed_at: string | null;
   created_at: string;
 }
 
@@ -88,6 +92,9 @@ export interface Task {
   name: string;
   status: AssignmentStatus;
   due_date: string;
+  /** ISO/UTC timestamp of when status last became 'completed'; null otherwise.
+   *  Set/cleared by the repo on status transitions (mirrors Assignment). */
+  completed_at: string | null;
   created_at: string;
 }
 

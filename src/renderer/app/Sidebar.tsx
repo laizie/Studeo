@@ -4,7 +4,7 @@ import logoUrl from '../assets/logo.png';
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
   Calendar, Timer, Settings, Plus, Music, FileText, Search,
-  ChevronRight, ChevronDown,
+  ChevronRight, ChevronDown, ClipboardCheck,
 } from 'lucide-react';
 import { useCourses } from '../lib/queries/useCourses';
 import { cn } from '../lib/utils';
@@ -17,6 +17,7 @@ const navItemsTop = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/courses', label: 'Courses', icon: BookOpen },
   { to: '/this-week', label: 'This Week', icon: CalendarDays },
+  { to: '/review', label: 'Weekly Review', icon: ClipboardCheck },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
 ];
 

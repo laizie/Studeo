@@ -5,6 +5,7 @@ import DashboardPage from '../features/dashboard/DashboardPage';
 import CoursesPage from '../features/courses/CoursesPage';
 import CourseDetailPage from '../features/courses/CourseDetailPage';
 import ThisWeekPage from '../features/thisweek/ThisWeekPage';
+import WeeklyReviewPage from '../features/review/WeeklyReviewPage';
 import TasksPage from '../features/tasks/TasksPage';
 import CalendarPage from '../features/calendar/CalendarPage';
 import StudyPage from '../features/study/StudyPage';
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="setup" element={<SetupWizardPage />} />
           <Route path="import" element={<ImportFeedPage />} />
           <Route path="this-week" element={<ThisWeekPage />} />
+          <Route path="review" element={<WeeklyReviewPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="study" element={<StudyPage />} />

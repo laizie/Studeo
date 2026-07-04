@@ -190,6 +190,40 @@ describe('assignmentRepo', () => {
     });
   });
 
+  // ── completed_at (Weekly Review) ────────────────────────────────────────────
+
+  describe('completed_at', () => {
+    it('is null on a fresh non-completed assignment', () => {
+      const a = createAssignment({ courseId, name: 'T', dueDate: '2026-09-01' });
+      expect(a.completed_at).toBeNull();
+    });
+
+    it('is stamped when created already completed', () => {
+      const a = createAssignment({ courseId, name: 'Done', dueDate: '2026-09-01', status: 'completed' });
+      expect(a.completed_at).not.toBeNull();
+    });
+
+    it('is stamped on the transition into completed', () => {
+      const a = createAssignment({ courseId, name: 'T', dueDate: '2026-09-01' });
+      const done = updateAssignment(a.id, { status: 'completed' });
+      expect(done.completed_at).not.toBeNull();
+    });
+
+    it('is cleared when moving back out of completed', () => {
+      const a = createAssignment({ courseId, name: 'T', dueDate: '2026-09-01', status: 'completed' });
+      const reopened = updateAssignment(a.id, { status: 'in_progress' });
+      expect(reopened.completed_at).toBeNull();
+    });
+
+    it('does not move when a completed assignment is re-saved', () => {
+      const a = createAssignment({ courseId, name: 'T', dueDate: '2026-09-01', status: 'completed' });
+      const stamp = a.completed_at;
+      // Editing another field, and re-asserting completed, must not restamp it.
+      expect(updateAssignment(a.id, { name: 'Renamed' }).completed_at).toBe(stamp);
+      expect(updateAssignment(a.id, { status: 'completed' }).completed_at).toBe(stamp);
+    });
+  });
+
   // ── deleteAssignment ────────────────────────────────────────────────────────
 
   describe('deleteAssignment', () => {

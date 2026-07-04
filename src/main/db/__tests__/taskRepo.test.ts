@@ -141,6 +141,26 @@ describe('taskRepo', () => {
     });
   });
 
+  // ── completed_at (Weekly Review) ────────────────────────────────────────────
+
+  describe('completed_at', () => {
+    it('is null on a fresh non-completed task', () => {
+      expect(createTask({ name: 'T', dueDate: '2026-09-01' }).completed_at).toBeNull();
+    });
+
+    it('is stamped on the transition into completed and cleared on the way out', () => {
+      const t = createTask({ name: 'T', dueDate: '2026-09-01' });
+      expect(updateTask(t.id, { status: 'completed' }).completed_at).not.toBeNull();
+      expect(updateTask(t.id, { status: 'not_started' }).completed_at).toBeNull();
+    });
+
+    it('does not move when a completed task is re-saved', () => {
+      const t = createTask({ name: 'T', dueDate: '2026-09-01', status: 'completed' });
+      const stamp = t.completed_at;
+      expect(updateTask(t.id, { name: 'Renamed' }).completed_at).toBe(stamp);
+    });
+  });
+
   // ── deleteTask ──────────────────────────────────────────────────────────────
 
   describe('deleteTask', () => {

@@ -18,7 +18,8 @@ function assign(
 ): Assignment {
   return {
     id, course_id: courseId, name: id, type, status, due_date: dueDate,
-    due_time: null, notes: null, score: null, points_possible: null, created_at: '2026-01-01',
+    due_time: null, notes: null, score: null, points_possible: null,
+    completed_at: null, created_at: '2026-01-01',
   };
 }
 

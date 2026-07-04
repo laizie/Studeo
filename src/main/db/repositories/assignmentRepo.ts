@@ -39,21 +39,26 @@ export function getAssignment(id: string): Assignment | null {
 export function createAssignment(input: CreateAssignmentInput): Assignment {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  const status = input.status ?? 'not_started';
+  // Rare, but an import could create an already-done item — stamp it now so it's
+  // consistent with the update path (status 'completed' always implies a date).
+  const completedAt = status === 'completed' ? now : null;
   getDb()
     .prepare(
-      'INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
     .run(
       id,
       input.courseId,
       input.name,
       input.type ?? 'Assignment',
-      input.status ?? 'not_started',
+      status,
       input.dueDate,
       input.dueTime ?? null,
       input.notes ?? null,
       input.score ?? null,
       input.pointsPossible ?? null,
+      completedAt,
       now,
     );
   return getAssignment(id)!;
@@ -83,7 +88,16 @@ export function updateAssignment(id: string, input: UpdateAssignmentInput): Assi
 
   if (input.name !== undefined)    { fields.push('name = ?');     values.push(input.name); }
   if (input.type !== undefined)    { fields.push('type = ?');     values.push(input.type); }
-  if (input.status !== undefined)  { fields.push('status = ?');   values.push(input.status); }
+  if (input.status !== undefined) {
+    fields.push('status = ?'); values.push(input.status);
+    // Stamp completed_at on the transition INTO 'completed', clear it on the way
+    // OUT. Only touch it on an actual transition so re-saving a done item doesn't
+    // move its completion date. Needs the prior status, hence the read.
+    const wasCompleted = getAssignment(id)?.status === 'completed';
+    const nowCompleted = input.status === 'completed';
+    if (nowCompleted && !wasCompleted)      { fields.push('completed_at = ?'); values.push(new Date().toISOString()); }
+    else if (!nowCompleted && wasCompleted) { fields.push('completed_at = ?'); values.push(null); }
+  }
   if (input.dueDate !== undefined) { fields.push('due_date = ?'); values.push(input.dueDate); }
   if (input.dueTime !== undefined) { fields.push('due_time = ?'); values.push(input.dueTime ?? null); }
   if (input.notes !== undefined)   { fields.push('notes = ?');    values.push(input.notes ?? null); }

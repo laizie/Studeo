@@ -21,9 +21,11 @@ export function getTask(id: string): Task | null {
 export function createTask(input: CreateTaskInput): Task {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  const status = input.status ?? 'not_started';
+  const completedAt = status === 'completed' ? now : null;
   getDb()
-    .prepare('INSERT INTO tasks (id, name, status, due_date, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(id, input.name, input.status ?? 'not_started', input.dueDate, now);
+    .prepare('INSERT INTO tasks (id, name, status, due_date, completed_at, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(id, input.name, status, input.dueDate, completedAt, now);
   return getTask(id)!;
 }
 
@@ -50,7 +52,14 @@ export function updateTask(id: string, input: UpdateTaskInput): Task {
   const values: (string | null)[] = [];
 
   if (input.name !== undefined)    { fields.push('name = ?');     values.push(input.name); }
-  if (input.status !== undefined)  { fields.push('status = ?');   values.push(input.status); }
+  if (input.status !== undefined) {
+    fields.push('status = ?'); values.push(input.status);
+    // Mirror assignmentRepo: stamp completed_at into 'completed', clear it out.
+    const wasCompleted = getTask(id)?.status === 'completed';
+    const nowCompleted = input.status === 'completed';
+    if (nowCompleted && !wasCompleted)      { fields.push('completed_at = ?'); values.push(new Date().toISOString()); }
+    else if (!nowCompleted && wasCompleted) { fields.push('completed_at = ?'); values.push(null); }
+  }
   if (input.dueDate !== undefined) { fields.push('due_date = ?'); values.push(input.dueDate); }
 
   if (fields.length > 0) {
