@@ -1,15 +1,18 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox } from 'lucide-react';
 import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
 } from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { useParkingLotStore } from '../../store/useParkingLotStore';
 import { useFocusStore } from '../../store/useFocusStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useUpdateTask } from '../../lib/queries/useTasks';
 import { useUpdateStudySession, useStudySessions } from '../../lib/queries/useStudySessions';
+import { useCreateNote } from '../../lib/queries/useNotes';
 import { focusMinutesSince, startOfDay } from '../../../shared/studyStats';
+import { buildParkingLotNote } from '../../../shared/parkingLot';
 import AppleMusicMiniPlayer from '../applemusic/AppleMusicMiniPlayer';
 import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
 import SpotifyMiniPlayer from '../spotify/SpotifyMiniPlayer';
@@ -385,6 +388,86 @@ function ReflectionCard() {
   );
 }
 
+// ── Distraction parking lot ──────────────────────────────────────────────────────
+// A tiny field for intrusive thoughts ("reply to mom", "look up that thing"). Park
+// them here instead of chasing them; on leaving the room they dump into a loose note
+// (see FocusMode.leave). Complements the intention (before) / reflection (after) pair.
+// Pinned bottom-centre so it's one keystroke away — press "P" to jump straight in.
+function ParkingDock({ inputRef }: { inputRef: React.RefObject<HTMLInputElement | null> }) {
+  const items  = useParkingLotStore(s => s.items);
+  const add    = useParkingLotStore(s => s.add);
+  const remove = useParkingLotStore(s => s.remove);
+  const [text, setText] = useState('');
+  const [open, setOpen] = useState(false);
+
+  function commit() {
+    if (!text.trim()) return;
+    add(text);
+    setText('');
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {/* Review panel — expand the count to fix a typo or drop a thought. */}
+      {open && items.length > 0 && (
+        <div
+          className="w-72 max-h-48 space-y-0.5 overflow-y-auto rounded-xl border p-1.5 shadow-2xl backdrop-blur-md"
+          style={{ borderColor: ROOM.line, backgroundColor: 'rgba(28, 20, 14, 0.9)' }}
+        >
+          {items.map(i => (
+            <div key={i.id} className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-white/[0.04]">
+              <span className="flex-1 truncate text-left text-sm" style={{ color: ROOM.soft }}>{i.text}</span>
+              <button
+                onClick={() => remove(i.id)}
+                aria-label={`Remove "${i.text}"`}
+                title="Remove"
+                className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-white/[0.08] group-hover:opacity-100"
+                style={{ color: ROOM.muted }}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* The tiny field. */}
+      <div
+        className="flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-lg backdrop-blur-md"
+        style={{ borderColor: ROOM.line, backgroundColor: 'rgba(28, 20, 14, 0.6)' }}
+      >
+        <Inbox size={14} className="shrink-0" style={{ color: ROOM.muted }} />
+        <input
+          ref={inputRef}
+          type="text"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); commit(); }
+            // Esc clears the field rather than leaving the room — but only when there's
+            // something to clear, so an empty field still lets Esc exit as usual.
+            else if (e.key === 'Escape' && text) { e.stopPropagation(); setText(''); e.currentTarget.blur(); }
+          }}
+          placeholder="Park a distraction…"
+          aria-label="Park a distraction"
+          className="w-52 bg-transparent text-sm outline-none placeholder:opacity-60"
+          style={{ color: ROOM.ink }}
+        />
+        {items.length > 0 && (
+          <button
+            onClick={() => setOpen(o => !o)}
+            title={open ? 'Hide parked thoughts' : 'Review parked thoughts'}
+            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums transition-colors hover:bg-white/[0.08]"
+            style={{ color: ROOM.muted, backgroundColor: '#ffffff0d' }}
+          >
+            {items.length} parked
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Focus list (compact, checkable, editable) ───────────────────────────────────
 // You can check items off, drop ones you're done thinking about, and add more —
 // all without leaving the room (the picker opens above the overlay).
@@ -519,6 +602,8 @@ export default function FocusMode() {
   const awaitingReflection = useTimerStore(s => s.awaitingReflection);
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const parkingInputRef = useRef<HTMLInputElement | null>(null);
+  const createNote = useCreateNote();
   // True OS fullscreen, driven from the main process (BrowserWindow.setFullScreen) so
   // the window chrome / title bar is genuinely gone — like the Apple Music or Spotify
   // full-screen player. The HTML Fullscreen API alone can leave the title bar visible.
@@ -549,7 +634,13 @@ export default function FocusMode() {
   }
 
   // Leaving the room also drops out of OS fullscreen, so the app returns windowed.
+  // As the sitting ends, dump any parked distractions into a loose note. We read the
+  // store fresh via getState() so the Esc-key path (whose closure can be a render or
+  // two stale) still flushes the current list, not an old one.
   function leave() {
+    const { items, clear } = useParkingLotStore.getState();
+    const note = buildParkingLotNote(items.map(i => i.text));
+    if (note) { createNote.mutate(note); clear(); }
     if (isFullscreen) window.api.app.setFullscreen(false);
     close();
   }
@@ -566,6 +657,7 @@ export default function FocusMode() {
       if (typing) return;
       if (e.code === 'Space') { e.preventDefault(); if (isRunning) pause(); else start(); }
       else if (e.key === 'r' || e.key === 'R') { reset(); }
+      else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); parkingInputRef.current?.focus(); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -616,6 +708,14 @@ export default function FocusMode() {
       {!awaitingReflection && (
         <div className="absolute bottom-5 left-6 z-10">
           <TotalStudyToday />
+        </div>
+      )}
+
+      {/* Distraction parking lot — quiet, bottom-centre. Hidden during the reflection
+          beat so that moment stays clean. */}
+      {!awaitingReflection && (
+        <div className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2">
+          <ParkingDock inputRef={parkingInputRef} />
         </div>
       )}
 
