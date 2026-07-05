@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, Volume2 } from 'lucide-react';
 import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
 } from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { useParkingLotStore } from '../../store/useParkingLotStore';
+import { useAmbienceStore } from '../../store/useAmbienceStore';
 import { useFocusStore } from '../../store/useFocusStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
@@ -13,6 +14,8 @@ import { useUpdateStudySession, useStudySessions } from '../../lib/queries/useSt
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { focusMinutesSince, startOfDay } from '../../../shared/studyStats';
 import { buildParkingLotNote } from '../../../shared/parkingLot';
+import { AMBIENCE_SOUNDS } from '../../../shared/ambience';
+import { ambienceEngine } from './ambience/ambienceEngine';
 import AppleMusicMiniPlayer from '../applemusic/AppleMusicMiniPlayer';
 import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
 import SpotifyMiniPlayer from '../spotify/SpotifyMiniPlayer';
@@ -552,13 +555,69 @@ function FocusList({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+// ── Ambience controls ──────────────────────────────────────────────────────────────
+// Bundled ambient sound, synthesized on the fly (no files, no network, no Spotify).
+// Pick a texture to start it; pick it again to stop. Volume persists; the selection
+// resets each visit so the room opens quiet. The audio graph lives in ambienceEngine.
+function AmbienceControls() {
+  const activeId  = useAmbienceStore(s => s.activeId);
+  const volume    = useAmbienceStore(s => s.volume);
+  const toggle    = useAmbienceStore(s => s.toggle);
+  const setVolume = useAmbienceStore(s => s.setVolume);
+
+  return (
+    <div>
+      <p className="mb-2 px-3 text-[0.7rem] font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
+        Ambience
+      </p>
+      <div className="flex flex-wrap gap-1.5 px-1">
+        {AMBIENCE_SOUNDS.map(s => {
+          const active = activeId === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => toggle(s.id)}
+              title={s.description}
+              aria-pressed={active}
+              className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+              style={active
+                ? { backgroundColor: GLOW.focus, borderColor: GLOW.focus, color: '#1e1208' }
+                : { borderColor: ROOM.line, color: ROOM.muted }}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+      {activeId && (
+        <div className="mt-3 flex items-center gap-2 px-2">
+          <Volume2 size={14} className="shrink-0" style={{ color: ROOM.muted }} />
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={e => setVolume(parseFloat(e.target.value))}
+            aria-label="Ambience volume"
+            className="h-1 flex-1 cursor-pointer"
+            style={{ accentColor: GLOW.focus }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Music sidebar ─────────────────────────────────────────────────────────────────
-// Now-playing card at the top; for Spotify the upcoming queue ("Up next") sits under
-// it and scrolls. Apple Music can't expose its queue, so it shows the player alone.
+// Ambience sits on top (always available — no service needed); below it, the music
+// service's now-playing card and, for Spotify, the upcoming queue ("Up next").
 function MusicSidebar() {
   const { defaultMusicService, nowPlayingOnly } = useSettingsStore();
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <AmbienceControls />
+      <div className="my-4 border-t" style={{ borderColor: ROOM.line }} />
       <p className="mb-2 px-3 text-[0.7rem] font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
         Music
       </p>
@@ -604,6 +663,10 @@ export default function FocusMode() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const parkingInputRef = useRef<HTMLInputElement | null>(null);
   const createNote = useCreateNote();
+
+  const ambienceActive = useAmbienceStore(s => s.activeId);
+  const ambienceVolume = useAmbienceStore(s => s.volume);
+  const stopAmbience   = useAmbienceStore(s => s.stop);
   // True OS fullscreen, driven from the main process (BrowserWindow.setFullScreen) so
   // the window chrome / title bar is genuinely gone — like the Apple Music or Spotify
   // full-screen player. The HTML Fullscreen API alone can leave the title bar visible.
@@ -633,6 +696,15 @@ export default function FocusMode() {
     window.api.app.setFullscreen(!isFullscreen);
   }
 
+  // Ambience: drive the Web Audio engine from the store. Volume first so the engine
+  // knows the target level before a play ramps to it. Selection starts null, so
+  // nothing plays until the user picks a texture.
+  useEffect(() => { ambienceEngine.setVolume(ambienceVolume); }, [ambienceVolume]);
+  useEffect(() => {
+    if (ambienceActive) ambienceEngine.play(ambienceActive);
+    else ambienceEngine.stop();
+  }, [ambienceActive]);
+
   // Leaving the room also drops out of OS fullscreen, so the app returns windowed.
   // As the sitting ends, dump any parked distractions into a loose note. We read the
   // store fresh via getState() so the Esc-key path (whose closure can be a render or
@@ -641,6 +713,7 @@ export default function FocusMode() {
     const { items, clear } = useParkingLotStore.getState();
     const note = buildParkingLotNote(items.map(i => i.text));
     if (note) { createNote.mutate(note); clear(); }
+    stopAmbience(); // silence ambience and reset the selection for next time
     if (isFullscreen) window.api.app.setFullscreen(false);
     close();
   }
