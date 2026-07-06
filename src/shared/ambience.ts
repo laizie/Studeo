@@ -8,7 +8,7 @@
 // importable anywhere. Real recorded loops (e.g. a true café) could later be added
 // as an extra source type without touching this math.
 
-export type AmbienceId = 'rain' | 'wind' | 'brown' | 'white';
+export type AmbienceId = 'rain' | 'beach' | 'wind' | 'brown';
 
 export interface AmbienceSound {
   id: AmbienceId;
@@ -19,9 +19,9 @@ export interface AmbienceSound {
 
 export const AMBIENCE_SOUNDS: AmbienceSound[] = [
   { id: 'rain',  label: 'Rain',  description: 'Soft, steady rainfall' },
+  { id: 'beach', label: 'Beach', description: 'Waves on the shore' },
   { id: 'wind',  label: 'Wind',  description: 'Slow gusting wind' },
   { id: 'brown', label: 'Brown', description: 'Deep, warm rumble' },
-  { id: 'white', label: 'White', description: 'Bright, even hiss' },
 ];
 
 // Scale a buffer so its loudest sample sits at `peak`, leaving a little headroom so
@@ -37,7 +37,9 @@ function normalizeInPlace(data: Float32Array, peak = 0.9): void {
   for (let i = 0; i < data.length; i++) data[i] *= scale;
 }
 
-/** White noise: each sample independent and uniform — a flat, bright hiss. */
+/** White noise: each sample independent and uniform — a flat, bright hiss. Not a
+ *  selectable sound anymore, but kept as the reference baseline the tests compare
+ *  brown/pink against (and the conceptual starting point for both). */
 export function fillWhiteNoise(data: Float32Array, rng: () => number = Math.random): void {
   for (let i = 0; i < data.length; i++) data[i] = rng() * 2 - 1;
   normalizeInPlace(data);
