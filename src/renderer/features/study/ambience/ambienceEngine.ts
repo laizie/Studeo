@@ -10,26 +10,65 @@ const FILE_SOUNDS: Partial<Record<AmbienceId, string>> = {
   beach: beachUrl,
 };
 
-// Imperative Web Audio engine for Focus Mode ambience. One AudioContext, created
-// lazily on first play (browsers only allow audio to start from a user gesture — a
-// chip click qualifies). Each sound is a small graph feeding a master gain we ramp
-// for click-free fades: Wind/Brown are synthesized looping noise buffers; Rain/Beach
-// are bundled mp3s played through <audio> elements (a media element loads file:// in
-// a packaged build, where fetch()+decodeAudioData would not).
+// How long the two copies of a file overlap when we stitch a loop. Long enough to hide
+// a hard cut or a fade baked into the recording's head/tail; short enough that you don't
+// obviously hear the same texture doubled. Tune here if a loop still dips or feels muddy.
+const CROSSFADE_SEC = 1.5;
+// How often we check whether the playing copy is close enough to its end to start the
+// crossfade. Media-element time is coarse, but ambience is slow — 50ms is imperceptible.
+const SCHEDULER_MS = 50;
+
+// Equal-power (constant-loudness) fade shapes. A plain linear crossfade of two copies of
+// the same recording dips ~3–6 dB in the middle (the signals aren't phase-aligned, so they
+// don't sum to full amplitude); sin/cos ramps keep perceived loudness steady through the
+// overlap. Precomputed once and replayed with setValueCurveAtTime.
+function makeFadeCurve(fadeIn: boolean, steps = 64): Float32Array {
+  const c = new Float32Array(steps);
+  for (let i = 0; i < steps; i++) {
+    const x = i / (steps - 1);
+    c[i] = fadeIn ? Math.sin((x * Math.PI) / 2) : Math.cos((x * Math.PI) / 2);
+  }
+  return c;
+}
+const FADE_IN_CURVE = makeFadeCurve(true);
+const FADE_OUT_CURVE = makeFadeCurve(false);
+
+// A file-backed sound, built once and reused. It's two <audio> copies of the same loop,
+// each with its own gain, mixed into one output. We ping-pong: one copy plays as "lead"
+// while the other waits silent; near the lead's end we start the waiting copy from the top
+// and crossfade the gains, then swap roles. The seam is always hidden under an overlap.
+interface FileVoice {
+  els: [HTMLAudioElement, HTMLAudioElement];
+  gains: [GainNode, GainNode];
+  out: GainNode;
+  /** Index (0|1) of the copy currently in front. */
+  active: 0 | 1;
+  /** True while a crossfade is mid-flight, so the scheduler doesn't start a second one. */
+  crossfading: boolean;
+}
+
+// Imperative Web Audio engine for Focus Mode ambience. One AudioContext, created lazily on
+// first play (browsers only allow audio to start from a user gesture — a chip click
+// qualifies). Each sound is a small graph feeding a master gain we ramp for click-free
+// fades: Wind/Brown are synthesized looping noise buffers; Rain/Beach are bundled mp3s
+// played through <audio> elements (a media element loads file:// in a packaged build,
+// where fetch()+decodeAudioData would not) and loop-stitched with a crossfade.
 //
 // State is deliberately module-level (a singleton): there's only ever one room, and
 // keeping the AudioContext out of React means re-renders can't tear down playback.
 class AmbienceEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  /** Live sources + LFOs for the current sound, stopped on switch/stop. */
+  /** Live sources + LFOs for the current synthesized sound, stopped on switch/stop. */
   private nodes: AudioScheduledSourceNode[] = [];
   private current: AmbienceId | null = null;
   private volume = 0.6;
-  // File-backed sounds play from a bundled mp3. Each element + its source node are
-  // created once (createMediaElementSource may only be called once per element) and
-  // reused, keyed by sound id; we pause/restart the element rather than stopping a node.
-  private media = new Map<AmbienceId, { el: HTMLAudioElement; source: MediaElementAudioSourceNode }>();
+  // File-backed sounds. Each voice's elements + source nodes are created once
+  // (createMediaElementSource may only be called once per element) and reused, keyed by id.
+  private voices = new Map<AmbienceId, FileVoice>();
+  /** The voice currently looping, watched by the crossfade scheduler. */
+  private activeVoice: FileVoice | null = null;
+  private scheduler: ReturnType<typeof setInterval> | null = null;
 
   private ensure(): { ctx: AudioContext; master: GainNode } {
     let ctx = this.ctx;
@@ -67,66 +106,70 @@ class AmbienceEngine {
     return f;
   }
 
-  // Get (or lazily build) the looping <audio> element + its Web Audio source for a
-  // file-backed sound. Built once per id and reused, since createMediaElementSource
-  // throws if called twice on the same element.
-  private ensureMedia(ctx: AudioContext, id: AmbienceId, url: string): { el: HTMLAudioElement; source: MediaElementAudioSourceNode } {
-    let entry = this.media.get(id);
-    if (!entry) {
-      const el = new Audio(url);
-      el.loop = true;
-      const source = ctx.createMediaElementSource(el);
-      entry = { el, source };
-      this.media.set(id, entry);
+  // Get (or lazily build) the two-copy crossfade voice for a file-backed sound. Built once
+  // per id and reused: createMediaElementSource throws if called twice on one element, and
+  // rebuilding would drop the buffered audio.
+  private ensureVoice(ctx: AudioContext, master: GainNode, id: AmbienceId, url: string): FileVoice {
+    let voice = this.voices.get(id);
+    if (!voice) {
+      const out = ctx.createGain();
+      out.gain.value = 1;
+      out.connect(master);
+      // Build one <audio> copy wired through its own gain into the shared output.
+      const build = (): [HTMLAudioElement, GainNode] => {
+        const el = new Audio(url);
+        el.loop = false; // we stitch the loop ourselves via crossfade, not the element
+        el.preload = 'auto';
+        const g = ctx.createGain();
+        g.gain.value = 0;
+        const source = ctx.createMediaElementSource(el);
+        source.connect(g);
+        g.connect(out);
+        return [el, g];
+      };
+      const [el0, g0] = build();
+      const [el1, g1] = build();
+      voice = { els: [el0, el1], gains: [g0, g1], out, active: 0, crossfading: false };
+      this.voices.set(id, voice);
     }
-    return entry;
+    return voice;
   }
 
-  // Pause every file-backed element. Only one is ever active, and the current play()
-  // restarts whichever it needs, so pausing them all is the simple, correct move.
-  private pauseMedia(): void {
-    this.media.forEach(({ el }) => el.pause());
-  }
-
-  /** Start (or switch to) a sound. Switching noise→noise under a steady master gain
-   *  is inaudibly smooth, so we don't dip the volume between sounds. */
+  /** Start (or switch to) a sound. Switching under a steady master gain is inaudibly
+   *  smooth, so we don't dip the volume between sounds. */
   play(id: AmbienceId): void {
     const { ctx, master } = this.ensure();
     this.stopNodes();
     this.current = id;
 
-    // A per-sound gain lets LFOs modulate amplitude without touching master (volume).
-    const g = ctx.createGain();
-    g.gain.value = 1;
-    g.connect(master);
-
     const fileUrl = FILE_SOUNDS[id];
     if (fileUrl) {
-      // A real recording already sounds the part — just route it into master.
-      const { el, source } = this.ensureMedia(ctx, id, fileUrl);
-      source.disconnect();
-      source.connect(g);
-      el.currentTime = 0;
-      void el.play().catch(() => { /* transient autoplay/async hiccup — ignore */ });
-    } else if (id === 'brown') {
-      const src = this.loopSource(ctx, 'brown');
-      // Roll off the highs so it's a deep, warm rumble instead of a hiss ("static").
-      const warm = this.filter(ctx, 'lowpass', 450);
-      src.connect(warm); warm.connect(g);
-      src.start(); this.nodes.push(src);
-    } else { // wind
-      const src = this.loopSource(ctx, 'brown');
-      const lp = this.filter(ctx, 'lowpass', 500);
-      src.connect(lp); lp.connect(g);
-      // Sweep the cutoff for the "whoosh", and swell the gain for gusts.
-      const sweep = ctx.createOscillator(); sweep.frequency.value = 0.07;
-      const sweepDepth = ctx.createGain(); sweepDepth.gain.value = 350;
-      sweep.connect(sweepDepth); sweepDepth.connect(lp.frequency);
-      const gust = ctx.createOscillator(); gust.frequency.value = 0.1;
-      const gustDepth = ctx.createGain(); gustDepth.gain.value = 0.25;
-      gust.connect(gustDepth); gustDepth.connect(g.gain);
-      src.start(); sweep.start(); gust.start();
-      this.nodes.push(src, sweep, gust);
+      this.playFile(ctx, master, id, fileUrl);
+    } else {
+      // A per-sound gain lets LFOs modulate amplitude without touching master (volume).
+      const g = ctx.createGain();
+      g.gain.value = 1;
+      g.connect(master);
+      if (id === 'brown') {
+        const src = this.loopSource(ctx, 'brown');
+        // Roll off the highs so it's a deep, warm rumble instead of a hiss ("static").
+        const warm = this.filter(ctx, 'lowpass', 450);
+        src.connect(warm); warm.connect(g);
+        src.start(); this.nodes.push(src);
+      } else { // wind
+        const src = this.loopSource(ctx, 'brown');
+        const lp = this.filter(ctx, 'lowpass', 500);
+        src.connect(lp); lp.connect(g);
+        // Sweep the cutoff for the "whoosh", and swell the gain for gusts.
+        const sweep = ctx.createOscillator(); sweep.frequency.value = 0.07;
+        const sweepDepth = ctx.createGain(); sweepDepth.gain.value = 350;
+        sweep.connect(sweepDepth); sweepDepth.connect(lp.frequency);
+        const gust = ctx.createOscillator(); gust.frequency.value = 0.1;
+        const gustDepth = ctx.createGain(); gustDepth.gain.value = 0.25;
+        gust.connect(gustDepth); gustDepth.connect(g.gain);
+        src.start(); sweep.start(); gust.start();
+        this.nodes.push(src, sweep, gust);
+      }
     }
 
     // Ramp master toward the current volume — a no-op when already there (a switch),
@@ -137,28 +180,114 @@ class AmbienceEngine {
     master.gain.linearRampToValueAtTime(this.volume, now + 0.4);
   }
 
+  // Begin a file-backed sound: reset the lead copy to the top, silence the other, and let
+  // the scheduler drive the crossfade loop from here.
+  private playFile(ctx: AudioContext, master: GainNode, id: AmbienceId, url: string): void {
+    const voice = this.ensureVoice(ctx, master, id, url);
+    this.activeVoice = voice;
+    voice.active = 0;
+    voice.crossfading = false;
+    const now = ctx.currentTime;
+    voice.gains[0].gain.cancelScheduledValues(now);
+    voice.gains[0].gain.setValueAtTime(1, now);
+    voice.gains[1].gain.cancelScheduledValues(now);
+    voice.gains[1].gain.setValueAtTime(0, now);
+    voice.els[1].pause();
+    const lead = voice.els[0];
+    lead.currentTime = 0;
+    void lead.play().catch(() => { /* transient autoplay/async hiccup — ignore */ });
+    this.startScheduler();
+  }
+
+  private startScheduler(): void {
+    this.stopScheduler();
+    this.scheduler = setInterval(() => this.tickCrossfade(), SCHEDULER_MS);
+  }
+
+  private stopScheduler(): void {
+    if (this.scheduler !== null) {
+      clearInterval(this.scheduler);
+      this.scheduler = null;
+    }
+  }
+
+  // Called on a timer while a file sound plays: once the lead copy is within one crossfade
+  // of its end, hand off to the waiting copy.
+  private tickCrossfade(): void {
+    const voice = this.activeVoice;
+    const ctx = this.ctx;
+    if (!voice || !ctx || voice.crossfading) return;
+    const lead = voice.els[voice.active];
+    const dur = lead.duration;
+    if (!isFinite(dur) || dur === 0) return; // metadata not loaded yet
+    if (dur <= 2 * CROSSFADE_SEC) {
+      // Too short to overlap two copies — fall back to the element's own loop.
+      lead.loop = true;
+      return;
+    }
+    if (lead.currentTime < dur - CROSSFADE_SEC) return;
+    this.beginCrossfade(voice, ctx);
+  }
+
+  private beginCrossfade(voice: FileVoice, ctx: AudioContext): void {
+    voice.crossfading = true;
+    const next = (voice.active ^ 1) as 0 | 1;
+    const nextEl = voice.els[next];
+    nextEl.currentTime = 0;
+    void nextEl.play().catch(() => { /* ignore */ });
+
+    const t = ctx.currentTime;
+    const outgoing = voice.gains[voice.active].gain;
+    const incoming = voice.gains[next].gain;
+    outgoing.cancelScheduledValues(t);
+    outgoing.setValueCurveAtTime(FADE_OUT_CURVE, t, CROSSFADE_SEC);
+    incoming.cancelScheduledValues(t);
+    incoming.setValueCurveAtTime(FADE_IN_CURVE, t, CROSSFADE_SEC);
+
+    const finished = voice.els[voice.active];
+    voice.active = next;
+    // Pause the copy we faded out once it's silent, and reopen the gate for the next loop.
+    setTimeout(() => {
+      finished.pause();
+      voice.crossfading = false;
+    }, CROSSFADE_SEC * 1000 + 60);
+  }
+
+  // Stop every file voice: halt the scheduler and pause both copies of each. Only one is
+  // ever active, and play() restarts whichever it needs, so pausing them all is correct.
+  private stopVoices(): void {
+    this.stopScheduler();
+    this.activeVoice = null;
+    this.voices.forEach(v => {
+      v.els[0].pause();
+      v.els[1].pause();
+      v.crossfading = false;
+    });
+  }
+
   /** Fade out and stop everything. Safe to call when nothing is playing. */
   stop(): void {
     this.current = null;
-    if (!this.ctx || !this.master) { this.pauseMedia(); return; }
+    this.stopScheduler(); // no new loop crossfades once we're fading out
+    if (!this.ctx || !this.master) { this.stopVoices(); return; }
     const now = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(now);
     this.master.gain.setValueAtTime(this.master.gain.value, now);
     this.master.gain.linearRampToValueAtTime(0, now + 0.3);
     const toStop = this.nodes;
     this.nodes = [];
-    // Let the fade finish before killing the sources so it doesn't click. The media
-    // fades with the master gain; pause it only if nothing new started meanwhile.
+    // Let the fade finish before killing the sources so it doesn't click. The file voices
+    // keep playing (audibly) under the master fade, then get paused once it's silent.
     setTimeout(() => {
       toStop.forEach(n => { try { n.stop(); } catch { /* already stopped */ } });
-      if (this.current === null) this.pauseMedia();
+      if (this.current === null) this.stopVoices();
     }, 350);
   }
 
   private stopNodes(): void {
     this.nodes.forEach(n => { try { n.stop(); } catch { /* already stopped */ } });
     this.nodes = [];
-    this.pauseMedia();
+    this.stopVoices();
   }
 
   /** 0..1. Applies immediately while playing; remembered for the next play otherwise. */
