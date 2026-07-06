@@ -11,8 +11,9 @@ import { useTerms } from '../../lib/queries/useTerms';
 import { useStudySessions } from '../../lib/queries/useStudySessions';
 import { usePageFiltersStore } from '../../store/usePageFiltersStore';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
-import { parseDateLocal, computeDeadlineLabel, dueSortValue } from '../../../shared/deadlines';
+import { parseDateLocal, computeDeadlineLabel, dueSortValue, formatDueDate } from '../../../shared/deadlines';
 import { localDayKey } from '../../../shared/studyStats';
+import { useRescheduleItems } from '../../lib/queries/useRescheduleItems';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 import CourseDialog from '../courses/CourseDialog';
@@ -46,6 +47,18 @@ function getWeekEnd(): Date {
   return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
 }
 
+/** A YYYY-MM-DD key `offsetDays` from today, built from local date parts (DST-safe). */
+function dayKeyFromToday(offsetDays: number): string {
+  const d = new Date();
+  return localDayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() + offsetDays));
+}
+
+/** The *next* Monday's key — always ≥1 day out, so it never resolves to today. */
+function nextMondayKey(): string {
+  const dow = new Date().getDay(); // 0=Sun … 6=Sat
+  return dayKeyFromToday(((8 - dow) % 7) || 7);
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionLabel({ title, count, urgent }: {
@@ -73,9 +86,75 @@ function SectionLabel({ title, count, urgent }: {
   );
 }
 
-function AssignmentItem({ assignment, course }: {
+/**
+ * Batch-reschedule bar for Overdue triage. Appears once ≥1 overdue assignment is
+ * selected; picks a target date (presets or a native date field) and moves the
+ * whole selection at once — far less friction than editing each item's dialog.
+ */
+function RescheduleBar({ count, date, onDateChange, onApply, onClear, pending }: {
+  count: number;
+  date: string;
+  onDateChange: (key: string) => void;
+  onApply: () => void;
+  onClear: () => void;
+  pending: boolean;
+}) {
+  const presets: { label: string; key: string }[] = [
+    { label: 'Today',    key: dayKeyFromToday(0) },
+    { label: 'Tomorrow', key: dayKeyFromToday(1) },
+    { label: 'Next Mon', key: nextMondayKey() },
+  ];
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-surface border border-line">
+      <span className="text-sm font-medium text-ink tabular-nums">{count} selected</span>
+      <span className="text-xs text-muted">Move to</span>
+      {presets.map(p => (
+        <button
+          key={p.label}
+          onClick={() => onDateChange(p.key)}
+          className={cn(
+            'px-2 py-0.5 text-xs rounded-md border transition-colors',
+            date === p.key
+              ? 'bg-accent text-accent-ink border-transparent'
+              : 'border-line text-muted hover:text-ink hover:border-stone-300 dark:hover:border-stone-600',
+          )}
+        >
+          {p.label}
+        </button>
+      ))}
+      <input
+        type="date"
+        value={date}
+        onChange={e => e.target.value && onDateChange(e.target.value)}
+        aria-label="Reschedule to date"
+        className="px-2 py-0.5 text-xs rounded-md border border-line bg-bg text-ink"
+      />
+      <div className="ml-auto flex items-center gap-1.5">
+        <button
+          onClick={onClear}
+          className="px-2 py-1 text-xs text-muted hover:text-ink transition-colors"
+        >
+          Clear
+        </button>
+        <button
+          onClick={onApply}
+          disabled={pending}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-accent text-accent-ink hover:bg-accent-deep transition-colors disabled:opacity-60"
+        >
+          {pending ? 'Moving…' : `Move → ${formatDueDate(date)}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AssignmentItem({ assignment, course, selectable, selected, onToggleSelect }: {
   assignment: Assignment;
   course: Course | undefined;
+  /** When true, show a leading checkbox for batch actions (e.g. Overdue triage). */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const deadline = computeDeadlineLabel(assignment.due_date);
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
@@ -99,6 +178,17 @@ function AssignmentItem({ assignment, course }: {
 
   return (
     <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors">
+      {selectable && (
+        // z-10 lifts the checkbox above the stretched-link ::after overlay so it
+        // stays clickable (the row otherwise navigates to the course).
+        <input
+          type="checkbox"
+          checked={!!selected}
+          onChange={() => onToggleSelect?.(assignment.id)}
+          aria-label={`Select ${assignment.name}`}
+          className="relative z-10 shrink-0 h-4 w-4 accent-stone-600 cursor-pointer"
+        />
+      )}
       {course && (
         <span
           className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
@@ -283,6 +373,42 @@ export default function DashboardPage() {
     [allAssignments, todayMidnight],
   );
 
+  // ── Overdue triage: tick rows, reschedule the whole batch to one date ──────────
+  const reschedule = useRescheduleItems();
+  const [selectedOverdue, setSelectedOverdue] = useState<Set<string>>(() => new Set());
+  const [rescheduleDate, setRescheduleDate] = useState(() => localDayKey(new Date()));
+
+  // Prune ids that are no longer overdue (rescheduled, completed, or filtered out by
+  // a term switch) so the count and the batch action never act on stale rows.
+  useEffect(() => {
+    setSelectedOverdue(prev => {
+      if (prev.size === 0) return prev;
+      const live = new Set(overdue.map(a => a.id));
+      const next = new Set([...prev].filter(id => live.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [overdue]);
+
+  function toggleOverdue(id: string) {
+    setSelectedOverdue(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function applyReschedule() {
+    if (selectedOverdue.size === 0) return;
+    reschedule.mutate(
+      {
+        items: [...selectedOverdue].map(id => ({ kind: 'assignment' as const, id })),
+        dueDate: rescheduleDate,
+      },
+      { onSuccess: () => setSelectedOverdue(new Set()) },
+    );
+  }
+
   const dueThisWeek = useMemo(() =>
     allAssignments
       .filter(a => {
@@ -432,6 +558,16 @@ export default function DashboardPage() {
               {overdue.length > 0 && (
                 <div>
                   <SectionLabel title="Overdue" count={overdue.length} urgent />
+                  {selectedOverdue.size > 0 && (
+                    <RescheduleBar
+                      count={selectedOverdue.size}
+                      date={rescheduleDate}
+                      onDateChange={setRescheduleDate}
+                      onApply={applyReschedule}
+                      onClear={() => setSelectedOverdue(new Set())}
+                      pending={reschedule.isPending}
+                    />
+                  )}
                   <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
                     <div className="divide-y divide-line">
                       {overdue.map(a => (
@@ -439,6 +575,9 @@ export default function DashboardPage() {
                           key={a.id}
                           assignment={a}
                           course={courseMap.get(a.course_id)}
+                          selectable
+                          selected={selectedOverdue.has(a.id)}
+                          onToggleSelect={toggleOverdue}
                         />
                       ))}
                     </div>
