@@ -1,6 +1,6 @@
 import { type AmbienceId, fillPinkNoise, fillBrownNoise } from '../../../../shared/ambience';
-import rainUrl from '../../../assets/ambience/rain.mp3';
-import beachUrl from '../../../assets/ambience/beach.mp3';
+import rainUrl from '../../../assets/ambience/rain.opus';
+import beachUrl from '../../../assets/ambience/beach.opus';
 
 // Sounds backed by a bundled recording rather than synthesis. To add another, drop
 // the loop in assets/ambience/, add its id to AmbienceId + AMBIENCE_SOUNDS, and map
@@ -10,10 +10,11 @@ const FILE_SOUNDS: Partial<Record<AmbienceId, string>> = {
   beach: beachUrl,
 };
 
-// How long the two copies of a file overlap when we stitch a loop. Long enough to hide
-// a hard cut or a fade baked into the recording's head/tail; short enough that you don't
-// obviously hear the same texture doubled. Tune here if a loop still dips or feels muddy.
-const CROSSFADE_SEC = 1.5;
+// How long the two copies of a file overlap when we stitch a loop. The .opus files are
+// already seamless loops, so this only has to bridge the small gap Chromium leaves when a
+// media element restarts — a short overlap does it without audibly doubling the texture.
+// Lengthen it if a loop ever dips or clicks at the seam; shorten it to reduce doubling.
+const CROSSFADE_SEC = 0.7;
 // How often we check whether the playing copy is close enough to its end to start the
 // crossfade. Media-element time is coarse, but ambience is slow — 50ms is imperceptible.
 const SCHEDULER_MS = 50;
@@ -50,9 +51,9 @@ interface FileVoice {
 // Imperative Web Audio engine for Focus Mode ambience. One AudioContext, created lazily on
 // first play (browsers only allow audio to start from a user gesture — a chip click
 // qualifies). Each sound is a small graph feeding a master gain we ramp for click-free
-// fades: Wind/Brown are synthesized looping noise buffers; Rain/Beach are bundled mp3s
-// played through <audio> elements (a media element loads file:// in a packaged build,
-// where fetch()+decodeAudioData would not) and loop-stitched with a crossfade.
+// fades: Wind/Brown are synthesized looping noise buffers; Rain/Beach are bundled .opus
+// recordings played through <audio> elements (a media element loads file:// in a packaged
+// build, where fetch()+decodeAudioData would not) and loop-stitched with a crossfade.
 //
 // State is deliberately module-level (a singleton): there's only ever one room, and
 // keeping the AudioContext out of React means re-renders can't tear down playback.
