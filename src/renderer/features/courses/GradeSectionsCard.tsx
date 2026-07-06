@@ -22,15 +22,24 @@ interface Row {
   score: string;
 }
 
+// Hide the native number-input spin buttons. In this narrow column they'd overlap the
+// right-aligned digits (e.g. "100" gets clipped behind the arrows), and you type a grade
+// rather than step it. Arrow-key increment still works when the field is focused.
+const NO_SPINNER =
+  '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none ' +
+  '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0';
+
 const NUM_INPUT =
   'w-16 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-white dark:bg-inset ' +
-  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
+  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted ' +
+  NO_SPINNER;
 
 // Flexible variant for the weight/score fields so they share the row and shrink
 // to fit the narrow column instead of overflowing (the card clips overflow).
 const FIELD_INPUT =
   'w-full min-w-0 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-white dark:bg-inset ' +
-  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
+  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted ' +
+  NO_SPINNER;
 
 // A real, always-bordered field (so it's obviously editable), but font-medium so
 // it still reads as the section's title.
