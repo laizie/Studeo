@@ -19,7 +19,9 @@ import { registerReminderHandlers } from './main/ipc/registerReminderHandlers';
 import { registerAppHandlers } from './main/ipc/registerAppHandlers';
 import { registerFeedHandlers } from './main/ipc/registerFeedHandlers';
 import { registerSyllabusHandlers } from './main/ipc/registerSyllabusHandlers';
-import { startReminderScheduler } from './main/reminders';
+import { startReminderScheduler, setReminderNavigationHandler } from './main/reminders';
+import { IPC } from './shared/types';
+import type { ReminderNavTarget } from './shared/types';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
@@ -63,7 +65,7 @@ function registerIpcHandlers(): void {
 // Kept at module scope so the tray's "Open Studeo" can find (or recreate) it.
 let mainWindow: BrowserWindow | null = null;
 
-const createWindow = () => {
+const createWindow = (): BrowserWindow => {
   const win = new BrowserWindow({
     width: 1280,
     height: 960,
@@ -100,17 +102,33 @@ const createWindow = () => {
     win.webContents.send('app:fullscreen-changed', { isFullscreen });
   win.on('enter-full-screen', () => sendFullscreen(true));
   win.on('leave-full-screen', () => sendFullscreen(false));
+  return win;
 };
 
 // Show the main window, recreating it if it was closed (macOS keeps the app
-// running with no window). Used by the tray's "Open Studeo".
-function showMainWindow(): void {
+// running with no window). Used by the tray's "Open Studeo". Returns the live
+// window so callers (e.g. reminder deep-links) can talk to its webContents.
+function showMainWindow(): BrowserWindow {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show();
     mainWindow.focus();
+    return mainWindow;
+  }
+  return createWindow();
+}
+
+// A reminder was clicked in main: bring the app forward and tell the renderer
+// where to go. If the window was closed and is loading fresh, wait for the
+// renderer to be ready before sending — otherwise the push lands in the void.
+function navigateFromReminder(target: ReminderNavTarget): void {
+  const win = showMainWindow();
+  if (win.webContents.isLoading()) {
+    win.webContents.once('did-finish-load', () =>
+      win.webContents.send(IPC.REMINDERS.NAVIGATE, target),
+    );
   } else {
-    createWindow();
+    win.webContents.send(IPC.REMINDERS.NAVIGATE, target);
   }
 }
 
@@ -131,6 +149,7 @@ app.on('ready', () => {
   registerAssetProtocol(); // serves studeo-asset:// note images from the data folder
   registerIpcHandlers();
   startReminderScheduler(); // after initDb — the scheduler reads class meetings
+  setReminderNavigationHandler(navigateFromReminder); // clicked reminders → route the renderer
   createWindow();
   initTray(showMainWindow); // menu-bar "Up next" item — reads class meetings, so after initDb
   initAutoUpdater(); // checks GitHub for newer published releases (packaged builds only)

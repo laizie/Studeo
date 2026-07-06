@@ -228,6 +228,16 @@ export interface ReminderConfig {
   dueDigestTime: string;
 }
 
+/**
+ * Where a clicked desktop reminder should take the user. Main builds this when a
+ * notification fires and pushes it to the renderer on click; the renderer maps it
+ * to a route. A discriminated union so adding a new destination is type-checked
+ * end to end (main must set `view`, the renderer must handle it).
+ */
+export type ReminderNavTarget =
+  | { view: 'course'; courseId: string } // class reminder → that course's page
+  | { view: 'this-week' };               // due digest → the This Week list
+
 export interface CreateStudySessionInput {
   startedAt: string;        // ISO timestamp (UTC) — when the session began
   durationSeconds: number;
@@ -544,6 +554,8 @@ export const IPC = {
   REMINDERS: {
     CONFIGURE: 'reminders:configure',
     TEST:      'reminders:test',
+    // main → renderer push: deep-link target when a reminder is clicked.
+    NAVIGATE:  'reminders:navigate',
   },
   APP: {
     REVEAL_DATA:    'app:reveal-data',
@@ -705,6 +717,9 @@ export interface WindowApi {
     configure(config: ReminderConfig): Promise<void>;
     /** Fire a sample desktop notification so the user can verify permissions. */
     test(): Promise<{ supported: boolean }>;
+    /** Subscribe to deep-link requests pushed from main when a reminder is
+     *  clicked. Returns an unsubscribe function. */
+    onNavigate(cb: (target: ReminderNavTarget) => void): () => void;
   };
   app: {
     /** Highlight the database file in Finder / Explorer. */

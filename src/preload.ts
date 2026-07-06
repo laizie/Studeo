@@ -34,6 +34,7 @@ import type {
   NoteLinkEntity,
   SaveMediaInput,
   ReminderConfig,
+  ReminderNavTarget,
 } from './shared/types';
 
 const api: WindowApi = {
@@ -132,6 +133,15 @@ const api: WindowApi = {
   reminders: {
     configure: (config: ReminderConfig) => ipcRenderer.invoke(IPC.REMINDERS.CONFIGURE, config),
     test:      ()                       => ipcRenderer.invoke(IPC.REMINDERS.TEST),
+
+    // Subscribe to deep-link pushes that main sends when a reminder is clicked.
+    // Same shape as spotify.onAuthCallback / app.onFullscreenChange: wrap one
+    // channel, hand back an unsubscribe so the renderer can clean up.
+    onNavigate: (cb: (target: ReminderNavTarget) => void) => {
+      const listener = (_e: IpcRendererEvent, target: ReminderNavTarget) => cb(target);
+      ipcRenderer.on(IPC.REMINDERS.NAVIGATE, listener);
+      return () => ipcRenderer.removeListener(IPC.REMINDERS.NAVIGATE, listener);
+    },
   },
 
   app: {

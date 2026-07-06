@@ -5,6 +5,7 @@ import QuickAddDialog from '../features/quickadd/QuickAddDialog';
 import CommandPalette from './CommandPalette';
 import FocusMode from '../features/study/FocusMode';
 import { useTimerDriver } from '../lib/useTimerDriver';
+import { useReminderNavigation } from '../lib/useReminderNavigation';
 
 export default function Layout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -12,6 +13,9 @@ export default function Layout() {
 
   // Keep the Pomodoro timer running app-wide, independent of the current route.
   useTimerDriver();
+
+  // Route the app when the user clicks a desktop reminder (main → renderer push).
+  useReminderNavigation();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

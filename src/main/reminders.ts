@@ -5,7 +5,7 @@ import { listAssignments } from './db/repositories/assignmentRepo';
 import { listTasks } from './db/repositories/taskRepo';
 import { listMeetingExceptions } from './db/repositories/meetingExceptionRepo';
 import { buildExceptionIndex, resolveOccurrence } from '../shared/meetingExceptions';
-import type { ReminderConfig } from '../shared/types';
+import type { ReminderConfig, ReminderNavTarget } from '../shared/types';
 
 // Desktop reminders. The renderer pushes the user's preference here via
 // IPC on startup and whenever it changes (main has no access to localStorage).
@@ -29,6 +29,16 @@ let interval: NodeJS.Timeout | null = null;
 
 // One notification per meeting (or digest) per day, even across config changes.
 const fired = new Set<string>();
+
+// Where clicks go. main.ts wires this to a function that focuses the window and
+// pushes the target to the renderer. Kept as an injected callback (rather than
+// importing BrowserWindow here) so this module stays about *scheduling* and has
+// no dependency on window lifecycle.
+let navHandler: ((target: ReminderNavTarget) => void) | null = null;
+
+export function setReminderNavigationHandler(fn: (target: ReminderNavTarget) => void): void {
+  navHandler = fn;
+}
 
 export function configureReminders(next: ReminderConfig): void {
   config = next;
@@ -83,10 +93,13 @@ function checkClassReminders(now: Date, todayKey: string): void {
 
     const course = courseById.get(m.course_id);
     const minutesLeft = Math.max(1, Math.round((start.getTime() - now.getTime()) / 60_000));
-    new Notification({
+    const notif = new Notification({
       title: `${course?.abbreviation ?? 'Class'} starts in ${minutesLeft} min`,
       body: [course?.name, occ.location ?? course?.building].filter(Boolean).join(' — '),
-    }).show();
+    });
+    // Clicking the reminder opens that course's page.
+    if (course) notif.on('click', () => navHandler?.({ view: 'course', courseId: course.id }));
+    notif.show();
   }
 }
 
@@ -126,10 +139,13 @@ function checkDueDigest(now: Date, todayKey: string): void {
   if (dueToday.length > 0)    lines.push(`Today: ${dueToday.map(i => i.text).join(', ')}`);
   if (dueTomorrow.length > 0) lines.push(`Tomorrow: ${dueTomorrow.map(i => i.text).join(', ')}`);
 
-  new Notification({
+  const notif = new Notification({
     title: total === 1 ? '1 item due soon' : `${total} items due soon`,
     body: lines.join('\n'),
-  }).show();
+  });
+  // Clicking the digest opens the This Week list.
+  notif.on('click', () => navHandler?.({ view: 'this-week' }));
+  notif.show();
 }
 
 /** Fire a sample notification on demand so the user can verify that the OS
