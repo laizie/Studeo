@@ -4,7 +4,7 @@ import logoUrl from '../assets/logo.png';
 import {
   LayoutDashboard, BookOpen, CalendarDays, CheckSquare,
   Calendar, Timer, Settings, Plus, Music, FileText, Search,
-  ChevronRight, ChevronDown, ClipboardCheck,
+  ChevronRight, ChevronDown,
 } from 'lucide-react';
 import { useCourses } from '../lib/queries/useCourses';
 import { cn } from '../lib/utils';
@@ -13,16 +13,22 @@ import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock } from '../store/useTimerStore';
 
-const navItemsTop = [
+// Three small clusters instead of one long list: planning views, the things
+// being tracked, and the doing. Weekly Review isn't pinned here — it's a
+// once-a-week ritual, reached from This Week, the Dashboard's weekend nudge,
+// or ⌘K.
+const navPlan = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/courses', label: 'Courses', icon: BookOpen },
   { to: '/this-week', label: 'This Week', icon: CalendarDays },
-  { to: '/review', label: 'Weekly Review', icon: ClipboardCheck },
+  { to: '/calendar', label: 'Calendar', icon: Calendar },
+];
+
+const navCollections = [
+  { to: '/courses', label: 'Courses', icon: BookOpen },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
 ];
 
-const navItemsBottom = [
-  { to: '/calendar', label: 'Calendar', icon: Calendar },
+const navStudy = [
   { to: '/study', label: 'Study', icon: Timer },
 ];
 
@@ -161,14 +167,22 @@ export default function Sidebar({ onOpenQuickAdd, onOpenSearch }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {navItemsTop.map(({ to, label, icon: Icon, end }) => (
+        {navPlan.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={navLinkClass}>
             <Icon size={15} className="shrink-0" />
             {label}
           </NavLink>
         ))}
+        <div className="my-2 border-t border-[#3d2b1f]" aria-hidden="true" />
+        {navCollections.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} className={navLinkClass}>
+            <Icon size={15} className="shrink-0" />
+            {label}
+          </NavLink>
+        ))}
         <NotesNavSection />
-        {navItemsBottom.map(({ to, label, icon: Icon }) => (
+        <div className="my-2 border-t border-[#3d2b1f]" aria-hidden="true" />
+        {navStudy.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className={navLinkClass}>
             <Icon size={15} className="shrink-0" />
             {label}

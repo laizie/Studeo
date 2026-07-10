@@ -439,12 +439,20 @@ export default function DashboardPage() {
     [allMeetings, todayDow],
   );
 
+  // Tasks are windowed like assignments: the dashboard shows this week only
+  // (overdue included), with a count link to the rest — an unbounded list here
+  // could push "Due this week" off screen.
   const pendingTasks = useMemo(() =>
     allTasks
       .filter(t => t.status !== 'completed')
       .sort((a, b) => a.due_date.localeCompare(b.due_date)),
     [allTasks],
   );
+  const tasksThisWeek = useMemo(() =>
+    pendingTasks.filter(t => parseDateLocal(t.due_date) <= weekEnd),
+    [pendingTasks, weekEnd],
+  );
+  const laterTasksCount = pendingTasks.length - tasksThisWeek.length;
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -500,6 +508,15 @@ export default function DashboardPage() {
           <p className="mt-0.5 text-sm text-muted">
             {todayLabel()}
             {focusedThisWeek && <> · {focusedThisWeek} focused this week</>}
+            {/* Weekend nudge — the Weekly Review's seasonal front door */}
+            {[0, 6].includes(new Date().getDay()) && (
+              <>
+                {' · '}
+                <Link to="/review" className="underline hover:text-ink transition-colors">
+                  Review your week →
+                </Link>
+              </>
+            )}
           </p>
         </div>
         <button
@@ -621,19 +638,33 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Tasks */}
+              {/* Tasks — this week's only; the rest live on the Tasks page */}
               <div>
-                <SectionLabel title="Tasks" count={pendingTasks.length} />
-                {pendingTasks.length === 0 ? (
-                  <p className="px-3 text-sm text-muted">No pending tasks.</p>
+                <SectionLabel title="Tasks" count={tasksThisWeek.length} />
+                {tasksThisWeek.length === 0 ? (
+                  <p className="px-3 text-sm text-muted">
+                    {laterTasksCount > 0
+                      ? <>Nothing due this week. <Link to="/tasks" className="underline hover:text-ink transition-colors">{laterTasksCount} later →</Link></>
+                      : 'No pending tasks.'}
+                  </p>
                 ) : (
-                  <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
-                    <div className="divide-y divide-line">
-                      {pendingTasks.map(t => (
-                        <TaskItem key={t.id} task={t} />
-                      ))}
+                  <>
+                    <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                      <div className="divide-y divide-line">
+                        {tasksThisWeek.map(t => (
+                          <TaskItem key={t.id} task={t} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                    {laterTasksCount > 0 && (
+                      <Link
+                        to="/tasks"
+                        className="mt-2 inline-block px-3 text-xs text-muted underline hover:text-ink transition-colors"
+                      >
+                        {laterTasksCount} more in Tasks →
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
 

@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { ClipboardCheck } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
@@ -176,6 +178,14 @@ export default function ThisWeekPage() {
           </p>
         </div>
         <div className="flex items-center gap-3 mt-1">
+          {/* Weekly Review lives here (and in ⌘K), not in the sidebar */}
+          <Link
+            to="/review"
+            className="flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
+          >
+            <ClipboardCheck size={14} />
+            Weekly review
+          </Link>
           {/* Tasks toggle */}
           <button
             onClick={() => setShowTasks(!showTasks)}
