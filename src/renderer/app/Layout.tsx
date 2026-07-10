@@ -35,11 +35,12 @@ export default function Layout() {
   return (
     <div className="flex h-full text-ink">
       <Sidebar onOpenQuickAdd={() => setQuickAddOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
-      {/* Keyed by path so each navigation remounts (a) re-running the fade and
-          (b) resetting scroll to the top. Kept as the scroll + full-height parent
-          — a fade (opacity only) so page-rendered `fixed` dialogs still anchor to
-          the viewport, unlike a transform would. */}
-      <main key={location.pathname} className="animate-fade flex-1 overflow-auto min-w-0">
+      {/* Keyed by path so each navigation remounts, which (a) replays the screen
+          transition and (b) resets scroll to the top. Kept as the scroll +
+          full-height parent. The transition's transform reverts the moment it
+          finishes (backwards fill), so page-rendered `fixed` dialogs — opened
+          well after it — still anchor to the viewport, not to <main>. */}
+      <main key={location.pathname} className="animate-screen flex-1 overflow-auto min-w-0">
         <Outlet />
       </main>
       <QuickAddDialog isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />

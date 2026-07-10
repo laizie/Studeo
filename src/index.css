@@ -140,13 +140,18 @@ html[data-theme="warm"] {
    gone once it ends, leaving no lingering transform to trap fixed children.
    `fade` only touches opacity (which never creates a containing block), so it's
    safe on route-level wrappers that sit above page-rendered dialogs. */
-@keyframes fade-in { from { opacity: 0; }                              to { opacity: 1; } }
-@keyframes pop-in  { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in   { from { opacity: 0; }                              to { opacity: 1; } }
+@keyframes pop-in    { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes rise-in   { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: none; } }
+/* Screen switch: a quick fade + rise. `backwards` fill means the transform is
+   gone the instant it finishes, so page-rendered `fixed` dialogs (opened long
+   after the ~0.3s run) still anchor to the viewport, not to <main>. */
+@keyframes screen-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-.animate-fade { animation: fade-in 0.24s ease both; }
-.animate-pop  { animation: pop-in  0.20s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-.animate-rise { animation: rise-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.animate-fade   { animation: fade-in   0.24s ease both; }
+.animate-pop    { animation: pop-in    0.20s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.animate-rise   { animation: rise-in   0.34s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.animate-screen { animation: screen-in 0.30s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 
 /* Reduced motion: neutralize animations/transitions for users who ask for it. */
 @media (prefers-reduced-motion: reduce) {
