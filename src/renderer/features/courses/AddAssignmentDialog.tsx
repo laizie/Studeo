@@ -20,7 +20,7 @@ interface Props {
 const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-stone-500 ' +
+  'placeholder:text-muted ' +
   'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function AddAssignmentDialog({ courseId, assignment, isOpen, onClose }: Props) {
@@ -172,7 +172,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit assignment' : 'New assignment'}
           </h2>
-          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -217,7 +217,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             </div>
             <div className="w-32">
               <label className="block text-sm font-medium text-ink-soft mb-1">
-                Time <span className="text-stone-500 font-normal">(optional)</span>
+                Time <span className="text-muted font-normal">(optional)</span>
               </label>
               <input
                 type="time"
@@ -279,7 +279,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1">
               Grade
-              <span className="ml-1 text-stone-500 font-normal">(optional — once it's returned)</span>
+              <span className="ml-1 text-muted font-normal">(optional — once it's returned)</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -320,7 +320,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft transition-colors"
+              className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
             >
               Cancel
             </button>

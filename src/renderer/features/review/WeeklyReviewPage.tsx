@@ -58,9 +58,9 @@ function FocusCompare({ thisWeek, lastWeek, delta }: {
   } else if (delta > 0) {
     trend = { icon: TrendingUp, text: `${formatMinutes(delta)} more than last week`, className: 'text-green-700 dark:text-green-400' };
   } else if (delta < 0) {
-    trend = { icon: TrendingDown, text: `${formatMinutes(-delta)} less than last week`, className: 'text-stone-500 dark:text-muted' };
+    trend = { icon: TrendingDown, text: `${formatMinutes(-delta)} less than last week`, className: 'text-muted' };
   } else {
-    trend = { icon: Minus, text: 'Same as last week', className: 'text-stone-500 dark:text-muted' };
+    trend = { icon: Minus, text: 'Same as last week', className: 'text-muted' };
   }
   const TrendIcon = trend.icon;
 
@@ -134,9 +134,9 @@ function SectionCard({ children }: { children: React.ReactNode }) {
 function SectionLabel({ title, count }: { title: string; count?: number }) {
   return (
     <div className="flex items-center gap-2 mb-2 px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</h2>
       {count !== undefined && count > 0 && (
-        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-surface text-stone-600 dark:text-muted">
+        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-surface text-muted">
           {count}
         </span>
       )}

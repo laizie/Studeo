@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo, CalendarPlus } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SubtaskChecklist from './SubtaskChecklist';
@@ -25,7 +26,7 @@ interface Props {
 function StatusIcon({ status }: { status: AssignmentStatus }) {
   return status === 'completed'
     ? <CheckCircle2 size={17} className="text-green-500" />
-    : <Circle       size={17} className="text-stone-500" />;
+    : <Circle       size={17} className="text-muted" />;
 }
 
 export default function AssignmentRow({ assignment, onEdit, course }: Props) {
@@ -82,10 +83,16 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
 
   return (
     <div>
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors">
+    {/* One row model everywhere: clicking the row edits; the course badge jumps
+        to the course. Inner controls stop propagation so they stay themselves.
+        (Keyboard path: the pencil button — focusable and labeled.) */}
+    <div
+      onClick={() => onEdit(assignment)}
+      className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors cursor-pointer"
+    >
       {/* Status toggle — done / not done */}
       <button
-        onClick={handleStatusToggle}
+        onClick={(e) => { e.stopPropagation(); handleStatusToggle(); }}
         disabled={updateAssignment.isPending}
         aria-pressed={isCompleted}
         className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
@@ -95,14 +102,18 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         <StatusIcon status={assignment.status} />
       </button>
 
-      {/* Course badge — shown first in cross-course views so color is the first thing seen */}
+      {/* Course badge — shown first in cross-course views so color is the first
+          thing seen; clicking it opens the course itself */}
       {course && (
-        <span
-          className="shrink-0 px-2 py-0.5 rounded text-xs font-semibold"
+        <Link
+          to={`/courses/${course.id}`}
+          onClick={(e) => e.stopPropagation()}
+          title={`Open ${course.name}`}
+          className="shrink-0 px-2 py-0.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
           style={{ backgroundColor: `${course.color}40`, color: course.color }}
         >
           {course.abbreviation}
-        </span>
+        </Link>
       )}
 
       {/* Name */}
@@ -138,7 +149,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
 
       {/* Steps toggle — always visible once steps exist, hover-revealed before */}
       <button
-        onClick={() => setStepsOpen(v => !v)}
+        onClick={(e) => { e.stopPropagation(); setStepsOpen(v => !v); }}
         aria-expanded={stepsOpen}
         aria-label={subtasks.length > 0
           ? `Show steps (${doneSteps} of ${subtasks.length} done)`
@@ -186,38 +197,41 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
       {/* Edit + delete — revealed on row hover or keyboard focus */}
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <button
-          onClick={() => onEdit(assignment)}
+          onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
           aria-label={`Edit ${assignment.name}`}
-          className="p-1 text-muted hover:text-stone-600 dark:hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="p-1 text-muted hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
           title="Edit"
         >
           <Pencil size={13} />
         </button>
         <button
-          onClick={handleDelete}
+          onClick={(e) => { e.stopPropagation(); handleDelete(); }}
           disabled={deleteAssignment.isPending}
           aria-label={`Delete ${assignment.name}`}
-          className="p-1 text-stone-500 hover:text-red-500 rounded transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          className="p-1 text-muted hover:text-red-500 rounded transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           title="Delete"
         >
           <Trash2 size={13} />
         </button>
       </div>
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        title={`Delete "${assignment.name}"?`}
-        onConfirm={() => deleteAssignment.mutate(assignment.id)}
-        onClose={() => setConfirmOpen(false)}
-      />
-
-      {planOpen && (
-        <PlanStudyDialog assignment={assignment} course={course} onClose={() => setPlanOpen(false)} />
-      )}
     </div>
 
     {stepsOpen && (
       <SubtaskChecklist assignmentId={assignment.id} subtasks={subtasks} />
+    )}
+
+    {/* Dialogs live outside the clickable row so their clicks don't bubble
+        into it and re-open the edit dialog. */}
+    <ConfirmDialog
+      isOpen={confirmOpen}
+      title={`Delete "${assignment.name}"?`}
+      onConfirm={() => deleteAssignment.mutate(assignment.id)}
+      onClose={() => setConfirmOpen(false)}
+    />
+
+    {planOpen && (
+      <PlanStudyDialog assignment={assignment} course={course} onClose={() => setPlanOpen(false)} />
     )}
     </div>
   );

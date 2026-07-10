@@ -54,7 +54,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-500 hover:bg-surface-hi transition-colors"
+            className="p-1.5 rounded-lg text-muted hover:bg-surface-hi transition-colors"
           >
             <X size={16} />
           </button>
@@ -108,7 +108,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 </a>
                 <button
                   onClick={() => setStep('connect')}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-line text-stone-600 dark:text-muted hover:bg-stone-50 dark:hover:bg-surface-hi transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-line text-muted hover:bg-surface-hi transition-colors"
                 >
                   I have my Client ID →
                 </button>
@@ -128,7 +128,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 placeholder="e.g. 3a8d2f1c4b6e9d7a5c2f8b4e1d6a9c3f"
                 className={cn(
                   'w-full px-3 py-2 text-sm border rounded-lg mb-4',
-                  'font-mono placeholder:font-sans placeholder:text-stone-500 dark:placeholder:text-muted',
+                  'font-mono placeholder:font-sans placeholder:text-muted',
                   'border-line',
                   'bg-white dark:bg-inset',
                   'text-ink',
@@ -147,7 +147,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                 </button>
                 <button
                   onClick={() => setStep('instructions')}
-                  className="text-sm text-muted hover:text-stone-600 transition-colors"
+                  className="text-sm text-muted hover:text-ink transition-colors"
                 >
                   ← Back
                 </button>

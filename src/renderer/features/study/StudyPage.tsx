@@ -128,7 +128,7 @@ function FocusListPanel() {
           {items.length > 0 && (
             <button
               onClick={clear}
-              className="text-xs text-muted hover:text-stone-600 transition-colors"
+              className="text-xs text-muted hover:text-ink transition-colors"
             >
               Clear all
             </button>
@@ -152,12 +152,12 @@ function FocusListPanel() {
           <p className="text-sm text-muted">
             No assignments or tasks added yet.
           </p>
-          <p className="text-xs text-stone-500 dark:text-muted mt-1">
+          <p className="text-xs text-muted mt-1">
             Click to pick what you're working on today
           </p>
         </button>
       ) : (
-        <div className="bg-stone-50 dark:bg-inset border border-line rounded-xl overflow-hidden divide-y divide-line">
+        <div className="bg-inset border border-line rounded-xl overflow-hidden divide-y divide-line">
           {items.map(item => (
             <div
               key={item.id}
@@ -170,7 +170,7 @@ function FocusListPanel() {
               >
                 {item.done
                   ? <CheckCircle2 size={17} className="text-green-500" />
-                  : <Circle size={17} className="text-stone-500 dark:text-muted" />
+                  : <Circle size={17} className="text-muted" />
                 }
               </button>
 
@@ -206,7 +206,7 @@ function FocusListPanel() {
                 onClick={() => removeItem(item.id)}
                 aria-label={`Remove ${item.name} from focus list`}
                 title="Remove from focus list"
-                className="shrink-0 p-1 rounded text-muted hover:text-stone-700 dark:hover:text-ink-soft opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
+                className="shrink-0 p-1 rounded text-muted hover:text-ink-soft opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
               >
                 <X size={13} />
               </button>
@@ -413,7 +413,7 @@ export default function StudyPage() {
               <button
                 onClick={reset}
                 title="Reset"
-                className="p-2.5 text-stone-500 hover:text-stone-600 dark:hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
+                className="p-2.5 text-muted hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
               >
                 <RotateCcw size={17} />
               </button>

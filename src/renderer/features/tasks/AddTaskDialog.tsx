@@ -13,7 +13,7 @@ interface Props {
 const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-stone-500 ' +
+  'placeholder:text-muted ' +
   'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
@@ -101,7 +101,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit task' : 'New task'}
           </h2>
-          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -185,7 +185,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft transition-colors"
+              className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
             >
               Cancel
             </button>

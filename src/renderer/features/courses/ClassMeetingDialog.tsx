@@ -88,7 +88,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit class time' : 'Add class time'}
           </h2>
-          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -139,7 +139,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft transition-colors"
+              className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
             >
               Cancel
             </button>

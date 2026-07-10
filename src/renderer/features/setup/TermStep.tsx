@@ -52,13 +52,13 @@ export default function TermStep({ initialName, initialStart, initialEnd, saving
       <div className="flex gap-3">
         <label className="flex-1">
           <span className="mb-1 block text-sm font-medium text-ink-soft">
-            Starts <span className="font-normal text-stone-500">(optional)</span>
+            Starts <span className="font-normal text-muted">(optional)</span>
           </span>
           <input type="date" value={start} onChange={e => setStart(e.target.value)} className={WIZARD_INPUT} />
         </label>
         <label className="flex-1">
           <span className="mb-1 block text-sm font-medium text-ink-soft">
-            Ends <span className="font-normal text-stone-500">(optional)</span>
+            Ends <span className="font-normal text-muted">(optional)</span>
           </span>
           <input type="date" value={end} onChange={e => setEnd(e.target.value)} className={WIZARD_INPUT} />
         </label>

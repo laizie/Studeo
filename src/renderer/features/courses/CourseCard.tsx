@@ -93,7 +93,7 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
           onClick={() => setEditOpen(true)}
           aria-label={`Edit ${course.name}`}
           title="Edit course"
-          className="p-1 rounded text-muted hover:text-stone-600 dark:hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+          className="p-1 rounded text-muted hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
         >
           <Pencil size={13} />
         </button>

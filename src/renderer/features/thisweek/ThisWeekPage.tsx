@@ -189,7 +189,7 @@ export default function ThisWeekPage() {
           {/* Tasks toggle */}
           <button
             onClick={() => setShowTasks(!showTasks)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
           >
             <span className={cn(
               'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
@@ -225,7 +225,7 @@ export default function ThisWeekPage() {
               'px-3 py-1.5 text-sm rounded-md transition-colors',
               activeWindow === t.value
                 ? 'bg-surface text-ink shadow-sm font-medium'
-                : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
+                : ' text-muted hover:bg-line/60'
             )}
           >
             {t.label}
@@ -253,7 +253,7 @@ export default function ThisWeekPage() {
       {/* Empty */}
       {!isLoading && !assignmentsError && !(showTasks && tasksError) && relevant.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-stone-500 text-sm">
+          <p className="text-muted text-sm">
             {showCompleted
               ? `Nothing due ${windowConfig.title.toLowerCase()}.`
               : `Nothing due ${windowConfig.title.toLowerCase()} — or everything is done.`}
@@ -261,7 +261,7 @@ export default function ThisWeekPage() {
           {!showCompleted && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-muted underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-muted underline hover:text-ink transition-colors"
             >
               Show completed
             </button>
@@ -275,7 +275,7 @@ export default function ThisWeekPage() {
           {Array.from(grouped.entries()).map(([label, items]) => (
             <div key={label} className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
-                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-stone-50 dark:bg-surface-hi',
+                'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-inset',
                 label === 'Overdue' ? 'text-red-400' : 'text-muted'
               )}>
                 {label}
@@ -311,7 +311,7 @@ export default function ThisWeekPage() {
           {!showCompleted && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="underline hover:text-stone-600 transition-colors"
+              className="underline hover:text-ink transition-colors"
             >
               + show completed
             </button>

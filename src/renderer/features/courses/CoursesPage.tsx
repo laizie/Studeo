@@ -1,13 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Download, GraduationCap } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
-import { useTerms } from '../../lib/queries/useTerms';
-import { usePageFiltersStore } from '../../store/usePageFiltersStore';
+import { useTermFilter } from '../../lib/useTermFilter';
 import CourseCard from './CourseCard';
 import { parseGradeSections, computeSectionStanding } from '../../../shared/grades';
-import { localDayKey } from '../../../shared/studyStats';
 import CourseDialog from './CourseDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 
@@ -15,24 +13,7 @@ export default function CoursesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: courses, isLoading, isError, refetch } = useCourses();
   const { data: assignments } = useAssignments();
-  const { data: terms = [] } = useTerms();
-
-  const termFilter            = usePageFiltersStore(s => s.termFilter);
-  const setTermFilter         = usePageFiltersStore(s => s.setTermFilter);
-  const termFilterInitialized = usePageFiltersStore(s => s.termFilterInitialized);
-  const initTermFilter        = usePageFiltersStore(s => s.initTermFilter);
-
-  // Auto-select the term whose date range contains today, once terms load.
-  // One-time (guarded by termFilterInitialized): re-running on every null would
-  // snap the dropdown back when the user explicitly picks "All semesters".
-  useEffect(() => {
-    if (termFilterInitialized || terms.length === 0) return;
-    const today = localDayKey(new Date()); // local date — toISOString() is UTC and drifts a day in the evening
-    const current = terms.find(t =>
-      t.start_date && t.end_date && t.start_date <= today && today <= t.end_date
-    );
-    initTermFilter(current?.id ?? null);
-  }, [terms, termFilterInitialized, initTermFilter]);
+  const { terms, termFilter, setTermFilter } = useTermFilter();
 
   const filtered = useMemo(() =>
     (courses ?? []).filter(c => termFilter === null || c.term_id === termFilter),
@@ -68,7 +49,7 @@ export default function CoursesPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-semibold text-ink">Courses</h1>
-          <p className="mt-0.5 text-sm text-stone-500">
+          <p className="mt-0.5 text-sm text-muted">
             {isLoading
               ? 'Loading…'
               : count > 0
@@ -80,14 +61,14 @@ export default function CoursesPage() {
         <div className="flex items-center gap-2">
           <Link
             to="/setup"
-            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-muted rounded-lg hover:bg-surface-hi transition-colors"
           >
             <GraduationCap size={15} />
             New semester
           </Link>
           <Link
             to="/import"
-            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-line text-muted rounded-lg hover:bg-surface-hi transition-colors"
           >
             <Download size={15} />
             Import
@@ -135,7 +116,7 @@ export default function CoursesPage() {
       {/* Empty state */}
       {!isLoading && !isError && count === 0 && (
         <div className="text-center py-24">
-          <p className="text-stone-500 text-sm">No courses yet.</p>
+          <p className="text-muted text-sm">No courses yet.</p>
           <Link
             to="/setup"
             className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
@@ -146,7 +127,7 @@ export default function CoursesPage() {
           <div>
             <button
               onClick={() => setIsDialogOpen(true)}
-              className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
+              className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
             >
               Or add a single course
             </button>

@@ -115,8 +115,8 @@ export default function CourseDetailPage() {
   if (!course) {
     return (
       <div className="p-8">
-        <p className="text-sm text-stone-500">Course not found.</p>
-        <Link to="/courses" className="mt-2 inline-block text-sm text-muted underline hover:text-stone-600">
+        <p className="text-sm text-muted">Course not found.</p>
+        <Link to="/courses" className="mt-2 inline-block text-sm text-muted underline hover:text-ink">
           ← Back to Courses
         </Link>
       </div>
@@ -129,7 +129,7 @@ export default function CourseDetailPage() {
       {/* Back link */}
       <Link
         to="/courses"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-stone-600 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         Courses
@@ -192,7 +192,7 @@ export default function CourseDetailPage() {
         {/* Edit course — name, abbreviation, color, building, semester */}
         <button
           onClick={() => setEditCourseOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-muted rounded-lg hover:bg-surface-hi transition-colors"
         >
           <Pencil size={14} />
           Edit
@@ -209,7 +209,7 @@ export default function CourseDetailPage() {
             <div className="flex items-center gap-2">
               <Link
                 to={`/courses/${id}/batch`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-stone-600 dark:text-muted rounded-lg hover:bg-surface-hi transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-line text-muted rounded-lg hover:bg-surface-hi transition-colors"
               >
                 <Rows3 size={14} />
                 Batch add
@@ -233,7 +233,7 @@ export default function CourseDetailPage() {
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
                     ? 'bg-surface text-ink shadow-sm font-medium'
-                    : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
+                    : ' text-muted hover:bg-line/60'
                 )}
               >
                 {f.label}
@@ -244,7 +244,7 @@ export default function CourseDetailPage() {
           <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
             {filtered.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-stone-500 text-sm">
+                <p className="text-muted text-sm">
                   {allAssignments.length === 0
                     ? 'No assignments yet.'
                     : 'No assignments in this window.'}
@@ -252,7 +252,7 @@ export default function CourseDetailPage() {
                 {allAssignments.length === 0 && (
                   <button
                     onClick={openAdd}
-                    className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
+                    className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
                   >
                     Add first assignment
                   </button>
@@ -301,7 +301,7 @@ export default function CourseDetailPage() {
                     <button
                       onClick={() => setExceptionMeeting(m)}
                       aria-label={`Cancel or move a ${DAY_NAMES[m.day_of_week]} class date`}
-                      className="p-1 text-muted hover:text-stone-600 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                      className="p-1 text-muted hover:text-ink rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
                       title="Cancel or move a date"
                     >
                       <CalendarOff size={13} />
@@ -309,7 +309,7 @@ export default function CourseDetailPage() {
                     <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
                       aria-label={`Edit ${DAY_NAMES[m.day_of_week]} class time`}
-                      className="p-1 text-muted hover:text-stone-600 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                      className="p-1 text-muted hover:text-ink rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
                       title="Edit"
                     >
                       <Pencil size={13} />

@@ -27,7 +27,7 @@ function deriveAbbreviation(name: string): string {
 const INPUT_CLASS =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-stone-500 ' +
+  'placeholder:text-muted ' +
   'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function CourseDialog({ isOpen, onClose, course }: Props) {
@@ -143,7 +143,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
           </h2>
           <button
             onClick={onClose}
-            className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors"
+            className="text-muted hover:text-ink-soft transition-colors"
           >
             <X size={18} />
           </button>
@@ -170,7 +170,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1">
               Abbreviation
-              <span className="ml-1 text-stone-500 font-normal">(shown on cards)</span>
+              <span className="ml-1 text-muted font-normal">(shown on cards)</span>
             </label>
             <input
               type="text"
@@ -209,7 +209,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1">
               Building
-              <span className="ml-1 text-stone-500 font-normal">(optional)</span>
+              <span className="ml-1 text-muted font-normal">(optional)</span>
             </label>
             <input
               type="text"
@@ -225,7 +225,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
             <div>
               <label className="block text-sm font-medium text-ink-soft mb-1">
                 Semester
-                <span className="ml-1 text-stone-500 font-normal">(optional)</span>
+                <span className="ml-1 text-muted font-normal">(optional)</span>
               </label>
               <select
                 value={termId}
@@ -251,7 +251,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft transition-colors"
+              className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
             >
               Cancel
             </button>

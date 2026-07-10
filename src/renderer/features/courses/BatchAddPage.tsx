@@ -27,7 +27,7 @@ const INPUT =
   'w-full px-2.5 py-1.5 text-sm border border-line rounded-lg ' +
   'bg-white dark:bg-inset text-ink ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted focus:border-transparent ' +
-  'placeholder:text-stone-500 dark:placeholder:text-muted';
+  'placeholder:text-muted';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -210,7 +210,7 @@ export default function BatchAddPage() {
       {/* Back link */}
       <Link
         to={courseId ? `/courses/${courseId}` : '/courses'}
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink-soft transition-colors mb-6"
       >
         <ArrowLeft size={14} />
         {course?.name ?? 'Course'}
@@ -312,7 +312,7 @@ export default function BatchAddPage() {
 
               <button
                 onClick={() => { setImportOpen(false); setSyllabusText(''); setPdfFileName(''); }}
-                className="text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors"
+                className="text-sm text-muted hover:text-ink-soft transition-colors"
               >
                 Cancel
               </button>
@@ -433,7 +433,7 @@ export default function BatchAddPage() {
         {/* Add row */}
         <button
           onClick={() => addRowAfter()}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-muted hover:text-stone-600 dark:hover:text-ink-soft hover:bg-surface-hi transition-colors border-t border-line"
+          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-muted hover:text-ink-soft hover:bg-surface-hi transition-colors border-t border-line"
         >
           <Plus size={14} />
           Add row
@@ -463,7 +463,7 @@ export default function BatchAddPage() {
         </button>
         <Link
           to={courseId ? `/courses/${courseId}` : '/courses'}
-          className="px-4 py-2 text-sm text-muted hover:text-stone-700 dark:hover:text-ink-soft transition-colors"
+          className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
         >
           Cancel
         </Link>

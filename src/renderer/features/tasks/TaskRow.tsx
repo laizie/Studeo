@@ -18,7 +18,7 @@ interface Props {
 function StatusIcon({ status }: { status: AssignmentStatus }) {
   return status === 'completed'
     ? <CheckCircle2 size={17} className="text-green-500" />
-    : <Circle       size={17} className="text-stone-500" />;
+    : <Circle       size={17} className="text-muted" />;
 }
 
 export default function TaskRow({ task, onEdit }: Props) {
@@ -60,9 +60,14 @@ export default function TaskRow({ task, onEdit }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors">
+    <div>
+    {/* Row click edits (matches AssignmentRow); the pencil is the keyboard path. */}
+    <div
+      onClick={() => onEdit(task)}
+      className="flex items-center gap-3 px-3 py-2.5 group hover:bg-surface-hi rounded-lg transition-colors cursor-pointer"
+    >
       <button
-        onClick={handleStatusToggle}
+        onClick={(e) => { e.stopPropagation(); handleStatusToggle(); }}
         disabled={updateTask.isPending}
         aria-pressed={isCompleted}
         className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
@@ -102,30 +107,33 @@ export default function TaskRow({ task, onEdit }: Props) {
 
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <button
-          onClick={() => onEdit(task)}
+          onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           aria-label={`Edit ${task.name}`}
-          className="p-1 text-muted hover:text-stone-600 dark:hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="p-1 text-muted hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
           title="Edit"
         >
           <Pencil size={13} />
         </button>
         <button
-          onClick={handleDelete}
+          onClick={(e) => { e.stopPropagation(); handleDelete(); }}
           disabled={deleteTask.isPending}
           aria-label={`Delete ${task.name}`}
-          className="p-1 text-stone-500 hover:text-red-500 rounded transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          className="p-1 text-muted hover:text-red-500 rounded transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           title="Delete"
         >
           <Trash2 size={13} />
         </button>
       </div>
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        title={`Delete "${task.name}"?`}
-        onConfirm={() => deleteTask.mutate(task.id)}
-        onClose={() => setConfirmOpen(false)}
-      />
+    </div>
+
+    {/* Outside the clickable row so dialog clicks don't bubble into it. */}
+    <ConfirmDialog
+      isOpen={confirmOpen}
+      title={`Delete "${task.name}"?`}
+      onConfirm={() => deleteTask.mutate(task.id)}
+      onClose={() => setConfirmOpen(false)}
+    />
     </div>
   );
 }

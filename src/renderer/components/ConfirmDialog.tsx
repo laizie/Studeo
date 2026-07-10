@@ -61,13 +61,13 @@ export default function ConfirmDialog({
       <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 animate-pop">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
         {message && (
-          <p className="mt-2 text-sm text-stone-600 dark:text-muted">{message}</p>
+          <p className="mt-2 text-sm text-muted">{message}</p>
         )}
         <div className="flex justify-end gap-2 mt-5">
           <button
             ref={cancelRef}
             onClick={onClose}
-            className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+            className="px-4 py-2 text-sm text-muted hover:text-ink-soft rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
           >
             Cancel
           </button>

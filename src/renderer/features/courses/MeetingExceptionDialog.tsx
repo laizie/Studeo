@@ -87,7 +87,7 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
       <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-pop">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-base font-semibold text-ink">Schedule exceptions</h2>
-          <button onClick={onClose} className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors">
+          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -186,7 +186,7 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-stone-600 dark:text-muted hover:text-stone-800 dark:hover:text-ink-soft transition-colors"
+              className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
             >
               Done
             </button>

@@ -10,7 +10,7 @@ import { useTasks } from '../../lib/queries/useTasks';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useTerms } from '../../lib/queries/useTerms';
 import { useStudySessions } from '../../lib/queries/useStudySessions';
-import { usePageFiltersStore } from '../../store/usePageFiltersStore';
+import { useTermFilter } from '../../lib/useTermFilter';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel, dueSortValue, formatDueDate } from '../../../shared/deadlines';
 import { localDayKey } from '../../../shared/studyStats';
@@ -18,6 +18,8 @@ import { useRescheduleItems } from '../../lib/queries/useRescheduleItems';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 import CourseDialog from '../courses/CourseDialog';
+import AddAssignmentDialog from '../courses/AddAssignmentDialog';
+import AddTaskDialog from '../tasks/AddTaskDialog';
 import SemesterTimelineStrip from './SemesterTimelineStrip';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ function SectionLabel({ title, count, urgent }: {
     <div className="flex items-center gap-2 mb-2 px-3">
       <h2 className={cn(
         'text-xs font-semibold uppercase tracking-wide',
-        urgent ? 'text-red-700' : 'text-stone-500',
+        urgent ? 'text-red-700' : 'text-muted',
       )}>
         {title}
       </h2>
@@ -149,9 +151,10 @@ function RescheduleBar({ count, date, onDateChange, onApply, onClear, pending }:
   );
 }
 
-function AssignmentItem({ assignment, course, selectable, selected, onToggleSelect }: {
+function AssignmentItem({ assignment, course, onEdit, selectable, selected, onToggleSelect }: {
   assignment: Assignment;
   course: Course | undefined;
+  onEdit: (a: Assignment) => void;
   /** When true, show a leading checkbox for batch actions (e.g. Overdue triage). */
   selectable?: boolean;
   selected?: boolean;
@@ -180,8 +183,8 @@ function AssignmentItem({ assignment, course, selectable, selected, onToggleSele
   return (
     <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors">
       {selectable && (
-        // z-10 lifts the checkbox above the stretched-link ::after overlay so it
-        // stays clickable (the row otherwise navigates to the course).
+        // z-10 lifts the checkbox above the stretched edit-button's ::after
+        // overlay so it stays clickable (the row otherwise opens the editor).
         <input
           type="checkbox"
           checked={!!selected}
@@ -190,22 +193,28 @@ function AssignmentItem({ assignment, course, selectable, selected, onToggleSele
           className="relative z-10 shrink-0 h-4 w-4 accent-stone-600 cursor-pointer"
         />
       )}
+      {/* Badge → course; the course jump keeps its own visible target. z-10
+          lifts it above the stretched edit button's ::after overlay. */}
       {course && (
-        <span
-          className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
+        <Link
+          to={`/courses/${course.id}`}
+          title={`Open ${course.name}`}
+          className="relative z-10 shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
           style={{ backgroundColor: `${course.color}40`, color: course.color }}
         >
           {course.abbreviation}
-        </span>
+        </Link>
       )}
-      {/* Stretched link: the whole row navigates, but the link stays a sibling of the
-          star button — no interactive element nested inside another (valid + a11y). */}
-      <Link
-        to={course ? `/courses/${course.id}` : '#'}
-        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
+      {/* Stretched button: the whole row opens the edit dialog (same row model
+          as This Week and the course page), and it stays a sibling of the star
+          button — no interactive element nested inside another. */}
+      <button
+        type="button"
+        onClick={() => onEdit(assignment)}
+        className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
       >
         {assignment.name}
-      </Link>
+      </button>
       <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
@@ -218,7 +227,7 @@ function AssignmentItem({ assignment, course, selectable, selected, onToggleSele
           'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
             ? 'text-accent opacity-100'
-            : 'text-stone-500 hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            : 'text-muted hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
         <Target size={13} />
@@ -227,7 +236,7 @@ function AssignmentItem({ assignment, course, selectable, selected, onToggleSele
   );
 }
 
-function TaskItem({ task }: { task: Task }) {
+function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
   const deadline = computeDeadlineLabel(task.due_date);
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === task.id);
@@ -245,12 +254,14 @@ function TaskItem({ task }: { task: Task }) {
   return (
     <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors">
       <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
-      <Link
-        to="/tasks"
-        className="flex-1 min-w-0 truncate text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
+      {/* Row edits in place — no detour through the Tasks page to re-find it. */}
+      <button
+        type="button"
+        onClick={() => onEdit(task)}
+        className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
       >
         {task.name}
-      </Link>
+      </button>
       <span className={cn('text-xs font-medium shrink-0 px-2 py-0.5 rounded', URGENCY_CLASS[deadline.urgency])}>
         {deadline.label}
       </span>
@@ -263,7 +274,7 @@ function TaskItem({ task }: { task: Task }) {
           'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
             ? 'text-accent opacity-100'
-            : 'text-stone-500 hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            : 'text-muted hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
         <Target size={13} />
@@ -286,7 +297,7 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
           {course.abbreviation}
         </span>
       ) : (
-        <span className="shrink-0 text-xs text-stone-500 font-medium">?</span>
+        <span className="shrink-0 text-xs text-muted font-medium">?</span>
       )}
       <span className="text-sm text-ink-soft flex-1 truncate">
         {course?.name ?? 'Unknown'}
@@ -300,6 +311,20 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
 
 export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Row-click editing (the app-wide row model): which item is being edited.
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | undefined>();
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+
+  function openEditAssignment(a: Assignment) {
+    setEditingAssignment(a);
+    setAssignmentDialogOpen(true);
+  }
+  function openEditTask(t: Task) {
+    setEditingTask(t);
+    setTaskDialogOpen(true);
+  }
 
   const { data: courses,     isLoading: coursesLoading,     isError: coursesError,     refetch: refetchCourses     } = useCourses();
   const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
@@ -318,22 +343,7 @@ export default function DashboardPage() {
     return secs >= 3600 ? `${(secs / 3600).toFixed(1)} hrs` : `${Math.round(secs / 60)} min`;
   }, [studySessions]);
 
-  const termFilter            = usePageFiltersStore(s => s.termFilter);
-  const setTermFilter         = usePageFiltersStore(s => s.setTermFilter);
-  const termFilterInitialized = usePageFiltersStore(s => s.termFilterInitialized);
-  const initTermFilter        = usePageFiltersStore(s => s.initTermFilter);
-
-  // Auto-select the term whose date range contains today, once terms load.
-  // One-time (guarded by termFilterInitialized): re-running on every null would
-  // snap the dropdown back when the user explicitly picks "All semesters".
-  useEffect(() => {
-    if (termFilterInitialized || terms.length === 0) return;
-    const today = localDayKey(new Date()); // local date — toISOString() is UTC and drifts a day in the evening
-    const current = terms.find(t =>
-      t.start_date && t.end_date && t.start_date <= today && today <= t.end_date
-    );
-    initTermFilter(current?.id ?? null);
-  }, [terms, termFilterInitialized, initTermFilter]);
+  const { termFilter, setTermFilter } = useTermFilter();
 
   const isLoading = coursesLoading || assignmentsLoading;
 
@@ -547,10 +557,10 @@ export default function DashboardPage() {
       {/* ── No courses empty state ───────────────────────────────────────────── */}
       {!hasCourses && (
         <div className="text-center py-24">
-          <p className="text-stone-500 text-sm">No courses yet. Add your first one to get started.</p>
+          <p className="text-muted text-sm">No courses yet. Add your first one to get started.</p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
+            className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
           >
             Add course
           </button>
@@ -605,6 +615,7 @@ export default function DashboardPage() {
                           key={a.id}
                           assignment={a}
                           course={courseMap.get(a.course_id)}
+                          onEdit={openEditAssignment}
                           selectable
                           selected={selectedOverdue.has(a.id)}
                           onToggleSelect={toggleOverdue}
@@ -631,6 +642,7 @@ export default function DashboardPage() {
                           key={a.id}
                           assignment={a}
                           course={courseMap.get(a.course_id)}
+                          onEdit={openEditAssignment}
                         />
                       ))}
                     </div>
@@ -652,7 +664,7 @@ export default function DashboardPage() {
                     <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
                       <div className="divide-y divide-line">
                         {tasksThisWeek.map(t => (
-                          <TaskItem key={t.id} task={t} />
+                          <TaskItem key={t.id} task={t} onEdit={openEditTask} />
                         ))}
                       </div>
                     </div>
@@ -731,6 +743,17 @@ export default function DashboardPage() {
       )}
 
       <CourseDialog isOpen={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <AddAssignmentDialog
+        courseId={editingAssignment?.course_id ?? ''}
+        assignment={editingAssignment}
+        isOpen={assignmentDialogOpen}
+        onClose={() => setAssignmentDialogOpen(false)}
+      />
+      <AddTaskDialog
+        task={editingTask}
+        isOpen={taskDialogOpen}
+        onClose={() => setTaskDialogOpen(false)}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { findActiveOrNextSession } from '../../../shared/notebook';
 import { parseDateLocal } from '../../../shared/deadlines';
 import { parseQuickAdd } from '../../../shared/quickParse';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import { cn } from '../../lib/utils';
 
 interface Props {
@@ -25,7 +26,7 @@ type Tab = 'assignment' | 'task' | 'note';
 const INPUT =
   'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-stone-500 ' +
+  'placeholder:text-muted ' +
   'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function QuickAddDialog({ isOpen, onClose }: Props) {
@@ -51,7 +52,9 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   const [typeTouched, setTypeTouched]     = useState(false);
   const [dateTouched, setDateTouched]     = useState(false);
 
-  const nameRef = useRef<HTMLInputElement>(null);
+  const nameRef  = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(isOpen, panelRef);
 
   const navigate = useNavigate();
   const { data: courses = [] } = useCourses();
@@ -66,11 +69,16 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   // For the Note tab: the class happening now or next, for one-tap lecture capture.
   const nextSession = isOpen && tab === 'note' ? findActiveOrNextSession(meetings, new Date()) : null;
 
-  // Natural-language parse of the assignment line ("phys quiz 2 fri"). Recomputed
-  // as the user types; drives the live preview and auto-fills the fields below.
+  // Natural-language parse of the typed line ("phys quiz 2 fri", "laundry sat").
+  // Recomputed as the user types; drives the live preview and auto-fills the
+  // fields below. Tasks parse dates too — they just skip course/type matching.
   const parsed = useMemo(
-    () => (tab === 'assignment' && name.trim()
-      ? parseQuickAdd(name, courses.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation })), new Date())
+    () => (tab !== 'note' && name.trim()
+      ? parseQuickAdd(
+          name,
+          tab === 'assignment' ? courses.map(c => ({ id: c.id, name: c.name, abbreviation: c.abbreviation })) : [],
+          new Date(),
+        )
       : null),
     [tab, name, courses],
   );
@@ -78,14 +86,16 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   // Apply the parse to any field the user hasn't overridden yet.
   useEffect(() => {
     if (!parsed) return;
-    if (parsed.courseId && !courseTouched) setCourseId(parsed.courseId);
-    if (!typeTouched) setType(parsed.type);
+    if (tab === 'assignment') {
+      if (parsed.courseId && !courseTouched) setCourseId(parsed.courseId);
+      if (!typeTouched) setType(parsed.type);
+    }
     if (parsed.dueDate && !dateTouched) setDueDate(parsed.dueDate);
-  }, [parsed, courseTouched, typeTouched, dateTouched]);
+  }, [parsed, tab, courseTouched, typeTouched, dateTouched]);
 
   // What we'll actually save: the cleaned name (date/course words stripped),
   // falling back to the raw text if the parser stripped everything.
-  const assignmentName = (parsed?.name || name).trim();
+  const cleanName = (parsed?.name || name).trim();
 
   async function captureLecture() {
     if (!nextSession) return;
@@ -135,17 +145,17 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     // Confirm-with-takeback: the dialog closes silently, so the toast is the
     // proof it saved — and its Undo deletes the row we just created.
     if (tab === 'assignment') {
-      if (!courseId || !assignmentName) return;
-      const created = await createAssignment.mutateAsync({ courseId, name: assignmentName, type, dueDate });
+      if (!courseId || !cleanName) return;
+      const created = await createAssignment.mutateAsync({ courseId, name: cleanName, type, dueDate });
       const abbrev = courses.find(c => c.id === courseId)?.abbreviation;
       showUndoToast(
-        `Added “${assignmentName}”${abbrev ? ` to ${abbrev}` : ''} · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
+        `Added “${cleanName}”${abbrev ? ` to ${abbrev}` : ''} · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
         () => deleteAssignment.mutate(created.id),
       );
     } else if (tab === 'task') {
-      const created = await createTask.mutateAsync({ name: name.trim(), dueDate });
+      const created = await createTask.mutateAsync({ name: cleanName, dueDate });
       showUndoToast(
-        `Added “${name.trim()}” · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
+        `Added “${cleanName}” · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
         () => deleteTask.mutate(created.id),
       );
     } else {
@@ -162,8 +172,8 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   const isPending = createAssignment.isPending || createTask.isPending || createNote.isPending;
   const isError   = createAssignment.isError   || createTask.isError   || createNote.isError;
   const canSubmit = name.trim()
-    && (tab === 'note' || dueDate)
-    && (tab !== 'assignment' || (courseId && assignmentName));
+    && (tab === 'note' || (dueDate && cleanName))
+    && (tab !== 'assignment' || courseId);
 
   if (!isOpen) return null;
 
@@ -174,7 +184,13 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     >
       <div className="absolute inset-0 bg-black/30 animate-fade" />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5 animate-pop">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quick add"
+        className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5 animate-pop"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           {/* Tab switcher */}
@@ -188,7 +204,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
                   'px-3 py-1 text-xs rounded-md transition-colors capitalize',
                   tab === t
                     ? 'bg-white dark:bg-surface-hi text-ink shadow-sm font-medium'
-                    : 'text-muted hover:text-stone-700 dark:hover:text-ink-soft'
+                    : 'text-muted hover:text-ink-soft'
                 )}
               >
                 {t}
@@ -198,7 +214,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-muted hover:text-stone-600 dark:hover:text-ink-soft transition-colors"
+            className="text-muted hover:text-ink-soft transition-colors"
           >
             <X size={16} />
           </button>
@@ -230,22 +246,24 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder={tab === 'assignment' ? 'e.g. phys quiz 2 fri' : tab === 'task' ? 'Task name…' : 'Note title…'}
+            placeholder={tab === 'assignment' ? 'e.g. phys quiz 2 fri' : tab === 'task' ? 'e.g. laundry sat' : 'Note title…'}
             className={INPUT}
             required
           />
 
           {/* Live parse preview — mirrors exactly what will be saved */}
-          {tab === 'assignment' && name.trim() && (
+          {tab !== 'note' && name.trim() && (
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
               <span className="text-muted">Saving</span>
-              <span className="font-medium text-ink">“{assignmentName || '…'}”</span>
-              {courseId && (
+              <span className="font-medium text-ink">“{cleanName || '…'}”</span>
+              {tab === 'assignment' && courseId && (
                 <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">
                   {courses.find(c => c.id === courseId)?.abbreviation ?? 'Course'}
                 </span>
               )}
-              <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">{type}</span>
+              {tab === 'assignment' && (
+                <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">{type}</span>
+              )}
               {dueDate && (
                 <span className="rounded-full bg-inset px-2 py-0.5 text-ink-soft">
                   {format(parseDateLocal(dueDate), 'EEE, MMM d')}

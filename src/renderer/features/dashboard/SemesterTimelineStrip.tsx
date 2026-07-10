@@ -33,7 +33,7 @@ export default function SemesterTimelineStrip({ term, courses, assignments }: Pr
   return (
     <section className="mb-8">
       <div className="mb-2 flex items-center justify-between px-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-stone-500">This semester</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">This semester</h2>
         <div className="flex items-center gap-3 text-[11px] text-muted">
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted" /> assignment

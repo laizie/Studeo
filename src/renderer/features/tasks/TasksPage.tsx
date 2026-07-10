@@ -112,7 +112,7 @@ export default function TasksPage() {
                 'px-3 py-1 text-sm rounded-md transition-colors',
                 filter === f.value
                   ? 'bg-surface text-ink shadow-sm font-medium'
-                  : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
+                  : ' text-muted hover:bg-line/60'
               )}
             >
               {f.label}
@@ -148,7 +148,7 @@ export default function TasksPage() {
       {/* Empty state */}
       {!isLoading && !isError && filtered.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-stone-500 text-sm">
+          <p className="text-muted text-sm">
             {allTasks.length === 0
               ? 'No tasks yet.'
               : showCompleted
@@ -158,7 +158,7 @@ export default function TasksPage() {
           {allTasks.length === 0 && (
             <button
               onClick={openAdd}
-              className="mt-3 text-sm text-muted underline hover:text-stone-700 transition-colors"
+              className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
             >
               Add your first task
             </button>
@@ -166,7 +166,7 @@ export default function TasksPage() {
           {allTasks.length > 0 && !showCompleted && completedCount > 0 && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="mt-2 text-xs text-muted underline hover:text-stone-600 transition-colors"
+              className="mt-2 text-xs text-muted underline hover:text-ink transition-colors"
             >
               Show {completedCount} completed
             </button>
@@ -191,7 +191,7 @@ export default function TasksPage() {
           {!showCompleted && completedCount > 0 && (
             <button
               onClick={() => setShowCompleted(true)}
-              className="underline hover:text-stone-600 transition-colors"
+              className="underline hover:text-ink transition-colors"
             >
               + show completed
             </button>

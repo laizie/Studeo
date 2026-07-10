@@ -29,7 +29,7 @@ function PlaylistRow({ playlist, onPlay }: { playlist: SpotifyPlaylist; onPlay: 
       <div className="w-8 h-8 rounded shrink-0 bg-stone-100 dark:bg-surface overflow-hidden flex items-center justify-center">
         {playlist.imageUrl
           ? <img src={playlist.imageUrl} alt="" className="w-full h-full object-cover" />
-          : <ListMusic size={13} className="text-stone-500" />
+          : <ListMusic size={13} className="text-muted" />
         }
       </div>
       <div className="flex-1 min-w-0">
@@ -74,7 +74,7 @@ function PlaybackControls() {
         <div className="w-10 h-10 rounded-lg shrink-0 bg-stone-100 dark:bg-surface overflow-hidden flex items-center justify-center">
           {track?.albumArt
             ? <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
-            : <Music size={16} className="text-stone-500" />
+            : <Music size={16} className="text-muted" />
           }
         </div>
         <div className="flex-1 min-w-0">
@@ -100,7 +100,7 @@ function PlaybackControls() {
         <button
           onClick={() => previous.mutate()}
           disabled={previous.isPending}
-          className="p-1.5 text-stone-500 hover:text-stone-700 dark:hover:text-ink-soft transition-colors disabled:opacity-40"
+          className="p-1.5 text-muted hover:text-ink-soft transition-colors disabled:opacity-40"
           title="Previous"
         >
           <SkipBack size={16} />
@@ -119,7 +119,7 @@ function PlaybackControls() {
         <button
           onClick={() => next.mutate()}
           disabled={next.isPending}
-          className="p-1.5 text-stone-500 hover:text-stone-700 dark:hover:text-ink-soft transition-colors disabled:opacity-40"
+          className="p-1.5 text-muted hover:text-ink-soft transition-colors disabled:opacity-40"
           title="Next"
         >
           <SkipForward size={16} />
@@ -218,7 +218,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
                 'px-3 py-1 text-xs rounded-md transition-colors',
                 tab === t
                   ? 'bg-surface text-ink shadow-sm font-medium'
-                  : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
+                  : ' text-muted hover:bg-line/60'
               )}
             >
               {t === 'yours' ? 'Your playlists' : 'Search'}
@@ -229,7 +229,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
         {/* Search input */}
         {tab === 'search' && (
           <div className="relative mb-2">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-500 dark:text-muted" />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               value={query}
@@ -240,7 +240,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
                 'border-line',
                 'bg-white dark:bg-inset',
                 'text-ink',
-                'placeholder:text-stone-500 dark:placeholder:text-muted',
+                'placeholder:text-muted',
                 'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
               )}
             />

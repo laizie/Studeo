@@ -7,7 +7,7 @@ import { cn } from '../../lib/utils';
 /** One standard input style for every text/date/time field on Settings. */
 export const SETTINGS_INPUT =
   'px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink ' +
-  'placeholder:text-stone-500 dark:placeholder:text-muted ' +
+  'placeholder:text-muted ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
 
 export function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -111,7 +111,7 @@ export function CardButton({ onClick, disabled, children }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="shrink-0 px-3 py-1.5 text-xs rounded-lg border border-line text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
+      className="shrink-0 px-3 py-1.5 text-xs rounded-lg border border-line text-muted hover:bg-surface-hi transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
     >
       {children}
     </button>

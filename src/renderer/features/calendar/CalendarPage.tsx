@@ -270,12 +270,13 @@ export default function CalendarPage() {
       // they're visibly "planned time" rather than a hard deadline. Done/skipped dim.
       const block = event.resource.block;
       const settled = block.status !== 'planned';
+      // Soft amber tint + a full 1px amber border reads as "planned time"
+      // without the side-stripe accent the design system bans.
       return {
         style: {
           backgroundColor: settled ? '#d6d3d1' : 'color-mix(in srgb, #e2a53b 22%, white)',
-          borderLeft: `3px solid ${settled ? '#a8a29e' : '#e2a53b'}`,
           borderColor: settled ? '#a8a29e' : '#e2a53b',
-          color: '#5c4a1f',
+          color: 'var(--accent-ink)', // the system's "text on amber" ink
           borderRadius: '4px',
           opacity: settled ? 0.6 : 1,
           textDecoration: block.status === 'done' ? 'line-through' : undefined,
@@ -318,7 +319,7 @@ export default function CalendarPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="p-8 flex flex-col" style={{ height: 'calc(100vh - 40px)' }}>
+    <div className="p-8 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5 shrink-0">
         <h1 className="text-2xl font-semibold text-ink">Calendar</h1>
@@ -328,7 +329,7 @@ export default function CalendarPage() {
           {mode === 'assignments' && (
             <button
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
               <span className={cn(
                 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
@@ -347,7 +348,7 @@ export default function CalendarPage() {
           {mode === 'assignments' && (
             <button
               onClick={() => setCalendarShowStudyBlocks(!calendarShowStudyBlocks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-stone-600 dark:text-muted hover:bg-surface-hi transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
               <span className={cn(
                 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
@@ -369,13 +370,15 @@ export default function CalendarPage() {
                 key={m}
                 onClick={() => {
                   setMode(m);
+                  // Each mode keeps its own natural home view; assignments can
+                  // still switch to week from the calendar's own toolbar.
                   setCalView(m === 'lectures' ? 'week' : 'month');
                 }}
                 className={cn(
                   'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                   mode === m
                     ? 'bg-surface text-ink shadow-sm font-medium'
-                    : ' text-stone-600 dark:text-muted hover:bg-stone-200 dark:hover:bg-surface-hi'
+                    : ' text-muted hover:bg-line/60'
                 )}
               >
                 {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}
@@ -411,7 +414,7 @@ export default function CalendarPage() {
           events={events}
           date={calDate}
           view={calView}
-          views={mode === 'lectures' ? ['week', 'day'] : ['month']}
+          views={mode === 'lectures' ? ['week', 'day'] : ['month', 'week']}
           onNavigate={setCalDate}
           onView={v => setCalView(v as CalendarView)}
           onRangeChange={handleRangeChange}

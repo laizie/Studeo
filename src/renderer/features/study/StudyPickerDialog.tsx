@@ -98,7 +98,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="text-muted hover:text-stone-600 transition-colors"
+            className="text-muted hover:text-ink transition-colors"
           >
             <X size={16} />
           </button>
@@ -119,7 +119,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                 'border border-line',
                 'bg-transparent dark:bg-inset',
                 'text-ink',
-                'placeholder:text-stone-500 dark:placeholder:text-muted',
+                'placeholder:text-muted',
                 'focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi',
               )}
             />
@@ -136,7 +136,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                 'px-3 py-1 text-xs rounded-md capitalize transition-colors',
                 tab === t
                   ? 'bg-inset text-ink font-medium'
-                  : 'text-muted hover:text-stone-600 dark:hover:text-ink-soft'
+                  : 'text-muted hover:text-ink-soft'
               )}
             >
               {t} ({t === 'assignments' ? pendingAssignments.length : pendingTasks.length})
