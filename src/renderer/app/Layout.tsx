@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import QuickAddDialog from '../features/quickadd/QuickAddDialog';
 import CommandPalette from './CommandPalette';
@@ -10,6 +10,7 @@ import { useReminderNavigation } from '../lib/useReminderNavigation';
 export default function Layout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const location = useLocation();
 
   // Keep the Pomodoro timer running app-wide, independent of the current route.
   useTimerDriver();
@@ -34,7 +35,11 @@ export default function Layout() {
   return (
     <div className="flex h-full text-ink">
       <Sidebar onOpenQuickAdd={() => setQuickAddOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
-      <main className="flex-1 overflow-auto min-w-0">
+      {/* Keyed by path so each navigation remounts (a) re-running the fade and
+          (b) resetting scroll to the top. Kept as the scroll + full-height parent
+          — a fade (opacity only) so page-rendered `fixed` dialogs still anchor to
+          the viewport, unlike a transform would. */}
+      <main key={location.pathname} className="animate-fade flex-1 overflow-auto min-w-0">
         <Outlet />
       </main>
       <QuickAddDialog isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />

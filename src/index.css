@@ -129,6 +129,25 @@ html[data-theme="warm"] {
 .focus-overlay { animation: focus-fade-in 0.45s ease both; }
 .focus-rise    { animation: focus-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* ── App-wide motion vocabulary ─────────────────────────────────────────────
+   Three enter animations, one name each, so the whole app agrees on how things
+   arrive. Kept deliberately small and quiet (Notion-calm, not bouncy).
+
+   Containing-block note: `transform` on an element makes it the containing block
+   for any `position: fixed` descendant — which would re-anchor a modal to it
+   instead of the viewport. So the transform-based animations below use
+   `backwards` (not `both`): the transform applies *before/during* the run and is
+   gone once it ends, leaving no lingering transform to trap fixed children.
+   `fade` only touches opacity (which never creates a containing block), so it's
+   safe on route-level wrappers that sit above page-rendered dialogs. */
+@keyframes fade-in { from { opacity: 0; }                              to { opacity: 1; } }
+@keyframes pop-in  { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.animate-fade { animation: fade-in 0.24s ease both; }
+.animate-pop  { animation: pop-in  0.20s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.animate-rise { animation: rise-in 0.34s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+
 /* Reduced motion: neutralize animations/transitions for users who ask for it. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
