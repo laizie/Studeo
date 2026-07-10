@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useSettingsStore } from './useSettingsStore';
+import { useFocusStore } from './useFocusStore';
 
 export type Phase = 'focus' | 'short_break' | 'long_break';
 
@@ -67,7 +68,9 @@ function sendNotification(completed: Phase, next: Phase): void {
 // Fire-and-forget: a failed write must never break the timer itself. The
 // intention (if any) rides along, and the resulting session id is stashed so
 // Focus Mode can prompt for a reflection on the block that just ended.
-function logFocusSession(durationSeconds: number, intention: string): void {
+// `armReflection` — decided by the caller so the sync tick() and this async
+// callback agree — pops the "How did it go?" card once the write lands.
+function logFocusSession(durationSeconds: number, intention: string, armReflection: boolean): void {
   window.api.studySessions
     .create({
       startedAt: new Date(Date.now() - durationSeconds * 1000).toISOString(),
@@ -76,7 +79,9 @@ function logFocusSession(durationSeconds: number, intention: string): void {
       intention: intention.trim() || undefined,
     })
     .then((s) => {
-      useTimerStore.setState({ lastFocusSessionId: s.id, awaitingReflection: true });
+      if (armReflection) {
+        useTimerStore.setState({ lastFocusSessionId: s.id, awaitingReflection: true });
+      }
     })
     .catch(() => { /* best-effort logging */ });
 }
@@ -270,7 +275,17 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   setIntention: (v) => set({ intention: v }),
-  clearReflectionPrompt: () => set({ awaitingReflection: false, lastFocusSessionId: null }),
+  // Dismissing the reflection card releases the break that was held paused behind
+  // it (see tick()). If auto-advance is on, that break starts now — so the pause
+  // covered only the reflection beat, not the break itself.
+  clearReflectionPrompt: () => {
+    const { autoAdvance, isRunning, timeLeft } = get();
+    if (autoAdvance && !isRunning) {
+      set({ awaitingReflection: false, lastFocusSessionId: null, isRunning: true, endsAt: Date.now() + timeLeft * 1000 });
+    } else {
+      set({ awaitingReflection: false, lastFocusSessionId: null });
+    }
+  },
 
   setPhase: (phase) => {
     const { focusSecs, breakSecs, longBreakSecs } = get();
@@ -308,8 +323,13 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     // every LONG_BREAK_EVERY-th one earns a long break instead of a short one.
     let next: Phase;
     let nextFocusCount = focusCount;
+    // A reflection card only makes sense inside Focus Mode and only if the user
+    // wants it. Deciding here (once) keeps the async log callback in agreement.
+    let willReflect = false;
     if (phase === 'focus') {
-      logFocusSession(focusSecs, intention);  // logs the session + arms the reflection prompt
+      willReflect =
+        useSettingsStore.getState().reflectionPromptEnabled && useFocusStore.getState().isOpen;
+      logFocusSession(focusSecs, intention, willReflect);  // logs the session (+ arms reflection)
       nextFocusCount = focusCount + 1;
       next = nextFocusCount % LONG_BREAK_EVERY === 0 ? 'long_break' : 'short_break';
     } else {
@@ -319,12 +339,16 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     playChime();
     sendNotification(phase, next);
     const nextSecs = phaseSecs(next, focusSecs, breakSecs, longBreakSecs);
+    // When a reflection card is about to appear, don't run the break behind it —
+    // clearReflectionPrompt() releases it once the user writes or skips. Otherwise
+    // auto-advance flows straight into the break as before.
+    const resume = autoAdvance && !willReflect;
     set({
       phase: next,
       focusCount: nextFocusCount,
       timeLeft: nextSecs,
-      isRunning: autoAdvance,
-      endsAt: autoAdvance ? Date.now() + nextSecs * 1000 : null,
+      isRunning: resume,
+      endsAt: resume ? Date.now() + nextSecs * 1000 : null,
       // The intention belonged to the block that just ended — clear it for the next one.
       ...(phase === 'focus' ? { intention: '' } : {}),
     });

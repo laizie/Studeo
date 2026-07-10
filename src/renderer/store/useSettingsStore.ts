@@ -27,6 +27,10 @@ interface SettingsState {
   /** Soft chime when a focus/break phase ends (the timer reads this directly). */
   timerSoundEnabled: boolean;
   setTimerSoundEnabled: (v: boolean) => void;
+
+  /** Show the "How did it go?" reflection card in Focus Mode after each focus block. */
+  reflectionPromptEnabled: boolean;
+  setReflectionPromptEnabled: (v: boolean) => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -86,6 +90,9 @@ const initDueDigestTime =
   storedDigestTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(storedDigestTime) ? storedDigestTime : '18:00';
 
 const initTimerSound = readSetting('timerSound', 'studeo:timerSound') !== 'false';
+
+// Default ON — closing the loop with a one-line reflection is part of the Focus Mode ritual.
+const initReflectionPrompt = readSetting('reflectionPrompt', 'studeo:reflectionPrompt') !== 'false';
 
 // The reminder scheduler lives in the main process, which can't read
 // localStorage — push the saved preference over IPC on startup and on change.
@@ -162,5 +169,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setTimerSoundEnabled: (v) => {
     saveSetting('timerSound', String(v));
     set({ timerSoundEnabled: v });
+  },
+
+  reflectionPromptEnabled: initReflectionPrompt,
+  setReflectionPromptEnabled: (v) => {
+    saveSetting('reflectionPrompt', String(v));
+    set({ reflectionPromptEnabled: v });
   },
 }));

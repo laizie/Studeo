@@ -1,11 +1,11 @@
-import { Timer, Coffee, Moon, Volume2 } from 'lucide-react';
+import { Timer, Coffee, Moon, Volume2, PenLine } from 'lucide-react';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS, LONG_BREAK_OPTIONS } from '../../store/useTimerStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { SectionHeading, SettingsCard, SettingsRow, PillGroup, Toggle } from './components';
 
 export default function StudyTimerSection() {
   const { focusSecs, breakSecs, longBreakSecs, setFocusMins, setBreakMins, setLongBreakMins } = useTimerStore();
-  const { timerSoundEnabled, setTimerSoundEnabled } = useSettingsStore();
+  const { timerSoundEnabled, setTimerSoundEnabled, reflectionPromptEnabled, setReflectionPromptEnabled } = useSettingsStore();
 
   return (
     <div className="mb-8">
@@ -53,6 +53,13 @@ export default function StudyTimerSection() {
           description="A soft chime when focus or break time is up"
         >
           <Toggle checked={timerSoundEnabled} onChange={setTimerSoundEnabled} />
+        </SettingsRow>
+        <SettingsRow
+          icon={<PenLine size={17} />}
+          label="Ask me to reflect after a focus block"
+          description="In Focus Mode, a one-line “How did it go?” before the break"
+        >
+          <Toggle checked={reflectionPromptEnabled} onChange={setReflectionPromptEnabled} />
         </SettingsRow>
       </SettingsCard>
       <p className="text-xs text-muted mt-2 px-1">
