@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import QuickAddDialog from '../features/quickadd/QuickAddDialog';
 import CommandPalette from './CommandPalette';
 import FocusMode from '../features/study/FocusMode';
+import Toaster from '../components/Toaster';
 import { useTimerDriver } from '../lib/useTimerDriver';
 import { useReminderNavigation } from '../lib/useReminderNavigation';
 
@@ -50,6 +51,7 @@ export default function Layout() {
         onQuickAdd={() => setQuickAddOpen(true)}
       />
       <FocusMode />
+      <Toaster />
     </div>
   );
 }

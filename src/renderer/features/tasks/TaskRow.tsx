@@ -5,6 +5,7 @@ import type { Task, AssignmentStatus } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateTask, useDeleteTask } from '../../lib/queries/useTasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { showUndoToast } from '../../store/useToastStore';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 
@@ -31,7 +32,18 @@ export default function TaskRow({ task, onEdit }: Props) {
   const isCompleted = task.status === 'completed';
 
   function handleStatusToggle() {
-    updateTask.mutate({ id: task.id, input: { status: isCompleted ? 'not_started' : 'completed' } });
+    const next = isCompleted ? 'not_started' : 'completed';
+    updateTask.mutate(
+      { id: task.id, input: { status: next } },
+      {
+        onSuccess: () => {
+          if (next !== 'completed') return;
+          showUndoToast(`Marked “${task.name}” done`, () =>
+            updateTask.mutate({ id: task.id, input: { status: 'not_started' } }),
+          );
+        },
+      },
+    );
   }
 
   function handleDelete() {

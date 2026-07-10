@@ -6,6 +6,7 @@ import {
   type Phase,
 } from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { showUndoToast } from '../../store/useToastStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useUpdateTask } from '../../lib/queries/useTasks';
 import StudyPickerDialog from './StudyPickerDialog';
@@ -90,14 +91,22 @@ function FocusListPanel() {
   const updateAssignment = useUpdateAssignment();
   const updateTask       = useUpdateTask();
 
-  function handleToggle(id: string, type: 'assignment' | 'task', currentlyDone: boolean) {
+  function handleToggle(id: string, type: 'assignment' | 'task', currentlyDone: boolean, name: string) {
     toggleDone(id);
     const status = currentlyDone ? 'not_started' : 'completed';
-    if (type === 'assignment') {
-      updateAssignment.mutate({ id, input: { status } });
-    } else {
-      updateTask.mutate({ id, input: { status } });
-    }
+    const mutation = type === 'assignment' ? updateAssignment : updateTask;
+    mutation.mutate(
+      { id, input: { status } },
+      {
+        onSuccess: () => {
+          if (currentlyDone) return; // unchecking is its own undo
+          showUndoToast(`Marked “${name}” done`, () => {
+            toggleDone(id);
+            mutation.mutate({ id, input: { status: 'not_started' } });
+          });
+        },
+      },
+    );
   }
 
   const doneCount = items.filter(i => i.done).length;
@@ -155,7 +164,7 @@ function FocusListPanel() {
               className="flex items-center gap-3 px-4 py-3 group hover:bg-surface-hi transition-colors"
             >
               <button
-                onClick={() => handleToggle(item.id, item.type, item.done)}
+                onClick={() => handleToggle(item.id, item.type, item.done, item.name)}
                 className="shrink-0 hover:scale-110 transition-transform"
                 title={item.done ? 'Mark incomplete' : 'Mark complete'}
               >

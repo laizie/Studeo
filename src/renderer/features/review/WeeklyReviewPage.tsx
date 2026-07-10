@@ -7,6 +7,7 @@ import { useStudySessions } from '../../lib/queries/useStudySessions';
 import { useRescheduleItems } from '../../lib/queries/useRescheduleItems';
 import QueryErrorState from '../../components/QueryErrorState';
 import { buildWeeklyReview, type ReviewItem } from '../../../shared/weeklyReview';
+import { showUndoToast } from '../../store/useToastStore';
 import { formatDueDate } from '../../../shared/deadlines';
 import { localDayKey } from '../../../shared/studyStats';
 import type { Course } from '../../../shared/types';
@@ -190,10 +191,18 @@ export default function WeeklyReviewPage() {
   }
 
   function handleMoveAll() {
-    reschedule.mutate({
-      items: review.rollover.map(({ kind, id }) => ({ kind, id })),
-      dueDate: localDayKey(new Date()), // today, local
-    });
+    // Keep each row's old date so Undo can put everything back where it was.
+    const prior = review.rollover.map(({ kind, id, dueDate }) => ({ kind, id, dueDate }));
+    const today = localDayKey(new Date());
+    reschedule.mutate(
+      { items: review.rollover.map(({ kind, id }) => ({ kind, id })), dueDate: today },
+      {
+        onSuccess: () =>
+          showUndoToast(`Moved ${prior.length} to today`, () =>
+            reschedule.mutate({ items: prior, dueDate: today }),
+          ),
+      },
+    );
   }
 
   return (
@@ -245,7 +254,7 @@ export default function WeeklyReviewPage() {
               >
                 {reschedule.isPending
                   ? 'Moving…'
-                  : <>Move all to this week <ArrowRight size={13} /></>}
+                  : <>Move all to today <ArrowRight size={13} /></>}
               </button>
             )}
           </div>

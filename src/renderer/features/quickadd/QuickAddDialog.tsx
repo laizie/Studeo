@@ -4,8 +4,9 @@ import { X, NotebookPen } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
-import { useCreateAssignment } from '../../lib/queries/useAssignments';
-import { useCreateTask } from '../../lib/queries/useTasks';
+import { useCreateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
+import { useCreateTask, useDeleteTask } from '../../lib/queries/useTasks';
+import { showUndoToast } from '../../store/useToastStore';
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateLectureNote } from '../notes/useLectureNote';
 import { findActiveOrNextSession } from '../../../shared/notebook';
@@ -57,6 +58,8 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   const { data: meetings = [] } = useClassMeetings();
   const createAssignment = useCreateAssignment();
   const createTask       = useCreateTask();
+  const deleteAssignment = useDeleteAssignment();
+  const deleteTask       = useDeleteTask();
   const createNote       = useCreateNote();
   const createLectureNote = useCreateLectureNote();
 
@@ -129,11 +132,22 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     if (!name.trim()) return;
     if (tab !== 'note' && !dueDate) return;
 
+    // Confirm-with-takeback: the dialog closes silently, so the toast is the
+    // proof it saved — and its Undo deletes the row we just created.
     if (tab === 'assignment') {
       if (!courseId || !assignmentName) return;
-      await createAssignment.mutateAsync({ courseId, name: assignmentName, type, dueDate });
+      const created = await createAssignment.mutateAsync({ courseId, name: assignmentName, type, dueDate });
+      const abbrev = courses.find(c => c.id === courseId)?.abbreviation;
+      showUndoToast(
+        `Added “${assignmentName}”${abbrev ? ` to ${abbrev}` : ''} · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
+        () => deleteAssignment.mutate(created.id),
+      );
     } else if (tab === 'task') {
-      await createTask.mutateAsync({ name: name.trim(), dueDate });
+      const created = await createTask.mutateAsync({ name: name.trim(), dueDate });
+      showUndoToast(
+        `Added “${name.trim()}” · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
+        () => deleteTask.mutate(created.id),
+      );
     } else {
       // A note opens straight into the editor — no due date.
       const note = await createNote.mutateAsync({ title: name.trim() });
@@ -293,7 +307,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           </div>
         </form>
 
-        <p className="mt-3 text-center text-[11px] text-muted">
+        <p className="mt-3 text-center text-xs text-muted">
           ⌘N to open · Esc to close
         </p>
       </div>

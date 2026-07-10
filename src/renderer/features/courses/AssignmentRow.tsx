@@ -8,6 +8,7 @@ import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../sha
 import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
 import { useSubtasks } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { showUndoToast } from '../../store/useToastStore';
 import { URGENCY_CLASS } from '../../lib/urgency';
 import { cn } from '../../lib/utils';
 
@@ -44,10 +45,20 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const isCompleted = assignment.status === 'completed';
 
   function handleStatusToggle() {
-    updateAssignment.mutate({
-      id: assignment.id,
-      input: { status: isCompleted ? 'not_started' : 'completed' },
-    });
+    const next = isCompleted ? 'not_started' : 'completed';
+    updateAssignment.mutate(
+      { id: assignment.id, input: { status: next } },
+      {
+        // Confirm only once the save landed; unchecking is its own undo, so
+        // only "marked done" gets a toast.
+        onSuccess: () => {
+          if (next !== 'completed') return;
+          showUndoToast(`Marked “${assignment.name}” done`, () =>
+            updateAssignment.mutate({ id: assignment.id, input: { status: 'not_started' } }),
+          );
+        },
+      },
+    );
   }
 
   function handleDelete() {

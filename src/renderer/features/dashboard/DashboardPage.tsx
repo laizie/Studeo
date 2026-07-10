@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Target, AlertTriangle } from 'lucide-react';
 import QueryErrorState from '../../components/QueryErrorState';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { showUndoToast } from '../../store/useToastStore';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
@@ -77,7 +78,7 @@ function SectionLabel({ title, count, urgent }: {
       {count !== undefined && count > 0 && (
         <span className={cn(
           'text-xs px-1.5 py-0.5 rounded-full font-medium',
-          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-surface text-stone-600 dark:text-muted',
+          urgent ? 'bg-red-100 dark:bg-red-950 text-red-700' : 'bg-surface text-muted',
         )}>
           {count}
         </span>
@@ -400,12 +401,24 @@ export default function DashboardPage() {
 
   function applyReschedule() {
     if (selectedOverdue.size === 0) return;
+    // Remember each row's old date before the move — Undo restores them
+    // individually (they were overdue on different days).
+    const moved = overdue.filter(a => selectedOverdue.has(a.id));
+    const prior = moved.map(a => ({ kind: 'assignment' as const, id: a.id, dueDate: a.due_date }));
     reschedule.mutate(
       {
-        items: [...selectedOverdue].map(id => ({ kind: 'assignment' as const, id })),
+        items: moved.map(a => ({ kind: 'assignment' as const, id: a.id })),
         dueDate: rescheduleDate,
       },
-      { onSuccess: () => setSelectedOverdue(new Set()) },
+      {
+        onSuccess: () => {
+          setSelectedOverdue(new Set());
+          showUndoToast(
+            `Moved ${moved.length} to ${formatDueDate(rescheduleDate)}`,
+            () => reschedule.mutate({ items: prior, dueDate: rescheduleDate }),
+          );
+        },
+      },
     );
   }
 
