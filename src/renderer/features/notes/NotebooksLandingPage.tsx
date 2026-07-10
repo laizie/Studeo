@@ -79,7 +79,7 @@ export default function NotebooksLandingPage() {
   return (
     <div className="p-8">
       <h1 className="mb-1 text-2xl font-semibold text-ink">Notes</h1>
-      <p className="mb-8 text-sm text-muted">A notebook for each class. Press ⌘K to search across every note.</p>
+      <p className="mb-8 text-sm text-muted">A notebook for each class. Press ⌘K to search notes — and everything else.</p>
 
       <section className="mb-10">
         <div className="mb-4 flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function NotebooksLandingPage() {
                 <BookOpen size={24} />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold text-ink">{c.name}</p>
+                <p className="truncate text-base font-semibold text-ink">{c.name}</p>
                 <p className="mt-0.5 text-sm text-muted">{c.abbreviation}</p>
               </div>
             </Link>
@@ -115,7 +115,7 @@ export default function NotebooksLandingPage() {
               <FileText size={24} />
             </span>
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold text-ink">Loose notes</p>
+              <p className="text-base font-semibold text-ink">Loose notes</p>
               <p className="mt-0.5 text-sm text-muted">Not tied to a class</p>
             </div>
           </Link>

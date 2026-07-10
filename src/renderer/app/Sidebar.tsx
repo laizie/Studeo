@@ -36,7 +36,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const subLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex items-center gap-2 px-2 py-1 rounded-md text-[13px] w-full transition-all active:scale-[0.98]',
+    'flex items-center gap-2 px-2 py-1 rounded-md text-xs w-full transition-all active:scale-[0.98]',
     isActive
       ? 'bg-[#3d2b1f] text-[#e8d5c0] font-medium'
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
@@ -145,7 +145,7 @@ export default function Sidebar({ onOpenQuickAdd, onOpenSearch }: Props) {
         <div className="flex items-center gap-0.5">
           <button
             onClick={onOpenSearch}
-            title="Search notes (⌘K)"
+            title="Search (⌘K)"
             className="w-6 h-6 flex items-center justify-center rounded-md text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
           >
             <Search size={14} />

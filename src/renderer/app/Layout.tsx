@@ -44,7 +44,11 @@ export default function Layout() {
         <Outlet />
       </main>
       <QuickAddDialog isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
-      <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <CommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onQuickAdd={() => setQuickAddOpen(true)}
+      />
       <FocusMode />
     </div>
   );
