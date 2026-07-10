@@ -126,7 +126,7 @@ function FocusListPanel() {
           )}
           <button
             onClick={() => setPickerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
           >
             <Plus size={14} />
             Add
@@ -230,7 +230,7 @@ function MusicStudyColumn() {
         </div>
         <Link
           to="/settings"
-          className="mt-1 px-4 py-2 rounded-lg bg-accent text-accent-ink text-sm font-medium hover:bg-accent-deep transition-colors"
+          className="mt-1 px-4 py-2 rounded-lg bg-accent text-accent-ink text-sm font-medium hover:bg-accent-deep active:scale-[0.98] transition-colors"
         >
           Open Settings
         </Link>
@@ -309,7 +309,7 @@ export default function StudyPage() {
           <h1 className="text-2xl font-semibold text-ink">Study</h1>
           <button
             onClick={() => useFocusStore.getState().open()}
-            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink shadow-sm hover:bg-accent-deep transition-colors"
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink shadow-sm hover:bg-accent-deep active:scale-[0.98] transition-colors"
           >
             <Maximize2 size={15} />
             Enter Focus Mode

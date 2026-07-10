@@ -79,9 +79,9 @@ export default function PlanStudyDialog({ assignment, course, onClose }: Props) 
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
 
-      <div className="relative mx-4 max-h-[88vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl">
+      <div className="relative mx-4 max-h-[88vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl animate-pop">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
             <CalendarPlus size={17} className="text-accent" />
@@ -178,7 +178,7 @@ export default function PlanStudyDialog({ assignment, course, onClose }: Props) 
               <button
                 onClick={handleAdd}
                 disabled={isPending || preview.length === 0}
-                className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-ink hover:bg-accent-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
               >
                 <CalendarPlus size={15} />
                 {isPending ? 'Adding…' : existing.length > 0 ? 'Replace plan' : 'Add to calendar'}

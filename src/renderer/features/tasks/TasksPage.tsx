@@ -94,7 +94,7 @@ export default function TasksPage() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
         >
           <Plus size={15} />
           Add task

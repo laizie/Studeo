@@ -128,7 +128,7 @@ export default function SemestersSection() {
             <button
               type="submit"
               disabled={!newTermName.trim() || termDatesInvalid || createTerm.isPending}
-              className="flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center justify-center gap-1.5 px-4 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Plus size={13} />
               {createTerm.isPending ? 'Adding…' : 'Add semester'}

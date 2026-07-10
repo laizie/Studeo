@@ -82,9 +82,9 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[72vh]">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[72vh] animate-pop">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
@@ -238,7 +238,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
         <div className="px-5 py-3 border-t border-line shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep font-medium transition-colors"
+            className="w-full py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] font-medium transition-colors"
           >
             Done ({items.length} selected)
           </button>

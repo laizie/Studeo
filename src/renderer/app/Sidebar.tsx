@@ -28,7 +28,7 @@ const navItemsBottom = [
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm w-full transition-colors',
+    'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm w-full transition-all active:scale-[0.98]',
     isActive
       ? 'bg-accent text-accent-ink font-semibold'
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
@@ -36,7 +36,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const subLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex items-center gap-2 px-2 py-1 rounded-md text-[13px] w-full transition-colors',
+    'flex items-center gap-2 px-2 py-1 rounded-md text-[13px] w-full transition-all active:scale-[0.98]',
     isActive
       ? 'bg-[#3d2b1f] text-[#e8d5c0] font-medium'
       : 'text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0]',
@@ -93,7 +93,7 @@ function TimerChip() {
   return (
     <Link
       to="/study"
-      className="mx-2 mb-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#3d2b1f] hover:bg-[#4a3527] transition-colors"
+      className="animate-rise mx-2 mb-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#3d2b1f] hover:bg-[#4a3527] transition-colors"
       title="Go to Study"
     >
       <span

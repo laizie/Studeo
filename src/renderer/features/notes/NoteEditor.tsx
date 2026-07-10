@@ -445,8 +445,8 @@ function DueDatePrompt({
       className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-full max-w-xs mx-4 rounded-2xl bg-surface p-5 shadow-2xl">
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
+      <div className="relative w-full max-w-xs mx-4 rounded-2xl bg-surface p-5 shadow-2xl animate-pop">
         <label className="mb-2 block text-sm font-medium text-ink-soft">{title}</label>
         <input
           type="date"
@@ -462,7 +462,7 @@ function DueDatePrompt({
           <button
             onClick={() => onConfirm(date)}
             disabled={!date}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 transition-colors"
           >
             {confirmLabel}
           </button>

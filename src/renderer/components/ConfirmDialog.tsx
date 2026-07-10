@@ -56,9 +56,9 @@ export default function ConfirmDialog({
       aria-modal="true"
       aria-label={title}
     >
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 animate-fade" onClick={onClose} />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 animate-pop">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
         {message && (
           <p className="mt-2 text-sm text-stone-600 dark:text-muted">{message}</p>

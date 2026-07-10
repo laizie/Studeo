@@ -158,9 +158,9 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-5 animate-pop">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           {/* Tab switcher */}
@@ -286,7 +286,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             <button
               type="submit"
               disabled={!canSubmit || isPending}
-              className="flex-1 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="flex-1 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {isPending ? 'Saving…' : `Add ${tab}`}
             </button>

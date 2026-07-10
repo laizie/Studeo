@@ -75,7 +75,7 @@ export default function TermStep({ initialName, initialStart, initialEnd, saving
         <button
           type="submit"
           disabled={!canContinue}
-          className="rounded-lg bg-accent px-5 py-2 text-sm text-accent-ink transition-colors hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-accent px-5 py-2 text-sm text-accent-ink transition-colors hover:bg-accent-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Continue'}
         </button>

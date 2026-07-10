@@ -44,8 +44,8 @@ export default function NotePickerDialog({ excludeId, onInsert, onClose }: Props
       className="fixed inset-0 z-[60] flex items-start justify-center pt-[14vh]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative flex max-h-[70vh] w-full max-w-md mx-4 flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl">
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
+      <div className="relative flex max-h-[70vh] w-full max-w-md mx-4 flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl animate-pop">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <h2 className="text-sm font-semibold text-ink">Link notes</h2>
           <button onClick={onClose} className="text-muted hover:text-ink transition-colors" aria-label="Close">
@@ -98,7 +98,7 @@ export default function NotePickerDialog({ excludeId, onInsert, onClose }: Props
           <button
             onClick={insert}
             disabled={selected.size === 0}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 transition-colors"
           >
             Insert {selected.size > 0 ? `${selected.size} ` : ''}link{selected.size === 1 ? '' : 's'}
           </button>

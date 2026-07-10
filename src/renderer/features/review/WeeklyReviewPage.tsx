@@ -241,7 +241,7 @@ export default function WeeklyReviewPage() {
               <button
                 onClick={handleMoveAll}
                 disabled={reschedule.isPending}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-accent text-accent-ink hover:bg-accent-deep transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-accent text-accent-ink hover:bg-accent-deep active:scale-[0.98] transition-colors disabled:opacity-60"
               >
                 {reschedule.isPending
                   ? 'Moving…'

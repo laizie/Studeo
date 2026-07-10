@@ -23,7 +23,7 @@ export default function QueryErrorState({
       <p className="mt-1 text-sm text-muted">{message}</p>
       <button
         onClick={onRetry}
-        className="mt-4 inline-flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+        className="mt-4 inline-flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
       >
         <RefreshCw size={15} />
         Try again

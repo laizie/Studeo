@@ -103,7 +103,7 @@ export default function LooseNotesPage() {
         <button
           onClick={handleNew}
           disabled={createNote.isPending}
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm text-accent-ink hover:bg-accent-deep transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm text-accent-ink hover:bg-accent-deep active:scale-[0.98] transition-colors disabled:opacity-60"
         >
           <Plus size={15} />
           New note

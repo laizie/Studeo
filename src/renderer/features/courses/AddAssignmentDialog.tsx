@@ -165,9 +165,9 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[88vh] overflow-y-auto">
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[88vh] overflow-y-auto animate-pop">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit assignment' : 'New assignment'}
@@ -327,7 +327,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             <button
               type="submit"
               disabled={!name.trim() || !dueDate || gradeInvalid || isPending}
-              className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPending
                 ? 'Saving…'
@@ -350,7 +350,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
                 <button
                   onClick={importLegacyNote}
                   disabled={createNote.isPending || linkNote.isPending}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-ink hover:bg-accent-deep disabled:opacity-60 transition-colors"
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs text-accent-ink hover:bg-accent-deep active:scale-[0.98] disabled:opacity-60 transition-colors"
                 >
                   <NotebookPen size={13} />
                   Import as note

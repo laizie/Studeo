@@ -26,8 +26,8 @@ function SessionNotesDialog({ session, onClose }: { session: StudySession; onClo
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative max-h-[88vh] w-full max-w-md mx-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
+      <div className="relative max-h-[88vh] w-full max-w-md mx-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl animate-pop">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-ink">
             Study session <span className="font-normal text-muted">· {sessionLabel(session)}</span>

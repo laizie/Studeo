@@ -64,8 +64,8 @@ export default function CommandPalette({ isOpen, onClose }: Props) {
       className="fixed inset-0 z-[70] flex items-start justify-center pt-[16vh]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-full max-w-lg mx-4 overflow-hidden rounded-2xl bg-surface shadow-2xl">
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
+      <div className="relative w-full max-w-lg mx-4 overflow-hidden rounded-2xl bg-surface shadow-2xl animate-pop">
         <div className="relative border-b border-line">
           <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
           <input

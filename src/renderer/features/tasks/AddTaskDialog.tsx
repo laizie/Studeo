@@ -95,8 +95,8 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
+      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 animate-pop">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-ink">
             {isEditing ? 'Edit task' : 'New task'}
@@ -192,7 +192,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
             <button
               type="submit"
               disabled={!name.trim() || !dueDate || isPending}
-              className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isPending
                 ? 'Saving…'

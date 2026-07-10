@@ -34,8 +34,8 @@ export default function LinkPickerDialog({ title, items, onSelect, onClose }: Pr
       className="fixed inset-0 z-[60] flex items-start justify-center pt-[18vh]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-full max-w-sm mx-4 overflow-hidden rounded-2xl bg-surface shadow-2xl">
+      <div className="absolute inset-0 bg-black/30 animate-fade" />
+      <div className="relative w-full max-w-sm mx-4 overflow-hidden rounded-2xl bg-surface shadow-2xl animate-pop">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <h2 className="text-sm font-semibold text-ink">{title}</h2>
           <button onClick={onClose} className="text-muted hover:text-ink transition-colors" aria-label="Close">

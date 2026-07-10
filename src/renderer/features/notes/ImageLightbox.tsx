@@ -19,7 +19,7 @@ export default function ImageLightbox({ src, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-8 animate-fade"
       role="dialog"
       aria-modal="true"
       aria-label="Image preview"

@@ -94,7 +94,7 @@ export default function CoursesPage() {
           </Link>
           <button
             onClick={() => setIsDialogOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
           >
             <Plus size={15} />
             Add course
@@ -138,7 +138,7 @@ export default function CoursesPage() {
           <p className="text-stone-500 text-sm">No courses yet.</p>
           <Link
             to="/setup"
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
           >
             <GraduationCap size={15} />
             Set up a semester

@@ -216,7 +216,7 @@ export default function CourseDetailPage() {
               </Link>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
               >
                 <Plus size={14} />
                 Add
@@ -274,7 +274,7 @@ export default function CourseDetailPage() {
             <h2 className="text-base font-semibold text-ink-soft">Class Schedule</h2>
             <button
               onClick={() => { setEditingMeeting(undefined); setMeetingDialogOpen(true); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
             >
               <Plus size={14} />
               Add time

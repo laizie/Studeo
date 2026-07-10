@@ -69,7 +69,7 @@ export default function EntityNotesList({
         <button
           onClick={() => setTemplateOpen(true)}
           disabled={pending}
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep transition-colors disabled:opacity-60"
+          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm text-accent-ink hover:bg-accent-deep active:scale-[0.98] transition-colors disabled:opacity-60"
         >
           <Plus size={14} />
           New note

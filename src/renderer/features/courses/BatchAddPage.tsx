@@ -305,7 +305,7 @@ export default function BatchAddPage() {
               <button
                 onClick={handleImport}
                 disabled={!syllabusText.trim()}
-                className="px-4 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Parse &amp; add to grid
               </button>
@@ -412,7 +412,7 @@ export default function BatchAddPage() {
                     <button
                       onClick={() => handleGenerateRepeats(row)}
                       disabled={repeatPreview.length === 0}
-                      className="px-3 py-1.5 text-xs bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 text-xs bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {repeatPreview.length > 0
                         ? `Add ${repeatPreview.length} more`
@@ -455,7 +455,7 @@ export default function BatchAddPage() {
         <button
           onClick={handleSave}
           disabled={validRows.length === 0 || saving}
-          className="px-5 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-5 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving
             ? 'Saving…'

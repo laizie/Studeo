@@ -79,7 +79,7 @@ export default function DoneStep({ termId, onBack }: Props) {
         </button>
         <Link
           to="/"
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-5 py-2 text-sm text-accent-ink transition-colors hover:bg-accent-deep"
+          className="flex items-center gap-1.5 rounded-lg bg-accent px-5 py-2 text-sm text-accent-ink transition-colors hover:bg-accent-deep active:scale-[0.98]"
         >
           <LayoutDashboard size={15} />
           Go to Dashboard

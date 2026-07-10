@@ -224,7 +224,7 @@ export default function GradeSectionsCard({ course }: Props) {
             <button
               onClick={handleSave}
               disabled={invalid || updateCourse.isPending}
-              className="shrink-0 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="shrink-0 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {updateCourse.isPending ? 'Saving…' : 'Save'}
             </button>
