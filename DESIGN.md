@@ -17,6 +17,10 @@ colors:
   tan-muted: "#c4a882"
   cream-text: "#e8d5c0"
   task-violet: "#7c6abf"
+  code-surface: "#161616"
+  code-ink: "#e6edf3"
+  code-picker-ink: "#c9d1d9"
+  code-option-ink: "#000000"
   dark-bg: "#332211"
   dark-surface: "#553311"
   dark-surface-hi: "#664433"
@@ -82,6 +86,30 @@ typography:
     fontWeight: 600
     lineHeight: 1.05
     letterSpacing: "-0.02em"
+  note-body:
+    fontFamily: "Newsreader, Georgia, 'Times New Roman', serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.75
+    letterSpacing: "normal"
+  note-heading-1:
+    fontFamily: "Newsreader, Georgia, 'Times New Roman', serif"
+    fontSize: "1.9rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "normal"
+  note-heading-3:
+    fontFamily: "Newsreader, Georgia, 'Times New Roman', serif"
+    fontSize: "1.22rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "normal"
+  code:
+    fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace"
+    fontSize: "0.85em"
+    fontWeight: 400
+    lineHeight: 1.55
+    letterSpacing: "normal"
 rounded:
   pill: "4px"
   md: "6px"
@@ -185,6 +213,9 @@ A committed warm-espresso palette: cream and white content surfaces, deep-brown 
 ### Scene palette — Focus Mode
 Focus Mode is its own fixed warm-dark room, deliberately outside the theme tokens (they flip bright in the light theme and would wash out the room). Its palette lives in the `ROOM` constant in `FocusMode.tsx` — ink `#f0e0cc`, soft `#d8c5ab`, muted `#a08a6e`, line `#3a2c1e`, well `#160f0a`, card `#1f1710`, done-green `#5fa37a` — plus the backdrop gradient stops (`#241a12 → #160f0a → #0c0806`) and the on-dark phase glows in `GLOW`. These are ratified scene colors, not drift; change them in `ROOM`/`GLOW` only.
 
+### Scene palette — Code blocks
+A code block inside a note is a code editor, not app chrome: it renders on one fixed dark surface in **every** theme, so Shiki's `github-dark` token colors (applied inline, on top of this) stay vivid and readable instead of washing out on cream. Its palette lives in `blocknote-theme.css` — surface `#161616`, text `#e6edf3`, language-picker text `#c9d1d9` — and reproduces BlockNote's official dark code styling, which we don't import (we use the mantine variant). Ratified scene colors, like Focus Mode's `ROOM`; change them only there.
+
 ### Tertiary — Per-course accents
 A fixed 28-color palette (14 hues × normal + pastel) lives in `src/renderer/lib/colors.ts` (`COURSE_COLORS`). Each course owns one. It appears as: a 2px top strip on dashboard cards, a 10px dot, the abbreviation pill (course color text on a 25%-alpha tint of itself, `${color}40`), and the progress-bar fill. **Never hardcode these hexes elsewhere — import from `colors.ts`.**
 
@@ -205,8 +236,10 @@ Deadline badges map urgency to a warm→cool ramp (text / tint): **overdue & tod
 
 **Body & Display Font:** DM Sans (with `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`)
 **Weights loaded:** 400 (regular), 500 (medium), 600 (semibold)
+**Reading serif (notes only):** Newsreader (`--font-serif`, with `Georgia, 'Times New Roman', serif`)
+**Monospace (code only):** `ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`
 
-**Character:** A single humanist geometric sans carries the entire interface — headings, labels, buttons, data. DM Sans is friendly and slightly rounded without being soft or playful; it reads calm and legible at small sizes, which is the whole job in a dense planner. No second family, no display face: hierarchy comes from weight and size, never from a typeface change.
+**Character:** A single humanist geometric sans carries the entire *interface* — headings, labels, buttons, data. DM Sans is friendly and slightly rounded without being soft or playful; it reads calm and legible at small sizes, which is the whole job in a dense planner. No display face: hierarchy comes from weight and size, never from a typeface change.
 
 ### Hierarchy
 - **Page Title** (600, `1.5rem` / text-2xl, lh 1.25): The one h1 per screen ("Good morning", "This Week"). Always `espresso-ink` / `dark-text`. Pair with a `stone-muted` subtitle one line below.
@@ -218,8 +251,17 @@ Deadline badges map urgency to a warm→cool ramp (text / tint): **overdue & tod
 - **Caption** (500, `0.6875rem` / `text-caption`): The smallest step — dense metadata only: music-player track meta, heatmap and timeline axis labels, service badges. One value; the drifted 0.6rem/10px/11px/0.7rem fragments are retired. Never body or label text.
 - **Display** (600, `3.25rem` / `text-display`, tabular-nums): The timer hero numerals. The one step above Stat; nothing else uses it.
 
+### The reading scene — notes
+The note editor is the one surface that is *content*, not interface: you write and re-read long prose there, and a planner's 14px UI sans is the wrong tool for a page you'll stare at for an hour. So the editor body — and only the editor body — reads in **Newsreader**, a warm reading serif, on its own ramp (all in `blocknote-theme.css`, scoped to `.studeo-bn`; the surrounding chrome stays DM Sans):
+
+- **Note body** — `1.0625rem` (17px), line-height 1.75. A journal measure, not a form measure.
+- **Note H1 / H3** — `1.9rem` / `1.22rem`. A reading hierarchy, deliberately outside the app's UI scale.
+- **Code** — the monospace stack above, in inline chips and code blocks. Code cannot render in DM Sans.
+
+This is a scene, in the same sense as Focus Mode's room: a bounded surface with its own type and color, chosen because the job there is different. It is not licence for a serif anywhere else.
+
 ### Named Rules
-**The One Family Rule.** DM Sans does every job. Introducing a second typeface — especially a display or serif face for "personality" — breaks the calm and is prohibited. Personality comes from weight, spacing, and the amber accent.
+**The One Family Rule.** DM Sans does every job **in the interface** — headings, labels, buttons, data. Introducing a second typeface for "personality" is prohibited; personality comes from weight, spacing, and the amber accent. The two ratified exceptions are the notes reading scene (Newsreader, note body only) and the monospace stack (code only). Both are *content* faces on bounded surfaces, not UI faces. A serif in a button, label, or list row is still wrong.
 
 **The Tabular Numbers Rule.** Any number that updates in place (counts, progress %, stat chips, timers) uses `tabular-nums`. Misaligned digits read as a bug in a tracking app.
 
@@ -297,7 +339,7 @@ Components are **warm and tactile**: gentle radii, hairline sand borders, the am
 ### Don't:
 - **Don't** build a **corporate SaaS dashboard** — no metric-tile cockpit, no enterprise-blue chrome, no charts-for-decoration. Studeo answers "what's due / what now?", it is not a BI tool.
 - **Don't** let it read as a **generic gray to-do app** — that's the thing students are upgrading from. Keep the warmth and considered hierarchy.
-- **Don't** add **loud or gamified** flourishes: no streaks, confetti, badges, or bright competing primaries. The app lowers stimulation.
+- **Don't** add **loud or gamified** flourishes: no confetti, badges, leaderboards, or bright competing primaries. The app lowers stimulation. **The one ratified exception is the Study heatmap's day-streak chip** (`StudyHeatmap.tsx`) — a quiet count of consecutive study days beside the honest "this week / all time" totals. It survives on one condition: **it may never display absence.** The chip renders only at two days or more; there is no "0 day streak", no broken-streak state, and no nagging. A streak that scolds you on your worst night is exactly the anti-reference — this one only ever says "nice, that's a run."
 - **Don't** recreate a **cluttered institutional LMS** — keep it scannable, calm, and personal.
 - **Don't** flood any surface with a course color or use it as a card background. Color is data: dots, pills, the 2px card top-strip, and the ≤6px leading identity bar (see The Color-Is-Data Rule). Decorative `border-left`/`border-right` side-stripes on cards and callouts remain prohibited.
 - **Don't** introduce a second typeface or a display/serif face. DM Sans does every job; hierarchy is weight and size.

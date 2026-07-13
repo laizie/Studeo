@@ -51,8 +51,10 @@ the student's side. Color carries warmth through accent and typography, not anxi
   chrome, the analytics-cockpit look. Studeo is personal, not a business intelligence tool.
 - **Generic to-do apps** — flat, gray, characterless checkbox lists. This is the thing
   students are upgrading *from*; it must feel warmer and more considered.
-- **Loud / gamified productivity** — streaks, confetti, badges, bright primary colors
-  competing for attention. Studeo lowers stimulation, it doesn't manufacture it.
+- **Loud / gamified productivity** — confetti, badges, leaderboards, bright primary colors
+  competing for attention. Studeo lowers stimulation, it doesn't manufacture it. (The Study
+  page's day-streak chip is a deliberate, bounded exception — see DESIGN.md §6. It may only
+  ever *praise* a run, never display a broken one: no "0 day streak", ever.)
 - **Cluttered institutional LMS** (Canvas, Moodle) — busy, hard to scan, dreaded. Studeo is
   the calm antidote to the school portal.
 
