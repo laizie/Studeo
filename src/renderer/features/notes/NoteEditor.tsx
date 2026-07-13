@@ -447,8 +447,9 @@ function DueDatePrompt({
     >
       <div className="absolute inset-0 bg-black/30 animate-fade" />
       <div className="relative w-full max-w-xs mx-4 rounded-2xl bg-surface p-5 shadow-2xl animate-pop">
-        <label className="mb-2 block text-sm font-medium text-ink-soft">{title}</label>
+        <label htmlFor="note-date-picker" className="mb-2 block text-sm font-medium text-ink-soft">{title}</label>
         <input
+          id="note-date-picker"
           type="date"
           autoFocus
           value={date}

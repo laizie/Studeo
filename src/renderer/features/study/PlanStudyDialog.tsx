@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { X, CalendarPlus, AlertCircle } from 'lucide-react';
+import { CalendarPlus, AlertCircle } from 'lucide-react';
+import DialogShell from '../../components/DialogShell';
 import { format } from 'date-fns';
 import type { Assignment, Course } from '../../../shared/types';
 import { planStudyBlocks, suggestSessionCount, daysUntil } from '../../../shared/studyPlan';
@@ -75,24 +76,8 @@ export default function PlanStudyDialog({ assignment, course, onClose }: Props) 
   const tooLate = days <= 0;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="absolute inset-0 bg-black/30 animate-fade" />
-
-      <div className="relative mx-4 max-h-[88vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl animate-pop">
-        <div className="mb-1 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
-            <CalendarPlus size={17} className="text-accent" />
-            Plan study sessions
-          </h2>
-          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors" aria-label="Close">
-            <X size={18} />
-          </button>
-        </div>
-
-        <p className="mb-5 text-sm text-muted">
+    <DialogShell isOpen onClose={onClose} title="Plan study sessions">
+        <p className="-mt-2 mb-5 text-sm text-muted">
           <span className="font-medium text-ink-soft">{assignment.name}</span>
           {course && <> · {course.abbreviation}</>} ·{' '}
           {tooLate
@@ -186,7 +171,6 @@ export default function PlanStudyDialog({ assignment, course, onClose }: Props) 
             </div>
           </>
         )}
-      </div>
-    </div>
+    </DialogShell>
   );
 }

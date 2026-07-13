@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef, useId } from 'react';
+import DialogShell from '../../components/DialogShell';
 import type { ClassMeeting } from '../../../shared/types';
 import { useCreateClassMeeting, useUpdateClassMeeting } from '../../lib/queries/useClassMeetings';
 
@@ -35,6 +35,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
   const createMeeting = useCreateClassMeeting();
   const updateMeeting = useUpdateClassMeeting();
   const dayRef = useRef<HTMLSelectElement>(null);
+  const uid = useId();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,13 +50,6 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
     }
     setTimeout(() => dayRef.current?.focus(), 50);
   }, [isOpen, meeting]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,28 +69,18 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
   const isPending = createMeeting.isPending || updateMeeting.isPending;
   const isError   = createMeeting.isError   || updateMeeting.isError;
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    <DialogShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit class time' : 'Add class time'}
+      maxWidth="max-w-sm"
     >
-      <div className="absolute inset-0 bg-black/30 animate-fade" />
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 animate-pop">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-ink">
-            {isEditing ? 'Edit class time' : 'Add class time'}
-          </h2>
-          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">Day</label>
+            <label htmlFor={`${uid}-day`} className="block text-sm font-medium text-ink-soft mb-1">Day</label>
             <select
+              id={`${uid}-day`}
               ref={dayRef}
               value={dayOfWeek}
               onChange={e => setDayOfWeek(Number(e.target.value))}
@@ -110,8 +94,9 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-ink-soft mb-1">Start</label>
+              <label htmlFor={`${uid}-start`} className="block text-sm font-medium text-ink-soft mb-1">Start</label>
               <input
+                id={`${uid}-start`}
                 type="time"
                 value={startTime}
                 onChange={e => setStartTime(e.target.value)}
@@ -120,8 +105,9 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-ink-soft mb-1">End</label>
+              <label htmlFor={`${uid}-end`} className="block text-sm font-medium text-ink-soft mb-1">End</label>
               <input
+                id={`${uid}-end`}
                 type="time"
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
@@ -152,7 +138,6 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </DialogShell>
   );
 }

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, NotebookPen, Repeat } from 'lucide-react';
+import { useState, useEffect, useRef, useId } from 'react';
+import { NotebookPen, Repeat } from 'lucide-react';
+import DialogShell from '../../components/DialogShell';
 import { ASSIGNMENT_TYPES } from '../../../shared/types';
 import type { Assignment, AssignmentType } from '../../../shared/types';
 import { plainTextToBlocks } from '../../../shared/notes';
@@ -48,6 +49,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
   const nameRef = useRef<HTMLInputElement>(null);
+  const uid = useId(); // label/input association (htmlFor) unique per instance
 
   // Populate fields when switching between add / edit mode
   useEffect(() => {
@@ -74,13 +76,6 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     setRepeatUntil('');
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, assignment]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
 
   // Recurring is add-mode only; a grade doesn't make sense on a future series.
   const repeating = !isEditing && repeat;
@@ -158,29 +153,17 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const isPending = createAssignment.isPending || createAssignments.isPending || updateAssignment.isPending;
   const isError   = createAssignment.isError   || createAssignments.isError   || updateAssignment.isError;
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <DialogShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit assignment' : 'New assignment'}
     >
-      <div className="absolute inset-0 bg-black/30 animate-fade" />
-
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[88vh] overflow-y-auto animate-pop">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-ink">
-            {isEditing ? 'Edit assignment' : 'New assignment'}
-          </h2>
-          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">Name</label>
+            <label htmlFor={`${uid}-name`} className="block text-sm font-medium text-ink-soft mb-1">Name</label>
             <input
+              id={`${uid}-name`}
               ref={nameRef}
               type="text"
               value={name}
@@ -192,8 +175,9 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">Type</label>
+            <label htmlFor={`${uid}-type`} className="block text-sm font-medium text-ink-soft mb-1">Type</label>
             <select
+              id={`${uid}-type`}
               value={type}
               onChange={(e) => setType(e.target.value as AssignmentType)}
               className={INPUT_CLASS}
@@ -206,8 +190,9 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
+              <label htmlFor={`${uid}-due`} className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
               <input
+                id={`${uid}-due`}
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -216,14 +201,14 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
               />
             </div>
             <div className="w-32">
-              <label className="block text-sm font-medium text-ink-soft mb-1">
+              <label htmlFor={`${uid}-time`} className="block text-sm font-medium text-ink-soft mb-1">
                 Time <span className="text-muted font-normal">(optional)</span>
               </label>
               <input
+                id={`${uid}-time`}
                 type="time"
                 value={dueTime}
                 onChange={(e) => setDueTime(e.target.value)}
-                aria-label="Due time (optional)"
                 className={INPUT_CLASS}
               />
             </div>
@@ -249,6 +234,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
                     <select
                       value={repeatWeeks}
                       onChange={(e) => setRepeatWeeks(Number(e.target.value))}
+                      aria-label="Repeat frequency"
                       className={INPUT_CLASS + ' w-auto'}
                     >
                       <option value={1}>every week</option>
@@ -260,6 +246,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
                       value={repeatUntil}
                       min={dueDate || undefined}
                       onChange={(e) => setRepeatUntil(e.target.value)}
+                      aria-label="Repeat until date"
                       className={INPUT_CLASS + ' w-auto'}
                     />
                   </div>
@@ -277,10 +264,11 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
           {!repeating && (
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">
+            {/* Group caption for the two aria-labeled inputs, not a single control */}
+            <span className="block text-sm font-medium text-ink-soft mb-1">
               Grade
               <span className="ml-1 text-muted font-normal">(optional — once it's returned)</span>
-            </label>
+            </span>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -305,7 +293,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
               />
             </div>
             {gradeInvalid && (
-              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                 Points possible must be more than 0 (and earned can't be negative).
               </p>
             )}
@@ -364,7 +352,6 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
             />
           </div>
         )}
-      </div>
-    </div>
+    </DialogShell>
   );
 }

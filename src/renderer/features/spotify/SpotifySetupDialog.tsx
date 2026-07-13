@@ -4,9 +4,10 @@
 // a Client ID) and then starts the PKCE OAuth flow. No client secret is ever
 // entered here — PKCE doesn't need one.
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { X, ExternalLink, Music } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Props {
@@ -18,6 +19,18 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
   const [clientId, setClientId] = useState('');
   const [step, setStep]         = useState<'instructions' | 'connect'>('instructions');
   const qc = useQueryClient();
+
+  // Brand-treatment header (Spotify green), so the a11y contract is applied
+  // in place instead of through DialogShell.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId  = useId();
+  useFocusTrap(isOpen, panelRef);
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   const connectMutation = useMutation({
     mutationFn: (id: string) => window.api.spotify.connect(id),
@@ -40,7 +53,13 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade">
-      <div className="relative w-full max-w-lg mx-4 bg-white dark:bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden animate-pop">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative w-full max-w-lg mx-4 bg-white dark:bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden animate-pop"
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-line">
@@ -48,12 +67,13 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
             <div className="w-8 h-8 rounded-full bg-[#1DB954] flex items-center justify-center shrink-0">
               <Music size={15} className="text-white" />
             </div>
-            <h2 className="text-base font-semibold text-ink">
+            <h2 id={titleId} className="text-base font-semibold text-ink">
               Connect Spotify
             </h2>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="p-1.5 rounded-lg text-muted hover:bg-surface-hi transition-colors"
           >
             <X size={16} />
@@ -154,7 +174,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
               </div>
 
               {connectMutation.isError && (
-                <p className="mt-3 text-xs text-red-400">
+                <p className="mt-3 text-xs text-red-600 dark:text-red-400">
                   Something went wrong. Check that your Client ID is correct and the redirect URI is set up.
                 </p>
               )}

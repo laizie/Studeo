@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useId } from 'react';
 import { X, Search, Check } from 'lucide-react';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
@@ -25,6 +26,12 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
 
   const courseMap = useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
   const listIds   = useMemo(() => new Set(items.map(i => i.id)), [items]);
+
+  // Custom layout (pinned footer + inner scroll), so the a11y contract is
+  // applied in place instead of through DialogShell.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId  = useId();
+  useFocusTrap(isOpen, panelRef);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -84,12 +91,18 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
     >
       <div className="absolute inset-0 bg-black/30 animate-fade" />
 
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[72vh] animate-pop">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[72vh] animate-pop"
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
           <div>
-            <h2 className="text-sm font-semibold text-ink-soft">
+            <h2 id={titleId} className="text-sm font-semibold text-ink-soft">
               Add to Focus List
             </h2>
             <p className="text-xs text-muted mt-0.5">
@@ -98,6 +111,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="text-muted hover:text-ink transition-colors"
           >
             <X size={16} />

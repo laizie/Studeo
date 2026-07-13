@@ -37,8 +37,9 @@ export default function TermStep({ initialName, initialStart, initialEnd, saving
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-ink-soft">Semester name</label>
+        <label htmlFor="term-name" className="mb-1 block text-sm font-medium text-ink-soft">Semester name</label>
         <input
+          id="term-name"
           autoFocus
           type="text"
           value={name}

@@ -291,8 +291,9 @@ export default function BatchAddPage() {
 
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <label className="text-xs text-muted shrink-0">Year</label>
+                <label htmlFor="import-year" className="text-xs text-muted shrink-0">Year</label>
                 <input
+                  id="import-year"
                   type="number"
                   value={importYear}
                   onChange={e => setImportYear(Number(e.target.value))}

@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef, useId } from 'react';
+import { Trash2 } from 'lucide-react';
+import DialogShell from '../../components/DialogShell';
 import type { ClassMeeting, MeetingExceptionKind } from '../../../shared/types';
 import {
   useMeetingExceptions,
@@ -30,6 +31,7 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
   const [newLocation, setNewLocation] = useState('');
 
   const dateRef = useRef<HTMLInputElement>(null);
+  const uid = useId();
 
   const { data: exceptions = [] } = useMeetingExceptions(
     meeting ? { meetingId: meeting.id } : {}
@@ -46,13 +48,6 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
     setNewLocation('');
     setTimeout(() => dateRef.current?.focus(), 50);
   }, [isOpen, meeting]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
 
   if (!isOpen || !meeting) return null;
 
@@ -79,19 +74,8 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="absolute inset-0 bg-black/30 animate-fade" />
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-pop">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-semibold text-ink">Schedule exceptions</h2>
-          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-        <p className="text-xs text-muted mb-5">
+    <DialogShell isOpen={isOpen} onClose={onClose} title="Schedule exceptions">
+        <p className="-mt-3 mb-5 text-xs text-muted">
           One-off changes to the {DAY_NAMES[meeting.day_of_week]} class — a holiday, a
           cancelled lecture, or a moved time. The weekly schedule stays unchanged.
         </p>
@@ -123,8 +107,9 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-ink-soft mb-1">Date</label>
+              <label htmlFor={`${uid}-date`} className="block text-sm font-medium text-ink-soft mb-1">Date</label>
               <input
+                id={`${uid}-date`}
                 ref={dateRef}
                 type="date"
                 value={date}
@@ -134,8 +119,9 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-ink-soft mb-1">What happens</label>
+              <label htmlFor={`${uid}-kind`} className="block text-sm font-medium text-ink-soft mb-1">What happens</label>
               <select
+                id={`${uid}-kind`}
                 value={kind}
                 onChange={e => setKind(e.target.value as MeetingExceptionKind)}
                 className={INPUT_CLASS}
@@ -156,18 +142,19 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
           {kind === 'moved' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-ink-soft mb-1">New start</label>
-                <input type="time" value={newStart} onChange={e => setNewStart(e.target.value)} className={INPUT_CLASS} />
+                <label htmlFor={`${uid}-start`} className="block text-sm font-medium text-ink-soft mb-1">New start</label>
+                <input id={`${uid}-start`} type="time" value={newStart} onChange={e => setNewStart(e.target.value)} className={INPUT_CLASS} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-ink-soft mb-1">New end</label>
-                <input type="time" value={newEnd} onChange={e => setNewEnd(e.target.value)} className={INPUT_CLASS} />
+                <label htmlFor={`${uid}-end`} className="block text-sm font-medium text-ink-soft mb-1">New end</label>
+                <input id={`${uid}-end`} type="time" value={newEnd} onChange={e => setNewEnd(e.target.value)} className={INPUT_CLASS} />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-ink-soft mb-1">
+                <label htmlFor={`${uid}-loc`} className="block text-sm font-medium text-ink-soft mb-1">
                   New location <span className="font-normal text-muted">(optional)</span>
                 </label>
                 <input
+                  id={`${uid}-loc`}
                   type="text"
                   value={newLocation}
                   onChange={e => setNewLocation(e.target.value)}
@@ -202,7 +189,6 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </DialogShell>
   );
 }

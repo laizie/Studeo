@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef, useId } from 'react';
+import DialogShell from '../../components/DialogShell';
 import { cn } from '../../lib/utils';
 import { COURSE_COLORS, DEFAULT_COURSE_COLOR } from '../../lib/colors';
 import { useCreateCourse, useUpdateCourse } from '../../lib/queries/useCourses';
@@ -48,6 +48,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
   const mutation = isEdit ? updateCourse : createCourse;
   const { data: terms = [] } = useTerms();
   const nameRef = useRef<HTMLInputElement>(null);
+  const uid = useId();
 
   // Seed fields when the dialog opens: prefill from the course when editing,
   // otherwise start blank so a new course is always fresh.
@@ -72,16 +73,6 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
     // Small delay so the element is visible before we focus it
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, course]);
-
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
 
   function handleNameChange(value: string) {
     setName(value);
@@ -125,37 +116,20 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
     onClose();
   }
 
-  if (!isOpen) return null;
-
   return (
-    // Overlay — clicking the backdrop closes the dialog
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <DialogShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? 'Edit course' : 'New course'}
     >
-      <div className="absolute inset-0 bg-black/30 animate-fade" />
-
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-pop">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-ink">
-            {isEdit ? 'Edit course' : 'New course'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-ink-soft transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Course name */}
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">
+            <label htmlFor={`${uid}-name`} className="block text-sm font-medium text-ink-soft mb-1">
               Course name
             </label>
             <input
+              id={`${uid}-name`}
               ref={nameRef}
               type="text"
               value={name}
@@ -168,11 +142,12 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
 
           {/* Abbreviation */}
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">
+            <label htmlFor={`${uid}-abbrev`} className="block text-sm font-medium text-ink-soft mb-1">
               Abbreviation
               <span className="ml-1 text-muted font-normal">(shown on cards)</span>
             </label>
             <input
+              id={`${uid}-abbrev`}
               type="text"
               value={abbreviation}
               onChange={(e) => handleAbbreviationChange(e.target.value)}
@@ -181,25 +156,28 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
             />
           </div>
 
-          {/* Color swatches */}
+          {/* Color swatches — a radio group announcing human color names */}
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
+            <span className="block text-sm font-medium text-ink-soft mb-2">
               Color
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {COURSE_COLORS.map(({ value }) => (
+            </span>
+            <div role="radiogroup" aria-label="Course color" className="flex flex-wrap gap-2">
+              {COURSE_COLORS.map(({ name: colorName, value }) => (
                 <button
                   key={value}
                   type="button"
+                  role="radio"
+                  aria-checked={color === value}
+                  aria-label={colorName}
                   onClick={() => setColor(value)}
                   className={cn(
-                    'w-6 h-6 rounded-full border-2 transition-transform',
+                    'w-6 h-6 rounded-full border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
                     color === value
                       ? 'border-stone-500 scale-125'
                       : 'border-transparent hover:scale-110'
                   )}
                   style={{ backgroundColor: value }}
-                  title={value}
+                  title={colorName}
                 />
               ))}
             </div>
@@ -207,11 +185,12 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
 
           {/* Building (optional) */}
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">
+            <label htmlFor={`${uid}-building`} className="block text-sm font-medium text-ink-soft mb-1">
               Building
               <span className="ml-1 text-muted font-normal">(optional)</span>
             </label>
             <input
+              id={`${uid}-building`}
               type="text"
               value={building}
               onChange={(e) => setBuilding(e.target.value)}
@@ -223,11 +202,12 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
           {/* Semester (optional — only shown when terms exist) */}
           {terms.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-ink-soft mb-1">
+              <label htmlFor={`${uid}-term`} className="block text-sm font-medium text-ink-soft mb-1">
                 Semester
                 <span className="ml-1 text-muted font-normal">(optional)</span>
               </label>
               <select
+                id={`${uid}-term`}
                 value={termId}
                 onChange={(e) => setTermId(e.target.value)}
                 className={INPUT_CLASS}
@@ -266,7 +246,6 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </DialogShell>
   );
 }

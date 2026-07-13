@@ -125,12 +125,16 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
     return out;
   }, [trimmed, courses, assignments, courseMap, noteSearch.data, recentNotes.data, onQuickAdd]);
 
-  // Reset and focus on open; keep the highlighted row in range as results change.
+  // Reset and focus on open; return focus to the trigger on close (same
+  // contract as the dialogs); keep the highlighted row in range as results change.
+  const previousFocus = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (isOpen) {
+      previousFocus.current = document.activeElement as HTMLElement | null;
       setQuery('');
       setIndex(0);
       setTimeout(() => inputRef.current?.focus(), 30);
+      return () => previousFocus.current?.focus();
     }
   }, [isOpen]);
   useEffect(() => setIndex(0), [query]);

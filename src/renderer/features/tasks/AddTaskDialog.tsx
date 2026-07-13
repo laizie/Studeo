@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Repeat } from 'lucide-react';
+import { useState, useEffect, useRef, useId } from 'react';
+import { Repeat } from 'lucide-react';
+import DialogShell from '../../components/DialogShell';
 import type { Task } from '../../../shared/types';
 import { generateRepeats } from '../../../shared/repeat';
 import { useCreateTask, useCreateTasks, useUpdateTask } from '../../lib/queries/useTasks';
@@ -31,6 +32,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
   const createTasks = useCreateTasks();
   const updateTask  = useUpdateTask();
   const nameRef = useRef<HTMLInputElement>(null);
+  const uid = useId();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,13 +49,6 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
     setRepeatUntil('');
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, task]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
 
   // Recurring is add-mode only. Follow-up occurrences after the first (the typed
   // one); empty until a valid end date is set. Drives the preview + button label.
@@ -88,28 +83,18 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
   const isPending = createTask.isPending || createTasks.isPending || updateTask.isPending;
   const isError   = createTask.isError   || createTasks.isError   || updateTask.isError;
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    <DialogShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit task' : 'New task'}
+      maxWidth="max-w-sm"
     >
-      <div className="absolute inset-0 bg-black/30 animate-fade" />
-      <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 animate-pop">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-ink">
-            {isEditing ? 'Edit task' : 'New task'}
-          </h2>
-          <button onClick={onClose} className="text-muted hover:text-ink-soft transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">Name</label>
+            <label htmlFor={`${uid}-name`} className="block text-sm font-medium text-ink-soft mb-1">Name</label>
             <input
+              id={`${uid}-name`}
               ref={nameRef}
               type="text"
               value={name}
@@ -121,8 +106,9 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
+            <label htmlFor={`${uid}-due`} className="block text-sm font-medium text-ink-soft mb-1">Due date</label>
             <input
+              id={`${uid}-due`}
               type="date"
               value={dueDate}
               onChange={e => setDueDate(e.target.value)}
@@ -151,6 +137,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
                     <select
                       value={repeatWeeks}
                       onChange={e => setRepeatWeeks(Number(e.target.value))}
+                      aria-label="Repeat frequency"
                       className={INPUT_CLASS + ' w-auto'}
                     >
                       <option value={1}>every week</option>
@@ -162,6 +149,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
                       value={repeatUntil}
                       min={dueDate || undefined}
                       onChange={e => setRepeatUntil(e.target.value)}
+                      aria-label="Repeat until date"
                       className={INPUT_CLASS + ' w-auto'}
                     />
                   </div>
@@ -204,7 +192,6 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
