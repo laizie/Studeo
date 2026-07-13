@@ -134,6 +134,17 @@ html[data-theme="warm"] {
     background-color: var(--bg);
     color: var(--ink);
   }
+
+  /* Buttons show the pointer ("clicker") cursor on hover. Tailwind v4's Preflight
+     dropped the v3 default that did this, so every <button> otherwise falls back
+     to the arrow. One base rule covers the whole app instead of a cursor-pointer
+     class on each button. `:not(:disabled)` leaves disabled controls with the
+     default cursor (they aren't clickable); [role="button"] catches the few
+     non-<button> elements we mark as buttons. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /* ── Focus Mode atmosphere ──────────────────────────────────────────────────
