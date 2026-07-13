@@ -6,7 +6,7 @@ import SubtaskChecklist from './SubtaskChecklist';
 import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../shared/deadlines';
-import { useUpdateAssignment, useDeleteAssignment } from '../../lib/queries/useAssignments';
+import { useUpdateAssignment, useDeleteAssignment, useCreateAssignment } from '../../lib/queries/useAssignments';
 import { useSubtasks } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
@@ -32,6 +32,7 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
+  const createAssignment = useCreateAssignment();
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === assignment.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -64,6 +65,26 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
 
   function handleDelete() {
     setConfirmOpen(true);
+  }
+
+  // Undo for delete = recreate from the row we still hold. Steps (subtasks)
+  // aren't restored — the row itself and its grade are.
+  function confirmDelete() {
+    deleteAssignment.mutate(assignment.id, {
+      onSuccess: () =>
+        showUndoToast(`Deleted “${assignment.name}”`, () =>
+          createAssignment.mutate({
+            courseId: assignment.course_id,
+            name: assignment.name,
+            type: assignment.type,
+            status: assignment.status,
+            dueDate: assignment.due_date.slice(0, 10),
+            dueTime: assignment.due_time,
+            score: assignment.score,
+            pointsPossible: assignment.points_possible,
+          }),
+        ),
+    });
   }
 
   function handleFocusToggle(e: React.MouseEvent) {
@@ -226,7 +247,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
     <ConfirmDialog
       isOpen={confirmOpen}
       title={`Delete "${assignment.name}"?`}
-      onConfirm={() => deleteAssignment.mutate(assignment.id)}
+      onConfirm={confirmDelete}
       onClose={() => setConfirmOpen(false)}
     />
 

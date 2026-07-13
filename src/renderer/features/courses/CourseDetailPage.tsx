@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Rows3, CalendarOff } from 'lucide-react';
 import { useCourse, useUpdateCourse } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
-import { useClassMeetings, useDeleteClassMeeting } from '../../lib/queries/useClassMeetings';
+import { useClassMeetings, useDeleteClassMeeting, useCreateClassMeeting } from '../../lib/queries/useClassMeetings';
+import { showUndoToast } from '../../store/useToastStore';
 import { useTerms } from '../../lib/queries/useTerms';
 import type { Assignment, ClassMeeting } from '../../../shared/types';
 import { cn } from '../../lib/utils';
@@ -63,7 +64,27 @@ export default function CourseDetailPage() {
   const { data: meetings }    = useClassMeetings(id ? { courseId: id } : {});
   const { data: terms = [] }  = useTerms();
   const deleteMeeting  = useDeleteClassMeeting();
+  const createMeeting  = useCreateClassMeeting();
   const updateCourse   = useUpdateCourse();
+
+  // Undo for a removed class time = recreate it from the row we still hold.
+  // (Its one-off exceptions aren't restored — they belong to the old row.)
+  function confirmDeleteMeeting() {
+    const m = (meetings ?? []).find(x => x.id === deletingMeetingId);
+    if (!m) return;
+    deleteMeeting.mutate(m.id, {
+      onSuccess: () =>
+        showUndoToast(`Removed ${DAY_NAMES[m.day_of_week]} ${formatTime(m.start_time)} class`, () =>
+          createMeeting.mutate({
+            courseId: m.course_id,
+            dayOfWeek: m.day_of_week,
+            startTime: m.start_time,
+            endTime: m.end_time,
+            location: m.location ?? undefined,
+          }),
+        ),
+    });
+  }
 
   const isLoading  = courseLoading || assignmentsLoading;
   const allAssignments = assignments ?? [];
@@ -380,7 +401,7 @@ export default function CourseDetailPage() {
         isOpen={deletingMeetingId !== null}
         title="Remove this class time?"
         confirmLabel="Remove"
-        onConfirm={() => { if (deletingMeetingId) deleteMeeting.mutate(deletingMeetingId); }}
+        onConfirm={confirmDeleteMeeting}
         onClose={() => setDeletingMeetingId(null)}
       />
     </div>

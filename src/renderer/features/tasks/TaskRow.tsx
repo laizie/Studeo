@@ -3,7 +3,7 @@ import { Circle, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import type { Task, AssignmentStatus } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
-import { useUpdateTask, useDeleteTask } from '../../lib/queries/useTasks';
+import { useUpdateTask, useDeleteTask, useCreateTask } from '../../lib/queries/useTasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
 import { URGENCY_CLASS } from '../../lib/urgency';
@@ -24,6 +24,7 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 export default function TaskRow({ task, onEdit }: Props) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const createTask = useCreateTask();
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === task.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -48,6 +49,20 @@ export default function TaskRow({ task, onEdit }: Props) {
 
   function handleDelete() {
     setConfirmOpen(true);
+  }
+
+  // Undo for delete = recreate from the row we still hold.
+  function confirmDelete() {
+    deleteTask.mutate(task.id, {
+      onSuccess: () =>
+        showUndoToast(`Deleted “${task.name}”`, () =>
+          createTask.mutate({
+            name: task.name,
+            status: task.status,
+            dueDate: task.due_date.slice(0, 10),
+          }),
+        ),
+    });
   }
 
   function handleFocusToggle(e: React.MouseEvent) {
@@ -131,7 +146,7 @@ export default function TaskRow({ task, onEdit }: Props) {
     <ConfirmDialog
       isOpen={confirmOpen}
       title={`Delete "${task.name}"?`}
-      onConfirm={() => deleteTask.mutate(task.id)}
+      onConfirm={confirmDelete}
       onClose={() => setConfirmOpen(false)}
     />
     </div>
