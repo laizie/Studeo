@@ -7,6 +7,7 @@ import FocusMode from '../features/study/FocusMode';
 import Toaster from '../components/Toaster';
 import { useTimerDriver } from '../lib/useTimerDriver';
 import { useReminderNavigation } from '../lib/useReminderNavigation';
+import { useToastStore, showToast } from '../store/useToastStore';
 
 export default function Layout() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -21,12 +22,23 @@ export default function Layout() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'n') {
         e.preventDefault();
         setQuickAddOpen(true);
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      } else if (mod && e.key === 'k') {
         e.preventDefault();
         setPaletteOpen(true);
+      } else if (mod && e.key === 'z' && !e.shiftKey) {
+        // ⌘Z takes back the last reversible action — the same takeback the toast
+        // offers, reachable without leaving the keyboard. Skipped while typing:
+        // inputs, textareas and the note editor own ⌘Z for their own text.
+        const el = e.target as HTMLElement | null;
+        if (el?.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (useToastStore.getState().undoLast()) {
+          e.preventDefault();
+          showToast('Undone');
+        }
       }
     }
     document.addEventListener('keydown', onKey);

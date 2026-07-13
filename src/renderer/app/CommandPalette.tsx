@@ -42,8 +42,29 @@ const SCREENS: { label: string; to: string; icon: LucideIcon }[] = [
   { label: 'Settings',      to: '/settings',  icon: Settings },
 ];
 
-function matches(haystack: string, needle: string): boolean {
-  return haystack.toLowerCase().includes(needle.toLowerCase());
+// Shorthand students actually type. Expanded before matching so "hw" finds a
+// Homework and "proj" finds a Project — the fields themselves stay untouched.
+const ALIASES: Record<string, string> = {
+  hw: 'homework',
+  hwk: 'homework',
+  proj: 'project',
+  midterm: 'exam',
+  final: 'exam',
+};
+
+/**
+ * Multi-token match: every word in the query must appear *somewhere* across the
+ * item's searchable fields. The old version tested each field separately with a
+ * single substring, so "phys hw" found nothing for Physics → Homework 3 — no one
+ * field held both words, which is exactly how a power user types.
+ */
+function matches(needle: string, ...fields: (string | undefined | null)[]): boolean {
+  const hay = fields.filter(Boolean).join(' ').toLowerCase();
+  return needle
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every(token => hay.includes(ALIASES[token] ?? token));
 }
 
 function noteSnippet(note: Note): string {
@@ -74,13 +95,13 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
   const items = useMemo((): PaletteItem[] => {
     const out: PaletteItem[] = [];
 
-    const screens = trimmed ? SCREENS.filter(s => matches(s.label, trimmed)) : SCREENS;
+    const screens = trimmed ? SCREENS.filter(s => matches(trimmed, s.label)) : SCREENS;
     for (const s of screens) {
       out.push({ group: 'Screens', key: `s-${s.to}`, kind: 'screen', ...s });
     }
 
     const courseHits = (trimmed
-      ? courses.filter(c => matches(c.name, trimmed) || matches(c.abbreviation, trimmed))
+      ? courses.filter(c => matches(trimmed, c.name, c.abbreviation))
       : courses
     ).slice(0, 5);
     for (const c of courseHits) {
@@ -92,8 +113,9 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
       const hits = assignments
         .filter(a => {
           const course = courseMap.get(a.course_id);
-          return matches(a.name, trimmed)
-            || (course ? matches(course.abbreviation, trimmed) || matches(course.name, trimmed) : false);
+          // Name + type + course, searched as one string: "phys hw" and
+          // "hw physics" both land on Physics → Homework 3.
+          return matches(trimmed, a.name, a.type, course?.abbreviation, course?.name);
         })
         // Open work first, then soonest due date.
         .sort((a, b) => {
@@ -118,7 +140,7 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
       { label: 'Enter Focus Mode',            icon: Maximize2, run: () => useFocusStore.getState().open() },
     ];
     for (const a of actions) {
-      if (trimmed && !matches(a.label, trimmed)) continue;
+      if (trimmed && !matches(trimmed, a.label)) continue;
       out.push({ group: 'Actions', key: `x-${a.label}`, kind: 'action', ...a });
     }
 
@@ -277,6 +299,7 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
             placeholder="Search courses, assignments, notes…"
             aria-label="Search the app"
             role="combobox"
+            aria-autocomplete="list"
             aria-expanded={items.length > 0}
             aria-controls="palette-list"
             aria-activedescendant={items[index] ? `palette-item-${index}` : undefined}

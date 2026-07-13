@@ -12,20 +12,38 @@ export interface Toast {
   onAction?: () => void;
 }
 
+/** The most recent reversible action, kept so ⌘Z can reach it. */
+interface UndoEntry {
+  /** The toast that offered it (dismissed when the undo runs). */
+  toastId: number;
+  message: string;
+  run: () => void;
+  expiresAt: number;
+}
+
 interface ToastState {
   toasts: Toast[];
-  show: (toast: Omit<Toast, 'id'>) => void;
+  lastUndo: UndoEntry | null;
+  show: (toast: Omit<Toast, 'id'>) => number;
   dismiss: (id: number) => void;
+  /** Run the pending undo, if there still is one. Returns whether it fired. */
+  undoLast: () => boolean;
 }
 
 const AUTO_DISMISS_MS = 6000;
 const MAX_VISIBLE = 3;
+
+// ⌘Z reaches back further than the toast does. The toast is the *visible* offer
+// and expires in 6s; the keyboard path stays open for a minute, so undoing three
+// rows of keyboard work never means racing a countdown with the mouse.
+const UNDO_WINDOW_MS = 60_000;
 
 let nextId = 1;
 const timers = new Map<number, ReturnType<typeof setTimeout>>();
 
 export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
+  lastUndo: null,
 
   show: (toast) => {
     const id = nextId++;
@@ -42,12 +60,24 @@ export const useToastStore = create<ToastState>((set, get) => ({
       return { toasts: next };
     });
     timers.set(id, setTimeout(() => get().dismiss(id), AUTO_DISMISS_MS));
+    return id;
   },
 
   dismiss: (id) => {
     clearTimeout(timers.get(id));
     timers.delete(id);
     set((s) => ({ toasts: s.toasts.filter(t => t.id !== id) }));
+  },
+
+  undoLast: () => {
+    const entry = get().lastUndo;
+    if (!entry || Date.now() > entry.expiresAt) return false;
+    // Clear first: an undo is single-use, and its own confirmation toast must
+    // not become the next thing ⌘Z reaches for.
+    set({ lastUndo: null });
+    get().dismiss(entry.toastId);
+    entry.run();
+    return true;
   },
 }));
 
@@ -56,7 +86,20 @@ export function showToast(message: string) {
   useToastStore.getState().show({ message });
 }
 
-/** Confirmation with a takeback. The undo runs once, then the toast closes. */
+/**
+ * Confirmation with a takeback. The undo runs once, then the toast closes.
+ * It is also registered as the app's pending ⌘Z, so the same takeback is
+ * reachable from the keyboard without hunting for the toast's button.
+ */
 export function showUndoToast(message: string, onUndo: () => void) {
-  useToastStore.getState().show({ message, actionLabel: 'Undo', onAction: onUndo });
+  // One wrapped takeback behind both entry points (the toast button and ⌘Z), so
+  // whichever fires first clears the other — an undo can never run twice.
+  const run = () => {
+    useToastStore.setState({ lastUndo: null });
+    onUndo();
+  };
+  const id = useToastStore.getState().show({ message, actionLabel: 'Undo', onAction: run });
+  useToastStore.setState({
+    lastUndo: { toastId: id, message, run, expiresAt: Date.now() + UNDO_WINDOW_MS },
+  });
 }

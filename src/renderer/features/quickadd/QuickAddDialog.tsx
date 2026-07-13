@@ -134,7 +134,15 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Clear the line but keep the dialog open, so a burst of items is one ⌘N and
+  // a rhythm of ⌘↵ — not ⌘N three times. Course/type/date persist deliberately:
+  // the next item in a burst is usually for the same class.
+  function resetForNext() {
+    setName('');
+    nameRef.current?.focus();
+  }
+
+  async function handleSubmit(e: React.FormEvent, opts?: { stay?: boolean }) {
     e.preventDefault();
     if (!name.trim()) return;
     if (tab !== 'note' && !dueDate) return;
@@ -156,14 +164,16 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
         () => deleteTask.mutate(created.id),
       );
     } else {
-      // A note opens straight into the editor — no due date.
+      // A note opens straight into the editor — no due date, and nothing to
+      // stay for.
       const note = await createNote.mutateAsync({ title: name.trim() });
       onClose();
       navigate(`/notes/${note.id}`);
       return;
     }
 
-    onClose();
+    if (opts?.stay) resetForNext();
+    else onClose();
   }
 
   const isPending = createAssignment.isPending || createTask.isPending || createNote.isPending;
@@ -218,7 +228,16 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            // ⌘↵ / Ctrl+↵ — save and stay for the next one.
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit && !isPending && tab !== 'note') {
+              handleSubmit(e, { stay: true });
+            }
+          }}
+          className="space-y-3"
+        >
           {/* Smart capture: jump straight into lecture notes for the current/next class */}
           {tab === 'note' && nextSession && (
             <button
@@ -324,7 +343,9 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
         </form>
 
         <p className="mt-3 text-center text-xs text-muted">
-          ⌘N to open · Esc to close
+          {tab === 'note'
+            ? '⌘N to open · Esc to close'
+            : '↵ add · ⌘↵ add another · Esc to close'}
         </p>
       </div>
     </div>

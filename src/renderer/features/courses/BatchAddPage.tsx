@@ -118,20 +118,16 @@ export default function BatchAddPage() {
 
   // ── Keyboard navigation ───────────────────────────────────────────────────
 
-  function handleNameKey(e: React.KeyboardEvent, rowId: string) {
+  // Enter walks down the grid (and grows it at the bottom); ⌘↵ saves the whole
+  // thing from wherever the cursor is — after 40 rows, reaching for the mouse to
+  // click Save is the one thing left that breaks the typing rhythm.
+  function handleRowKey(e: React.KeyboardEvent, rowId: string) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    const idx = rows.findIndex(r => r.id === rowId);
-    if (idx === rows.length - 1) {
-      addRowAfter(rowId);
-    } else {
-      nameRefs.current[rows[idx + 1].id]?.focus();
+    if (e.metaKey || e.ctrlKey) {
+      handleSave();
+      return;
     }
-  }
-
-  function handleDateKey(e: React.KeyboardEvent, rowId: string) {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
     const idx = rows.findIndex(r => r.id === rowId);
     if (idx === rows.length - 1) {
       addRowAfter(rowId);
@@ -349,13 +345,18 @@ export default function BatchAddPage() {
                     type="text"
                     value={row.name}
                     onChange={e => updateRow(row.id, 'name', e.target.value)}
-                    onKeyDown={e => handleNameKey(e, row.id)}
+                    onKeyDown={e => handleRowKey(e, row.id)}
                     placeholder={`Assignment ${idx + 1}`}
+                    // The column headers are visual only — a screen reader hears
+                    // an unlabeled field without these. Row number included so
+                    // "name, row 3" is unambiguous in a 40-row grid.
+                    aria-label={`Assignment name, row ${idx + 1}`}
                     className={INPUT}
                   />
                   <select
                     value={row.type}
                     onChange={e => updateRow(row.id, 'type', e.target.value as AssignmentType)}
+                    aria-label={`Type, row ${idx + 1}`}
                     className={INPUT}
                   >
                     {ASSIGNMENT_TYPES.map(t => (
@@ -366,27 +367,31 @@ export default function BatchAddPage() {
                     type="date"
                     value={row.dueDate}
                     onChange={e => updateRow(row.id, 'dueDate', e.target.value)}
-                    onKeyDown={e => handleDateKey(e, row.id)}
+                    onKeyDown={e => handleRowKey(e, row.id)}
+                    aria-label={`Due date, row ${idx + 1}`}
                     className={cn(INPUT, !row.dueDate && row.name && 'border-amber-300 dark:border-amber-700')}
                   />
+                  {/* Reachable by keyboard: this is the flagship keyboard surface,
+                      so its two row controls can't be mouse-only. They sit after
+                      the row's fields in tab order, which is where they belong. */}
                   <div className="flex items-center">
                     <button
                       onClick={() => toggleRepeat(row.id)}
                       className={cn(
-                        'p-1 rounded transition-colors',
+                        'p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
                         repeatOpen ? 'text-accent' : 'text-muted hover:text-accent'
                       )}
                       title="Repeat this assignment weekly"
+                      aria-label={`Repeat row ${idx + 1} weekly`}
                       aria-expanded={repeatOpen}
-                      tabIndex={-1}
                     >
                       <Repeat size={13} />
                     </button>
                     <button
                       onClick={() => removeRow(row.id)}
-                      className="p-1 text-muted hover:text-red-400 dark:hover:text-red-400 rounded transition-colors"
+                      className="p-1 text-muted hover:text-red-400 dark:hover:text-red-400 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                       title="Remove row"
-                      tabIndex={-1}
+                      aria-label={`Remove row ${idx + 1}`}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -471,7 +476,7 @@ export default function BatchAddPage() {
           Cancel
         </Link>
         <span className="text-xs text-muted ml-2">
-          Enter to jump rows · Tab to move between fields
+          Enter to jump rows · Tab to move between fields · ⌘↵ to save
         </span>
       </div>
     </div>
