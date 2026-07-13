@@ -102,7 +102,9 @@ function pushReminderConfig(
   dueDigestEnabled: boolean,
   dueDigestTime: string,
 ): void {
-  window.api.reminders
+  // Optional-chained because this runs at module scope: if the preload bridge
+  // ever failed, an unguarded call here would blank the whole app before mount.
+  window.api?.reminders
     .configure({ enabled, leadMinutes, dueDigestEnabled, dueDigestTime })
     .catch(() => { /* best-effort */ });
 }

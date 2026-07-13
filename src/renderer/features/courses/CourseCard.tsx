@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import type { Course } from '../../../shared/types';
-import { useDeleteCourse } from '../../lib/queries/useCourses';
 import { formatPercent } from '../../../shared/grades';
-import ConfirmDialog from '../../components/ConfirmDialog';
 import CourseDialog from './CourseDialog';
 
 interface Props {
@@ -16,8 +14,6 @@ interface Props {
 }
 
 export default function CourseCard({ course, total = 0, completed = 0, gradePercent = null }: Props) {
-  const deleteCourse = useDeleteCourse();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -86,8 +82,9 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
         </div>
       </div>
 
-      {/* Edit + delete — top-right, revealed on hover or keyboard focus. `z-10`
-          lifts them above the stretched link overlay so they stay clickable. */}
+      {/* Edit — top-right, revealed on hover or keyboard focus. `z-10` lifts it
+          above the stretched link overlay so it stays clickable. (Delete lives
+          inside the edit dialog — too destructive for a 13px hover target.) */}
       <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100 transition-opacity">
         <button
           onClick={() => setEditOpen(true)}
@@ -97,28 +94,12 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
         >
           <Pencil size={13} />
         </button>
-        <button
-          onClick={() => setConfirmOpen(true)}
-          disabled={deleteCourse.isPending}
-          aria-label={`Delete ${course.name}`}
-          title="Delete course"
-          className="p-1 rounded text-muted hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-colors disabled:opacity-50"
-        >
-          <Trash2 size={13} />
-        </button>
       </div>
 
       <CourseDialog
         course={course}
         isOpen={editOpen}
         onClose={() => setEditOpen(false)}
-      />
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        title={`Delete "${course.name}"?`}
-        message="This will also delete all of its assignments and class times."
-        onConfirm={() => deleteCourse.mutate(course.id)}
-        onClose={() => setConfirmOpen(false)}
       />
     </div>
   );

@@ -1,13 +1,13 @@
 import { ipcMain } from 'electron';
 import { IPC } from '../../shared/types';
-import { deleteLinksForEntity } from '../db/repositories/noteLinkRepo';
-import type { CreateCourseInput, UpdateCourseInput } from '../../shared/types';
+import type { CourseSnapshot, CreateCourseInput, UpdateCourseInput } from '../../shared/types';
 import {
   listCourses,
   getCourse,
   createCourse,
   updateCourse,
   deleteCourse,
+  restoreCourse,
 } from '../db/repositories/courseRepo';
 
 export function registerCourseHandlers(): void {
@@ -44,9 +44,21 @@ export function registerCourseHandlers(): void {
     return updateCourse(id, input);
   });
 
+  // Note links to the course are captured and removed inside deleteCourse's
+  // transaction (they can't be a cascading FK — entity_id is polymorphic).
   ipcMain.handle(IPC.COURSES.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Course id is required');
-    deleteCourse(id);
-    deleteLinksForEntity('course', id);
+    return deleteCourse(id);
+  });
+
+  ipcMain.handle(IPC.COURSES.RESTORE, (_event, snapshot: CourseSnapshot) => {
+    if (!snapshot?.course?.id) throw new Error('Nothing to restore');
+    for (const key of [
+      'assignments', 'subtasks', 'classMeetings', 'meetingExceptions',
+      'studyBlocks', 'studySessionIds', 'noteLinks',
+    ] as const) {
+      if (!Array.isArray(snapshot[key])) throw new Error('Nothing to restore');
+    }
+    return restoreCourse(snapshot);
   });
 }

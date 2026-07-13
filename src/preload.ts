@@ -10,6 +10,7 @@ import type { IpcRendererEvent } from 'electron';
 import { IPC } from './shared/types';
 import type {
   WindowApi,
+  CourseSnapshot,
   CreateCourseInput,
   UpdateCourseInput,
   AssignmentStatus,
@@ -44,6 +45,7 @@ const api: WindowApi = {
     create: (input: CreateCourseInput)      => ipcRenderer.invoke(IPC.COURSES.CREATE, input),
     update: (id, input: UpdateCourseInput)  => ipcRenderer.invoke(IPC.COURSES.UPDATE, id, input),
     delete: (id)                            => ipcRenderer.invoke(IPC.COURSES.DELETE, id),
+    restore: (snapshot: CourseSnapshot)     => ipcRenderer.invoke(IPC.COURSES.RESTORE, snapshot),
   },
 
   assignments: {

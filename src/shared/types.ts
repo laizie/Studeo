@@ -214,6 +214,22 @@ export interface StudyBlock {
   created_at: string;
 }
 
+// Everything a course owned at the moment it was deleted — enough to put it
+// back exactly (same ids everywhere) when the user hits Undo. Returned by
+// courses.delete, accepted by courses.restore.
+export interface CourseSnapshot {
+  course: Course;
+  assignments: Assignment[];
+  subtasks: Subtask[];
+  classMeetings: ClassMeeting[];
+  meetingExceptions: MeetingException[];
+  studyBlocks: StudyBlock[];
+  /** Sessions that pointed at the course. Deleting nulls their course_id
+   *  (study history survives the course); restoring re-links them. */
+  studySessionIds: string[];
+  noteLinks: NoteLink[];
+}
+
 // ─── Input types ──────────────────────────────────────────────────────────────
 // Separate from the domain models so we never accidentally pass DB row shapes
 // as creation inputs (different fields, no id/created_at yet).
@@ -473,11 +489,12 @@ export interface AppleMusicStatus {
 
 export const IPC = {
   COURSES: {
-    LIST:   'courses:list',
-    GET:    'courses:get',
-    CREATE: 'courses:create',
-    UPDATE: 'courses:update',
-    DELETE: 'courses:delete',
+    LIST:    'courses:list',
+    GET:     'courses:get',
+    CREATE:  'courses:create',
+    UPDATE:  'courses:update',
+    DELETE:  'courses:delete',
+    RESTORE: 'courses:restore',
   },
   ASSIGNMENTS: {
     LIST:        'assignments:list',
@@ -620,7 +637,10 @@ export interface WindowApi {
     get(id: string): Promise<Course | null>;
     create(input: CreateCourseInput): Promise<Course>;
     update(id: string, input: UpdateCourseInput): Promise<Course>;
-    delete(id: string): Promise<void>;
+    /** Deletes the course and everything it owns; returns a snapshot for Undo. */
+    delete(id: string): Promise<CourseSnapshot>;
+    /** Puts a deleted course back exactly as it was (the Undo action). */
+    restore(snapshot: CourseSnapshot): Promise<Course>;
   };
   assignments: {
     list(filters?: { courseId?: string; status?: AssignmentStatus }): Promise<Assignment[]>;

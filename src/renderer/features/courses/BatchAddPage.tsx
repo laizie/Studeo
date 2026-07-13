@@ -7,6 +7,7 @@ import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { parseSyllabus } from '../../../shared/syllabusParser';
 import { generateRepeats } from '../../../shared/repeat';
 import { cn } from '../../lib/utils';
+import { errorReason } from '../../lib/errors';
 
 // ── Row type ──────────────────────────────────────────────────────────────────
 
@@ -197,8 +198,9 @@ export default function BatchAddPage() {
         }))
       );
       navigate(`/courses/${courseId}`);
-    } catch {
-      setSaveError('Something went wrong — nothing was saved. Please try again.');
+    } catch (err) {
+      const reason = errorReason(err) ?? 'Something went wrong';
+      setSaveError(`${reason} — nothing was saved. Please try again.`);
       setSaving(false);
     }
   }

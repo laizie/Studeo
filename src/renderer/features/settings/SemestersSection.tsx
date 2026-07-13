@@ -6,6 +6,7 @@ import { parseDateLocal } from '../../../shared/deadlines';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { SectionHeading, SettingsCard, SETTINGS_INPUT } from './components';
 import { cn } from '../../lib/utils';
+import { errorReason } from '../../lib/errors';
 
 // Semester ranges span months and often years — show "Aug 18, 2026", never raw ISO.
 function formatTermDate(dateStr: string): string {
@@ -122,7 +123,7 @@ export default function SemestersSection() {
             )}
             {createTerm.isError && (
               <p className="text-xs text-red-500 dark:text-red-400">
-                Something went wrong — your semester wasn't saved. Please try again.
+                {errorReason(createTerm.error) ?? 'Something went wrong'} — your semester wasn't saved. Please try again.
               </p>
             )}
             <button

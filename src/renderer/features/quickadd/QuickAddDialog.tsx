@@ -16,6 +16,7 @@ import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { useFocusTrap } from '../../lib/useFocusTrap';
 import { cn } from '../../lib/utils';
 import { INPUT_CLASS as INPUT } from '../../lib/inputClass';
+import { errorReason } from '../../lib/errors';
 
 interface Props {
   isOpen: boolean;
@@ -167,6 +168,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
 
   const isPending = createAssignment.isPending || createTask.isPending || createNote.isPending;
   const isError   = createAssignment.isError   || createTask.isError   || createNote.isError;
+  const mutationError = createAssignment.error ?? createTask.error ?? createNote.error;
   const canSubmit = name.trim()
     && (tab === 'note' || (dueDate && cleanName))
     && (tab !== 'assignment' || courseId);
@@ -306,7 +308,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
           )}
 
           {isError && (
-            <p className="text-xs text-red-500">Something went wrong — please try again.</p>
+            <p className="text-xs text-red-500">{errorReason(mutationError) ?? 'Something went wrong'} — please try again.</p>
           )}
 
           {/* Actions */}

@@ -5,6 +5,7 @@ import type { Task } from '../../../shared/types';
 import { generateRepeats } from '../../../shared/repeat';
 import { useCreateTask, useCreateTasks, useUpdateTask } from '../../lib/queries/useTasks';
 import { INPUT_CLASS } from '../../lib/inputClass';
+import { errorReason } from '../../lib/errors';
 
 interface Props {
   task?: Task;
@@ -78,6 +79,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
 
   const isPending = createTask.isPending || createTasks.isPending || updateTask.isPending;
   const isError   = createTask.isError   || createTasks.isError   || updateTask.isError;
+  const mutationError = createTask.error ?? createTasks.error ?? updateTask.error;
 
   return (
     <DialogShell
@@ -162,7 +164,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
           )}
 
           {isError && (
-            <p className="text-sm text-red-600">Something went wrong — please try again.</p>
+            <p className="text-sm text-red-600">{errorReason(mutationError) ?? 'Something went wrong'} — please try again.</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">

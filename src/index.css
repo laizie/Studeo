@@ -200,6 +200,20 @@ html[data-theme="warm"] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  /* Spinners must keep turning: frozen mid-rotation they read as a hang.
+     Rotation-in-place is a progress indicator, not a vestibular trigger. */
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* Focus Mode paints its own dark scene with inline colors, so give every
+   interactive element inside it the standard visible keyboard-focus ring in
+   one place (the scene's controls style hover via inline handlers only). */
+.focus-overlay :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid #a8a29e; /* stone-400 — the app-wide calm gray ring */
+  outline-offset: 2px;
 }
 
 /* ── react-big-calendar theme overrides ─────────────────────────────────────────

@@ -24,6 +24,8 @@ import ProgressRing from './ProgressRing';
 import StudyPickerDialog from './StudyPickerDialog';
 import { contrastTextColor } from '../../lib/colors';
 import { cn } from '../../lib/utils';
+import { useFocusTrap } from '../../lib/useFocusTrap';
+import { showToast } from '../../store/useToastStore';
 
 // ── The room ────────────────────────────────────────────────────────────────────
 // Focus Mode dims the lights regardless of the app theme: a fixed warm-dark palette
@@ -664,7 +666,12 @@ export default function FocusMode() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const parkingInputRef = useRef<HTMLInputElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const createNote = useCreateNote();
+
+  // The room covers the whole app, so keep Tab inside it — without a trap,
+  // keyboard focus walks "out the back" into the hidden page underneath.
+  useFocusTrap(isOpen, overlayRef);
 
   const ambienceActive = useAmbienceStore(s => s.activeId);
   const ambienceVolume = useAmbienceStore(s => s.volume);
@@ -714,7 +721,14 @@ export default function FocusMode() {
   function leave() {
     const { items, clear } = useParkingLotStore.getState();
     const note = buildParkingLotNote(items.map(i => i.text));
-    if (note) { createNote.mutate(note); clear(); }
+    if (note) {
+      // Say where the parked thoughts went — a safety net the user can't see
+      // is one they'll assume doesn't exist ("did I lose that?").
+      createNote.mutate(note, {
+        onSuccess: () => showToast('Parked thoughts saved to Notes'),
+      });
+      clear();
+    }
     stopAmbience(); // silence ambience and reset the selection for next time
     if (isFullscreen) window.api.app.setFullscreen(false);
     close();
@@ -752,6 +766,10 @@ export default function FocusMode() {
 
   return (
     <div
+      ref={overlayRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Focus Mode"
       className="focus-overlay fixed inset-0 z-50 flex flex-col items-center overflow-y-auto"
       style={{ background: 'radial-gradient(125% 95% at 50% 36%, #241a12 0%, #160f0a 55%, #0c0806 100%)' }}
     >
@@ -877,6 +895,10 @@ export default function FocusMode() {
               <p className="text-xs" style={{ color: ROOM.muted }}>
                 <kbd className="rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Space</kbd>
                 <span className="mx-1.5">start / pause</span>·
+                <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>R</kbd>
+                <span className="mx-1.5">reset</span>·
+                <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>P</kbd>
+                <span className="mx-1.5">park a thought</span>·
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Esc</kbd>
                 <span className="ml-1.5">leave</span>
               </p>

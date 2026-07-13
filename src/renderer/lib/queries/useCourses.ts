@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CreateCourseInput, UpdateCourseInput } from '../../../shared/types';
+import type { CourseSnapshot, CreateCourseInput, UpdateCourseInput } from '../../../shared/types';
 
 // Query keys are the cache identifiers React Query uses. Any hook that shares
 // a key shares its data — they all see the same cached response.
@@ -42,10 +42,22 @@ export function useUpdateCourse() {
   });
 }
 
+// Deleting (or restoring) a course touches assignments, meetings, study data
+// and note links too — invalidate everything rather than chasing each key.
+// It's a rare action; one full refetch is simpler and always correct.
 export function useDeleteCourse() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => window.api.courses.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: courseKeys.all }),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/** The Undo action for a course delete: puts the snapshot back, same ids. */
+export function useRestoreCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (snapshot: CourseSnapshot) => window.api.courses.restore(snapshot),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }

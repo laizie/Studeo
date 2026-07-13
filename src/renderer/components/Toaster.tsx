@@ -6,22 +6,26 @@ import { useToastStore } from '../store/useToastStore';
  * 50, palette 70, toasts 80) so a confirmation is never hidden by the surface
  * that produced it. `aria-live` lets screen readers hear the confirmation the
  * moment it appears, without stealing focus from what the user is doing.
+ *
+ * The container stays mounted even when empty: screen readers only announce
+ * changes inside a live region that already existed, so mounting it together
+ * with the first toast would swallow that first announcement — often exactly
+ * the "Deleted …" one that carries the Undo. pointer-events pass through the
+ * empty container so it never blocks clicks underneath.
  */
 export default function Toaster() {
   const toasts  = useToastStore(s => s.toasts);
   const dismiss = useToastStore(s => s.dismiss);
 
-  if (toasts.length === 0) return null;
-
   return (
     <div
       aria-live="polite"
-      className="fixed bottom-4 right-4 z-[80] flex w-80 flex-col gap-2"
+      className="pointer-events-none fixed bottom-4 right-4 z-[80] flex w-80 flex-col gap-2"
     >
       {toasts.map(t => (
         <div
           key={t.id}
-          className="animate-rise flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-lg"
+          className="pointer-events-auto animate-rise flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-lg"
         >
           <p className="min-w-0 flex-1 text-sm text-ink">{t.message}</p>
           {t.actionLabel && t.onAction && (

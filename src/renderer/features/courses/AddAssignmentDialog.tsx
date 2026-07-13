@@ -10,6 +10,7 @@ import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import EntityNotesList from '../notes/EntityNotesList';
 import { INPUT_CLASS } from '../../lib/inputClass';
+import { errorReason } from '../../lib/errors';
 
 interface Props {
   courseId: string;
@@ -148,6 +149,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
   const isPending = createAssignment.isPending || createAssignments.isPending || updateAssignment.isPending;
   const isError   = createAssignment.isError   || createAssignments.isError   || updateAssignment.isError;
+  const mutationError = createAssignment.error ?? createAssignments.error ?? updateAssignment.error;
 
   return (
     <DialogShell
@@ -297,7 +299,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
           )}
 
           {isError && (
-            <p className="text-sm text-red-600">Something went wrong — please try again.</p>
+            <p className="text-sm text-red-600">{errorReason(mutationError) ?? 'Something went wrong'} — please try again.</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">

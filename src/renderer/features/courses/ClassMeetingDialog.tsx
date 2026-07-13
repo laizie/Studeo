@@ -3,6 +3,7 @@ import DialogShell from '../../components/DialogShell';
 import type { ClassMeeting } from '../../../shared/types';
 import { useCreateClassMeeting, useUpdateClassMeeting } from '../../lib/queries/useClassMeetings';
 import { INPUT_CLASS } from '../../lib/inputClass';
+import { errorReason } from '../../lib/errors';
 
 interface Props {
   courseId: string;
@@ -65,6 +66,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
 
   const isPending = createMeeting.isPending || updateMeeting.isPending;
   const isError   = createMeeting.isError   || updateMeeting.isError;
+  const mutationError = createMeeting.error ?? updateMeeting.error;
 
   return (
     <DialogShell
@@ -115,7 +117,7 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
           </div>
 
           {isError && (
-            <p className="text-sm text-red-600">Something went wrong — please try again.</p>
+            <p className="text-sm text-red-600">{errorReason(mutationError) ?? 'Something went wrong'} — please try again.</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
