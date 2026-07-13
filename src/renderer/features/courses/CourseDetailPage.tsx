@@ -7,6 +7,7 @@ import { useClassMeetings, useDeleteClassMeeting, useCreateClassMeeting } from '
 import { showUndoToast } from '../../store/useToastStore';
 import { useTerms } from '../../lib/queries/useTerms';
 import type { Assignment, ClassMeeting } from '../../../shared/types';
+import { courseInk, coursePillBg } from '../../lib/colors';
 import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
 import AddAssignmentDialog from './AddAssignmentDialog';
@@ -186,8 +187,8 @@ export default function CourseDetailPage() {
             <span
               className="inline-block px-2 py-0.5 rounded text-sm font-medium"
               style={{
-                backgroundColor: `${course.color}40`,
-                color: course.color,
+                backgroundColor: coursePillBg(course.color),
+                color: courseInk(course.color),
               }}
             >
               {course.abbreviation}
@@ -199,7 +200,7 @@ export default function CourseDetailPage() {
           {standing.currentPercent !== null && (
             <p className="mt-1 text-sm text-ink-soft">
               Current grade:{' '}
-              <span className="font-semibold tabular-nums" style={{ color: course.color }}>
+              <span className="font-semibold tabular-nums" style={{ color: courseInk(course.color) }}>
                 {formatPercent(standing.currentPercent)}
               </span>
               <span className="text-muted"> · {scoredCount} of {sections.length} sections</span>
@@ -270,7 +271,7 @@ export default function CourseDetailPage() {
                   'px-3 py-1 text-sm rounded-md transition-colors',
                   dueFilter === f.value
                     ? 'bg-surface text-ink shadow-sm font-medium'
-                    : ' text-muted hover:bg-line/60'
+                    : ' text-muted hover:bg-surface-hi'
                 )}
               >
                 {f.label}

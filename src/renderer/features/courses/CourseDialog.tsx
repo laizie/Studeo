@@ -16,6 +16,14 @@ interface Props {
   course?: Course;
 }
 
+// The palette ships as 14 hues × (normal, pastel), interleaved. Split it back
+// into its two families so the picker can present two small choices instead of
+// one wall of 28 swatches. Derived from COURSE_COLORS — never a second list.
+const COLOR_FAMILIES = [
+  { label: 'Bright',  colors: COURSE_COLORS.filter(c => !c.name.startsWith('Pastel')) },
+  { label: 'Pastel',  colors: COURSE_COLORS.filter(c =>  c.name.startsWith('Pastel')) },
+];
+
 // Turns "Introduction to Computer Science" → "ICS"
 function deriveAbbreviation(name: string): string {
   return name
@@ -95,6 +103,8 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
       onSuccess: (snapshot) => {
         setConfirmingDelete(false);
         onClose();
+        // No snapshot = the course was already gone; nothing to take back.
+        if (!snapshot) return;
         showUndoToast(`Deleted “${course.name}”`, () => restoreCourse.mutate(snapshot));
       },
     });
@@ -170,29 +180,43 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
             />
           </div>
 
-          {/* Color swatches — a radio group announcing human color names */}
+          {/* Color swatches — a radio group announcing human color names.
+              Split into the palette's two real families (14 saturated + 14
+              pastel) rather than one undifferentiated wall of 28: as a single
+              row it was the only place in the app that asked you to scan two
+              dozen near-identical options at once. Two labeled rows of 14 are
+              two small decisions — pick a family, pick a hue. */}
           <div>
             <span className="block text-sm font-medium text-ink-soft mb-2">
               Color
             </span>
-            <div role="radiogroup" aria-label="Course color" className="flex flex-wrap gap-2">
-              {COURSE_COLORS.map(({ name: colorName, value }) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={color === value}
-                  aria-label={colorName}
-                  onClick={() => setColor(value)}
-                  className={cn(
-                    'w-6 h-6 rounded-full border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
-                    color === value
-                      ? 'border-stone-500 scale-125'
-                      : 'border-transparent hover:scale-110'
-                  )}
-                  style={{ backgroundColor: value }}
-                  title={colorName}
-                />
+            <div role="radiogroup" aria-label="Course color" className="space-y-2.5">
+              {COLOR_FAMILIES.map(family => (
+                <div key={family.label}>
+                  <span className="mb-1.5 block text-caption font-medium text-muted">
+                    {family.label}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {family.colors.map(({ name: colorName, value }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={color === value}
+                        aria-label={colorName}
+                        onClick={() => setColor(value)}
+                        className={cn(
+                          'w-6 h-6 rounded-full border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+                          color === value
+                            ? 'border-stone-500 scale-125'
+                            : 'border-transparent hover:scale-110'
+                        )}
+                        style={{ backgroundColor: value }}
+                        title={colorName}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

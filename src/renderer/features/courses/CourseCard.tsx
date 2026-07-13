@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import type { Course } from '../../../shared/types';
 import { formatPercent } from '../../../shared/grades';
+import { courseInk, coursePillBg } from '../../lib/colors';
 import CourseDialog from './CourseDialog';
 
 interface Props {
@@ -18,7 +19,7 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-line transition-all group">
+    <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-line-strong transition-all group">
       {/* Color accent strip — 2px, per DESIGN.md's sanctioned top strip */}
       <div className="h-0.5 shrink-0 w-full" style={{ backgroundColor: course.color }} />
 
@@ -37,7 +38,7 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
           </h3>
           <span
             className="shrink-0 inline-block px-2 py-0.5 rounded text-xs font-medium"
-            style={{ backgroundColor: `${course.color}40`, color: course.color }}
+            style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
           >
             {course.abbreviation}
           </span>
@@ -64,7 +65,7 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
                 <span className="text-xs text-muted">{completed} / {total} done</span>
                 <span
                   className="text-xs font-semibold tabular-nums"
-                  style={{ color: course.color }}
+                  style={{ color: courseInk(course.color) }}
                 >
                   {pct}%
                 </span>

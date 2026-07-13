@@ -72,7 +72,15 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
     <div>
       {!compact && (
         <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2">
-          <Stat value={stats.streak} unit="day streak" flame={stats.streak > 0} />
+          {/* The streak chip may praise a run; it may never display its absence.
+              "0 day streak" — or "1" — is the app telling a student who already
+              feels behind that they're behind, which is precisely the gamified
+              nagging PRODUCT.md rejects. So the chip appears only once there's a
+              real run to celebrate (2+ days) and simply isn't there otherwise;
+              the honest totals below carry the page on their own. */}
+          {stats.streak >= 2 && (
+            <Stat value={stats.streak} unit="day streak" flame />
+          )}
           <Stat value={hoursLabel(stats.thisWeek)} unit="this week" />
           <Stat value={hoursLabel(stats.total)} unit="all time" />
         </div>

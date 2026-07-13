@@ -6,6 +6,7 @@ import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import type { Assignment, Task } from '../../../shared/types';
+import { courseInk, coursePillBg } from '../../lib/colors';
 import { cn } from '../../lib/utils';
 
 type Tab = 'assignments' | 'tasks';
@@ -196,7 +197,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
                       {course && (
                         <span
                           className="shrink-0 px-1.5 py-0.5 rounded text-xs font-medium"
-                          style={{ backgroundColor: `${course.color}40`, color: course.color }}
+                          style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
                         >
                           {course.abbreviation}
                         </span>

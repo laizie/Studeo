@@ -637,8 +637,9 @@ export interface WindowApi {
     get(id: string): Promise<Course | null>;
     create(input: CreateCourseInput): Promise<Course>;
     update(id: string, input: UpdateCourseInput): Promise<Course>;
-    /** Deletes the course and everything it owns; returns a snapshot for Undo. */
-    delete(id: string): Promise<CourseSnapshot>;
+    /** Deletes the course and everything it owns; returns a snapshot for Undo
+     *  (null when the id didn't exist, so there's nothing to take back). */
+    delete(id: string): Promise<CourseSnapshot | null>;
     /** Puts a deleted course back exactly as it was (the Undo action). */
     restore(snapshot: CourseSnapshot): Promise<Course>;
   };

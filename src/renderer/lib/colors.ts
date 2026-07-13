@@ -41,6 +41,35 @@ export const DEFAULT_COURSE_COLOR: CourseColorValue = '#6393e1';
  *  (calendar event chips). One value, two consumers. */
 export const TASK_COLOR = '#7c6abf';
 
+// ── The course pill recipe ────────────────────────────────────────────────────
+// The abbreviation pill is the app's most common "which class?" cue, and it was
+// unreadable: text was the raw course color on a 25%-alpha tint of *itself*
+// (`${color}40`), which lands at ~1.2:1 for the 14 pastels (Pastel Amber as text
+// is effectively invisible) and misses 4.5:1 for most mid colors too.
+//
+// The fix keeps the same look — a tinted chip carrying the course's hue — but
+// composites it against the theme's own tokens instead of raw alpha:
+//
+//   background = 25% course color into `--inset` (the well: cream on light,
+//                dark brown on dark/warm — so the chip never washes out)
+//   text       = 35% course color into `--ink`   (dark on light, cream on dark)
+//
+// Because both sides reference tokens that already flip per theme, one recipe
+// covers light/dark/warm. Every one of the 28 palette colors clears WCAG AA
+// (worst case 4.64:1) in all three — locked by colors.test.ts.
+const PILL_TINT = '25%';
+const INK_MIX   = '35%';
+
+/** Readable ink for a course color used as text (pill label, course-tinted %). */
+export function courseInk(color: string): string {
+  return `color-mix(in srgb, ${color} ${INK_MIX}, var(--ink))`;
+}
+
+/** The pill's tinted background — the course hue laid into the theme's well. */
+export function coursePillBg(color: string): string {
+  return `color-mix(in srgb, ${color} ${PILL_TINT}, var(--inset))`;
+}
+
 /**
  * Pick a readable text color for content rendered ON a course color
  * (calendar event chips, filled badges). Pastel colors need dark ink;

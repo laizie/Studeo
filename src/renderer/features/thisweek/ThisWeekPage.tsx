@@ -13,6 +13,7 @@ import AddAssignmentDialog from '../courses/AddAssignmentDialog';
 import AddTaskDialog from '../tasks/AddTaskDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 import { usePageFiltersStore, type ThisWeekWindow } from '../../store/usePageFiltersStore';
+import Switch from '../../components/Switch';
 
 // ── Window types + bounds ─────────────────────────────────────────────────────
 
@@ -214,15 +215,7 @@ export default function ThisWeekPage() {
             onClick={() => setShowTasks(!showTasks)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
           >
-            <span className={cn(
-              'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-              showTasks ? 'bg-task' : 'bg-stone-300 dark:bg-surface'
-            )}>
-              <span className={cn(
-                'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                showTasks ? 'translate-x-3.5' : 'translate-x-0.5'
-              )} />
-            </span>
+            <Switch checked={showTasks} size="sm" tone="task" />
             Tasks
           </button>
           {/* Show completed */}
@@ -248,7 +241,7 @@ export default function ThisWeekPage() {
               'px-3 py-1.5 text-sm rounded-md transition-colors',
               activeWindow === t.value
                 ? 'bg-surface text-ink shadow-sm font-medium'
-                : ' text-muted hover:bg-line/60'
+                : ' text-muted hover:bg-surface-hi'
             )}
           >
             {t.label}

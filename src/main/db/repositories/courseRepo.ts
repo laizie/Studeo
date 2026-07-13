@@ -72,10 +72,12 @@ export function updateCourse(id: string, input: UpdateCourseInput): Course {
  *  - notes survive; only their links to this course are removed;
  *  - assignments → subtasks and class meetings → exceptions go via ON DELETE CASCADE.
  */
-export function deleteCourse(id: string): CourseSnapshot {
+export function deleteCourse(id: string): CourseSnapshot | null {
   const db = getDb();
   const course = getCourse(id);
-  if (!course) throw new Error('Course not found');
+  // Deleting an id that isn't there stays a no-op (it's already gone — that's
+  // not an error). Null means "nothing was deleted, so there's nothing to undo".
+  if (!course) return null;
 
   const snapshot: CourseSnapshot = {
     course,

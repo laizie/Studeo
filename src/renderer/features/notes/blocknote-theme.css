@@ -72,9 +72,12 @@
 }
 
 /* ── Warm block formatting ──────────────────────────────────────────────────────
-   Blockquote: an amber lamp-rule + italic serif, set in muted ink. */
+   Blockquote: a hairline rule + italic serif, set in muted ink. The rule is 1px
+   and neutral on purpose — a 3px amber stripe broke two house rules at once (the
+   One Lamp Rule: amber marks action, never decoration; and the ban on thick
+   colored side-stripes). The italic serif does the quoting. */
 .studeo-bn .bn-block-content[data-content-type='quote'] {
-  border-left: 3px solid var(--accent);
+  border-left: 1px solid var(--line);
   padding-left: 1rem;
   font-style: italic;
   color: var(--ink-soft);
@@ -85,7 +88,7 @@
 .studeo-bn code {
   background-color: var(--inset);
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 4px;  /* rounded.pill — the documented scale, was an off-ramp 5px */
   padding: 0.08em 0.34em;
   font-size: 0.9em;
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
@@ -108,10 +111,12 @@
   color: var(--accent-deep);
 }
 
-/* Images: rounded with a soft shadow so they feel mounted, not pasted; caption muted. */
+/* Images: rounded with the resting shadow so they feel mounted, not pasted;
+   caption muted. An image is static, so it gets shadow-sm and nothing heavier
+   (DESIGN.md's Flat-By-Default Rule); radius is the documented 8px step. */
 .studeo-bn .bn-block-content[data-content-type='image'] img {
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.10);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
 .studeo-bn .bn-block-content[data-content-type='image'] figcaption {
   color: var(--muted);
@@ -176,5 +181,8 @@
   border-color: rgba(255, 255, 255, 0.28);
 }
 .studeo-bn .bn-block-content[data-content-type='codeBlock'] > div > select > option {
-  color: #000; /* native dropdown list renders on a light surface */
+  /* The open dropdown list is drawn by the OS on its own light surface, not by
+     us — inheriting the picker's cream would render it invisible. Ratified as
+     `code-option-ink` in DESIGN.md's code-block scene. */
+  color: #000000;
 }

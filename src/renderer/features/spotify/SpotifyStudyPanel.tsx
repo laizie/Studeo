@@ -218,7 +218,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
                 'px-3 py-1 text-xs rounded-md transition-colors',
                 tab === t
                   ? 'bg-surface text-ink shadow-sm font-medium'
-                  : ' text-muted hover:bg-line/60'
+                  : ' text-muted hover:bg-surface-hi'
               )}
             >
               {t === 'yours' ? 'Your playlists' : 'Search'}

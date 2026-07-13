@@ -18,6 +18,7 @@ import { parseDateLocal, formatClock12 } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
 import { contrastTextColor, TASK_COLOR } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
+import Switch from '../../components/Switch';
 import { showUndoToast } from '../../store/useToastStore';
 import LectureNotesDialog from '../notes/LectureNotesDialog';
 import AddAssignmentDialog from '../courses/AddAssignmentDialog';
@@ -494,15 +495,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
               className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
-              <span className={cn(
-                'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-                calendarShowTasks ? 'bg-task' : 'bg-stone-300 dark:bg-surface'
-              )}>
-                <span className={cn(
-                  'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                  calendarShowTasks ? 'translate-x-3.5' : 'translate-x-0.5'
-                )} />
-              </span>
+              <Switch checked={calendarShowTasks} size="sm" tone="task" />
               Tasks
             </button>
           )}
@@ -515,15 +508,7 @@ export default function CalendarPage() {
               onClick={() => setCalendarShowStudyBlocks(!calendarShowStudyBlocks)}
               className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
-              <span className={cn(
-                'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-                calendarShowStudyBlocks ? 'bg-accent' : 'bg-stone-300 dark:bg-surface'
-              )}>
-                <span className={cn(
-                  'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',
-                  calendarShowStudyBlocks ? 'translate-x-3.5' : 'translate-x-0.5'
-                )} />
-              </span>
+              <Switch checked={calendarShowStudyBlocks} size="sm" tone="accent" />
               Study plan
             </button>
           )}
@@ -543,7 +528,7 @@ export default function CalendarPage() {
                   'px-3 py-1 text-sm rounded-md transition-colors capitalize',
                   mode === m
                     ? 'bg-surface text-ink shadow-sm font-medium'
-                    : ' text-muted hover:bg-line/60'
+                    : ' text-muted hover:bg-surface-hi'
                 )}
               >
                 {m === 'assignments' ? 'Assignments' : 'Lecture Schedule'}

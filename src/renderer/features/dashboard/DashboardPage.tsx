@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Target, GraduationCap } from 'lucide-react';
 import QueryErrorState from '../../components/QueryErrorState';
+import { courseInk, coursePillBg } from '../../lib/colors';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
 import { useCourses } from '../../lib/queries/useCourses';
@@ -200,7 +201,7 @@ function AssignmentItem({ assignment, course, onEdit, selectable, selected, onTo
           to={`/courses/${course.id}`}
           title={`Open ${course.name}`}
           className="relative z-10 shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
-          style={{ backgroundColor: `${course.color}40`, color: course.color }}
+          style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
         >
           {course.abbreviation}
         </Link>
@@ -289,7 +290,7 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
       {course ? (
         <span
           className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
-          style={{ backgroundColor: `${course.color}40`, color: course.color }}
+          style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
         >
           {course.abbreviation}
         </span>

@@ -1,4 +1,5 @@
 import { cn } from '../../lib/utils';
+import Switch from '../../components/Switch';
 
 // Shared building blocks for the Settings page. Every section file composes
 // these so the whole page keeps one visual vocabulary: an uppercase heading,
@@ -80,23 +81,16 @@ export function PillGroup<T extends number>({
   );
 }
 
+/** A Settings-row switch: the shared Switch at row density, in a button. */
 export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
-        // Off track must contrast with the card it sits on — bg-surface here
-        // would vanish against the bg-surface card in dark/warm themes.
-        checked ? 'bg-accent' : 'bg-stone-300 dark:bg-inset'
-      )}
+      className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
     >
-      <span className={cn(
-        'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
-        checked ? 'translate-x-[18px]' : 'translate-x-0.5'
-      )} />
+      <Switch checked={checked} size="md" />
     </button>
   );
 }

@@ -26,6 +26,7 @@
   --surface-hi:  #f6f1e9;  /* hovered rows — warm-tinted so hover is visible on white */
   --inset:       #f1ebe1;  /* tab tracks, input wells — cream-family, not cool stone */
   --line:        #e8ddd0;  /* hairline borders + row dividers */
+  --line-strong: #d4c8b8;  /* the hover border on interactive cards */
   --ink:         #292524;  /* primary text */
   --ink-soft:    #44403c;  /* secondary text, labels */
   --muted:       #6d655c;  /* meta text — warm-tinted, AA even on inset wells */
@@ -79,6 +80,7 @@
   --surface-hi: #3a3128;
   --inset:      #1a1410;
   --line:       #423627;
+  --line-strong:#57472f;  /* card hover border — one step up from --line */
   --ink:        #f0e0cc;
   --ink-soft:   #e8d5c0;
   --muted:      #c9b594;  /* calm warm tan — the old gold (#e0b870) made meta text shout */
@@ -94,6 +96,7 @@ html[data-theme="warm"] {
   --surface-hi: #7a5a3c;
   --inset:      #452f1c;
   --line:       #5c4128;
+  --line-strong:#7a5836;  /* card hover border — one step up from --line */
   /* ink / ink-soft inherit the .dark creams (now ≥5.4:1 on surface);
      muted brightened so it clears AA on the brown surfaces */
   --muted:      #ecca8a;
@@ -109,6 +112,7 @@ html[data-theme="warm"] {
   --color-surface-hi:  var(--surface-hi);
   --color-inset:       var(--inset);
   --color-line:        var(--line);
+  --color-line-strong: var(--line-strong);
   --color-ink:         var(--ink);
   --color-ink-soft:    var(--ink-soft);
   --color-muted:       var(--muted);

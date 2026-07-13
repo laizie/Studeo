@@ -6,6 +6,7 @@ import { useTasks } from '../../lib/queries/useTasks';
 import { useStudySessions } from '../../lib/queries/useStudySessions';
 import { useRescheduleItems } from '../../lib/queries/useRescheduleItems';
 import QueryErrorState from '../../components/QueryErrorState';
+import { courseInk, coursePillBg } from '../../lib/colors';
 import { buildWeeklyReview, type ReviewItem } from '../../../shared/weeklyReview';
 import { showUndoToast } from '../../store/useToastStore';
 import { formatDueDate } from '../../../shared/deadlines';
@@ -35,7 +36,7 @@ function CourseBadge({ course }: { course: Course | undefined }) {
   return (
     <span
       className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
-      style={{ backgroundColor: `${course.color}40`, color: course.color }}
+      style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
     >
       {course.abbreviation}
     </span>

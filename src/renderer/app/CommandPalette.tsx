@@ -9,6 +9,7 @@ import { useNotes, useSearchNotes } from '../lib/queries/useNotes';
 import { useCourses } from '../lib/queries/useCourses';
 import { useAssignments } from '../lib/queries/useAssignments';
 import { useFocusStore } from '../store/useFocusStore';
+import { courseInk, coursePillBg } from '../lib/colors';
 import { formatDueDate } from '../../shared/deadlines';
 import { cn } from '../lib/utils';
 import type { Assignment, Course, Note } from '../../shared/types';
@@ -238,7 +239,7 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
             {item.course ? (
               <span
                 className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
-                style={{ backgroundColor: `${item.course.color}40`, color: item.course.color }}
+                style={{ backgroundColor: coursePillBg(item.course.color), color: courseInk(item.course.color) }}
               >
                 {item.course.abbreviation}
               </span>

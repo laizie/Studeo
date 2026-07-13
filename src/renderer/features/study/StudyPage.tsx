@@ -16,7 +16,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import StudySessionsNotesCard from './StudySessionsNotesCard';
-import { contrastTextColor } from '../../lib/colors';
+import { contrastTextColor, courseInk, coursePillBg } from '../../lib/colors';
 import StudyHeatmap from './StudyHeatmap';
 import ProgressRing from './ProgressRing';
 import { useFocusStore } from '../../store/useFocusStore';
@@ -195,8 +195,8 @@ function FocusListPanel() {
                 <span
                   className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
                   style={{
-                    backgroundColor: `${item.courseColor}40`,
-                    color: item.courseColor,
+                    backgroundColor: coursePillBg(item.courseColor ?? ''),
+                    color: courseInk(item.courseColor ?? ''),
                   }}
                 >
                   {item.courseName}

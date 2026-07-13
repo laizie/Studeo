@@ -14,7 +14,12 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  restoreCourse,
 } from '../repositories/courseRepo';
+import { createAssignment, listAssignments } from '../repositories/assignmentRepo';
+import { createSubtask, listSubtasks } from '../repositories/subtaskRepo';
+import { createClassMeeting, listClassMeetings } from '../repositories/classMeetingRepo';
+import { createStudySession, listStudySessions } from '../repositories/studySessionRepo';
 
 beforeEach(() => {
   mockDb.current = createTestDb();
@@ -148,6 +153,86 @@ describe('courseRepo', () => {
 
     it('is a no-op for a nonexistent id', () => {
       expect(() => deleteCourse('nonexistent')).not.toThrow();
+      expect(deleteCourse('nonexistent')).toBeNull();
+    });
+
+    it('succeeds even when a study session references the course', () => {
+      // study_sessions.course_id has no ON DELETE rule, so with foreign keys
+      // enforced (as in production) an un-nulled reference makes the whole
+      // delete fail. This is the regression guard for that.
+      const c = createCourse({ name: 'Studied', abbreviation: 'STD', color: '#111' });
+      createStudySession({ startedAt: '2026-03-01T10:00:00Z', durationSeconds: 1500, kind: 'focus', courseId: c.id });
+
+      expect(() => deleteCourse(c.id)).not.toThrow();
+      expect(getCourse(c.id)).toBeNull();
+
+      // The session survives — study history isn't the course's to take with it.
+      const sessions = listStudySessions();
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].course_id).toBeNull();
+    });
+
+    it('returns a snapshot of everything it deleted', () => {
+      const c = createCourse({ name: 'Physics', abbreviation: 'PHY', color: '#111' });
+      const a = createAssignment({ courseId: c.id, name: 'Lab 1', type: 'Lab', dueDate: '2026-03-10' });
+      createSubtask({ assignmentId: a.id, name: 'Read the manual' });
+      createClassMeeting({ courseId: c.id, dayOfWeek: 1, startTime: '09:00', endTime: '10:00' });
+
+      const snap = deleteCourse(c.id)!;
+
+      expect(snap.course.id).toBe(c.id);
+      expect(snap.assignments).toHaveLength(1);
+      expect(snap.subtasks).toHaveLength(1);
+      expect(snap.classMeetings).toHaveLength(1);
+      // Cascades really ran: the children are gone from the DB, not just the course.
+      expect(listAssignments({ courseId: c.id })).toHaveLength(0);
+    });
+  });
+
+  // ── restoreCourse (the Undo path) ───────────────────────────────────────────
+
+  describe('restoreCourse', () => {
+    it('puts the course and all its children back with the same ids', () => {
+      const c = createCourse({ name: 'Physics', abbreviation: 'PHY', color: '#111', building: 'Sci 200' });
+      const a = createAssignment({ courseId: c.id, name: 'Lab 1', type: 'Lab', dueDate: '2026-03-10' });
+      const s = createSubtask({ assignmentId: a.id, name: 'Read the manual' });
+      const m = createClassMeeting({ courseId: c.id, dayOfWeek: 1, startTime: '09:00', endTime: '10:00' });
+      const session = createStudySession({
+        startedAt: '2026-03-01T10:00:00Z', durationSeconds: 1500, kind: 'focus', courseId: c.id,
+      });
+
+      const snap = deleteCourse(c.id)!;
+      restoreCourse(snap);
+
+      const restored = getCourse(c.id);
+      expect(restored).not.toBeNull();
+      expect(restored!.name).toBe('Physics');
+      expect(restored!.building).toBe('Sci 200');
+
+      // Same ids everywhere — notes and links that pointed at these rows resolve again.
+      const assignments = listAssignments({ courseId: c.id });
+      expect(assignments).toHaveLength(1);
+      expect(assignments[0].id).toBe(a.id);
+      expect(assignments[0].name).toBe('Lab 1');
+
+      const subtasks = listSubtasks({ assignmentId: a.id });
+      expect(subtasks).toHaveLength(1);
+      expect(subtasks[0].id).toBe(s.id);
+
+      const meetings = listClassMeetings({ courseId: c.id });
+      expect(meetings).toHaveLength(1);
+      expect(meetings[0].id).toBe(m.id);
+
+      // The study session is re-linked to the course it was logged against.
+      const sessions = listStudySessions();
+      expect(sessions.find(x => x.id === session.id)!.course_id).toBe(c.id);
+    });
+
+    it('restores a course that had no children', () => {
+      const c = createCourse({ name: 'Empty', abbreviation: 'EMP', color: '#222' });
+      const snap = deleteCourse(c.id)!;
+      expect(() => restoreCourse(snap)).not.toThrow();
+      expect(getCourse(c.id)).not.toBeNull();
     });
   });
 });

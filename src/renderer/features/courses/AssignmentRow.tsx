@@ -11,6 +11,7 @@ import { useSubtasks } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
 import { URGENCY_CLASS } from '../../lib/urgency';
+import { courseInk, coursePillBg } from '../../lib/colors';
 import { cn } from '../../lib/utils';
 
 interface Props {
@@ -131,7 +132,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
           onClick={(e) => e.stopPropagation()}
           title={`Open ${course.name}`}
           className="shrink-0 px-2 py-0.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
-          style={{ backgroundColor: `${course.color}40`, color: course.color }}
+          style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
         >
           {course.abbreviation}
         </Link>
