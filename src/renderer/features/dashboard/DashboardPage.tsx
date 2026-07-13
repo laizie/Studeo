@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Target } from 'lucide-react';
+import { Plus, Target, GraduationCap } from 'lucide-react';
 import QueryErrorState from '../../components/QueryErrorState';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
@@ -564,16 +564,32 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── No courses empty state ───────────────────────────────────────────── */}
+      {/* ── No courses empty state ───────────────────────────────────────────────
+           Day one is the make-or-break session for this app, and the Dashboard is
+           where a new student lands. It used to offer only "Add course" — one
+           course, one dialog — while the four-step semester wizard (courses, class
+           times, syllabus import) sat invisible on the Courses page. Same offer as
+           CoursesPage now: the wizard first, a single course as the side door. */}
       {!hasCourses && (
         <div className="text-center py-24">
-          <p className="text-muted text-sm">No courses yet. Add your first one to get started.</p>
-          <button
-            onClick={() => setDialogOpen(true)}
-            className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
+          <p className="text-muted text-sm">
+            Nothing here yet. Set up your semester and this becomes your home base.
+          </p>
+          <Link
+            to="/setup"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
           >
-            Add course
-          </button>
+            <GraduationCap size={15} />
+            Set up a semester
+          </Link>
+          <div>
+            <button
+              onClick={() => setDialogOpen(true)}
+              className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
+            >
+              Or add a single course
+            </button>
+          </div>
         </div>
       )}
 

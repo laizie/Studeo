@@ -289,8 +289,25 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
             </div>
           )}
 
+          {/* No courses yet: an assignment has nothing to attach to, and a
+              silently-disabled button explains nothing. Say why, and offer the
+              way out. */}
+          {tab === 'assignment' && courses.length === 0 && (
+            <p className="rounded-lg border border-line bg-inset px-3 py-2 text-xs text-ink-soft">
+              An assignment needs a course.{' '}
+              <button
+                type="button"
+                onClick={() => { onClose(); navigate('/courses'); }}
+                className="underline hover:text-ink transition-colors"
+              >
+                Add your first course
+              </button>{' '}
+              — or switch to Task above.
+            </p>
+          )}
+
           {/* Assignment-only fields */}
-          {tab === 'assignment' && (
+          {tab === 'assignment' && courses.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               <select
                 value={courseId}
@@ -298,10 +315,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
                 className={INPUT}
                 required
               >
-                {courses.length === 0
-                  ? <option value="">No courses</option>
-                  : courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation || c.name}</option>)
-                }
+                {courses.map(c => <option key={c.id} value={c.id}>{c.abbreviation || c.name}</option>)}
               </select>
               <select
                 value={type}
