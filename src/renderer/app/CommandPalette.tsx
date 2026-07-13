@@ -153,7 +153,13 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
     switch (item.kind) {
       case 'screen':     navigate(item.to); break;
       case 'course':     navigate(`/courses/${item.course.id}`); break;
-      case 'assignment': navigate(`/courses/${item.assignment.course_id}`); break;
+      case 'assignment':
+        // You typed the assignment's name — land with its editor open, not at
+        // the top of a course list you'd have to re-search.
+        navigate(`/courses/${item.assignment.course_id}`, {
+          state: { editAssignmentId: item.assignment.id },
+        });
+        break;
       case 'note':       navigate(`/notes/${item.note.id}`); break;
       case 'action':     item.run(); break;
     }

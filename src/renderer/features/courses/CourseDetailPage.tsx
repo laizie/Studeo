@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Rows3, CalendarOff } from 'lucide-react';
 import { useCourse, useUpdateCourse } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
@@ -103,6 +103,22 @@ export default function CourseDetailPage() {
     setEditingAssignment(a);
     setDialogOpen(true);
   }
+
+  // ⌘K hands off here with route state: open the named assignment's editor on
+  // arrival instead of making the user re-find the row. Consumed once (the ref
+  // guard) so closing the dialog doesn't re-open it on re-renders.
+  const location = useLocation();
+  const editCueConsumed = useRef(false);
+  useEffect(() => {
+    const cueId = (location.state as { editAssignmentId?: string } | null)?.editAssignmentId;
+    if (!cueId || editCueConsumed.current || !assignments) return;
+    const target = assignments.find(a => a.id === cueId);
+    if (target) {
+      editCueConsumed.current = true;
+      setEditingAssignment(target);
+      setDialogOpen(true);
+    }
+  }, [location.state, assignments]);
 
   // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {

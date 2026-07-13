@@ -188,6 +188,8 @@ export default function ThisWeekPage() {
           </Link>
           {/* Tasks toggle */}
           <button
+            role="switch"
+            aria-checked={showTasks}
             onClick={() => setShowTasks(!showTasks)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
           >

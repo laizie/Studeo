@@ -284,11 +284,8 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
 }
 
 function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course | undefined }) {
-  return (
-    <Link
-      to={course ? `/courses/${course.id}` : '#'}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors"
-    >
+  const row = (
+    <>
       {course ? (
         <span
           className="shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded"
@@ -303,6 +300,19 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
         {course?.name ?? 'Unknown'}
       </span>
       <span className="text-xs text-muted shrink-0">{formatTime(meeting.start_time)}</span>
+    </>
+  );
+
+  // An orphaned meeting (course lookup missed) is plain text, not a dead link.
+  if (!course) {
+    return <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg">{row}</div>;
+  }
+  return (
+    <Link
+      to={`/courses/${course.id}`}
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors"
+    >
+      {row}
     </Link>
   );
 }

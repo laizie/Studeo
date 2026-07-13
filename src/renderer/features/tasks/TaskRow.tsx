@@ -92,9 +92,17 @@ export default function TaskRow({ task, onEdit }: Props) {
         <StatusIcon status={task.status} />
       </button>
 
-      <span className={`flex-1 text-sm truncate ${isCompleted ? 'line-through text-muted' : 'text-ink'}`}>
+      {/* Name — a real button so the keyboard can do what the row click does */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+        className={cn(
+          'flex-1 min-w-0 truncate text-left text-sm rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+          isCompleted ? 'line-through text-muted' : 'text-ink',
+        )}
+      >
         {task.name}
-      </span>
+      </button>
 
       <span className="shrink-0 text-xs text-muted bg-inset px-2 py-0.5 rounded hidden md:block">
         {formatDueDate(task.due_date)}

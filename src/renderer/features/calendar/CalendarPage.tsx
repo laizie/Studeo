@@ -17,6 +17,7 @@ import { parseDateLocal, formatClock12 } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
 import { contrastTextColor } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
+import { showToast } from '../../store/useToastStore';
 import LectureNotesDialog from '../notes/LectureNotesDialog';
 import { cn } from '../../lib/utils';
 
@@ -247,11 +248,17 @@ export default function CalendarPage() {
         navigate('/tasks');
       } else if (event.resource.type === 'studyBlock') {
         // Tick a planned block off (or back on) right from the calendar.
+        // Pending guard: a double-click must not race two toggles.
+        if (updateStudyBlock.isPending) return;
         const block = event.resource.block;
-        updateStudyBlock.mutate({
-          id: block.id,
-          input: { status: block.status === 'done' ? 'planned' : 'done' },
-        });
+        const nowDone = block.status !== 'done';
+        updateStudyBlock.mutate(
+          { id: block.id, input: { status: nowDone ? 'done' : 'planned' } },
+          {
+            onSuccess: () =>
+              showToast(nowDone ? `Marked “${block.title}” done` : `“${block.title}” back to planned`),
+          },
+        );
       } else if (event.resource.type === 'meeting') {
         // Open notes for this specific dated lecture.
         setLectureSel({
@@ -328,6 +335,8 @@ export default function CalendarPage() {
           {/* Tasks toggle — only meaningful in Assignments mode */}
           {mode === 'assignments' && (
             <button
+              role="switch"
+              aria-checked={calendarShowTasks}
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
               className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
@@ -347,6 +356,8 @@ export default function CalendarPage() {
           {/* Study plan toggle — the back-planned study blocks */}
           {mode === 'assignments' && (
             <button
+              role="switch"
+              aria-checked={calendarShowStudyBlocks}
               onClick={() => setCalendarShowStudyBlocks(!calendarShowStudyBlocks)}
               className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >

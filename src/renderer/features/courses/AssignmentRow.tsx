@@ -137,14 +137,17 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         </Link>
       )}
 
-      {/* Name */}
-      <span
-        className={`flex-1 text-sm truncate ${
-          isCompleted ? 'line-through text-muted' : 'text-ink'
-        }`}
+      {/* Name — a real button so the keyboard can do what the row click does */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
+        className={cn(
+          'flex-1 min-w-0 truncate text-left text-sm rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+          isCompleted ? 'line-through text-muted' : 'text-ink',
+        )}
       >
         {assignment.name}
-      </span>
+      </button>
 
       {/* Type badge */}
       <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-muted bg-inset">
