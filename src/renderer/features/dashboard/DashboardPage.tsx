@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Target, AlertTriangle } from 'lucide-react';
+import { Plus, Target } from 'lucide-react';
 import QueryErrorState from '../../components/QueryErrorState';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
@@ -588,16 +588,9 @@ export default function DashboardPage() {
             assignments={allAssignments}
           />
 
-          {/* ── Overdue alert (only when something is actually overdue) ───── */}
-          {overdue.length > 0 && (
-            <div className="flex items-center gap-2.5 w-fit mb-8 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300">
-              <AlertTriangle size={16} className="shrink-0" />
-              <span className="text-sm font-medium">
-                <span className="font-semibold tabular-nums">{overdue.length}</span>{' '}
-                {overdue.length === 1 ? 'assignment' : 'assignments'} overdue
-              </span>
-            </div>
-          )}
+          {/* One red signal for overdue: the section header below carries it.
+              The old banner stacked a third treatment on the same fact —
+              "color reinforces the word," it doesn't repeat it. */}
 
           {/* ── Content grid ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-x-8 gap-y-8">

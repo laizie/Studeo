@@ -9,6 +9,7 @@ import { useCreateAssignment, useCreateAssignments, useUpdateAssignment } from '
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import EntityNotesList from '../notes/EntityNotesList';
+import { INPUT_CLASS } from '../../lib/inputClass';
 
 interface Props {
   courseId: string;
@@ -18,11 +19,6 @@ interface Props {
   onClose: () => void;
 }
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-muted ' +
-  'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function AddAssignmentDialog({ courseId, assignment, isOpen, onClose }: Props) {
   const isEditing = !!assignment;

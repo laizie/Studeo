@@ -9,6 +9,7 @@ import {
 } from '../../lib/queries/useMeetingExceptions';
 import { parseDateLocal, formatDueDate } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
+import { INPUT_CLASS } from '../../lib/inputClass';
 
 interface Props {
   meeting?: ClassMeeting;
@@ -18,10 +19,6 @@ interface Props {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'dark:bg-inset dark:border-line dark:text-ink dark:focus:ring-muted';
 
 export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Props) {
   const [date, setDate]         = useState('');

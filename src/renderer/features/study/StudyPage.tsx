@@ -329,7 +329,7 @@ export default function StudyPage() {
         <div className="flex flex-col lg:flex-row gap-5">
 
           {/* ── Timer card ───────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
+          <div className="bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
 
             {/* Card header */}
             <div className="flex items-center gap-2 mb-5 self-start">
@@ -475,19 +475,19 @@ export default function StudyPage() {
           </div>
 
           {/* ── Music card ────────────────────────────────────────────────────── */}
-          <div className="bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
+          <div className="bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
             <MusicStudyColumn />
           </div>
 
         </div>
 
         {/* ── Focus list card ───────────────────────────────────────────────── */}
-        <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
+        <div className="mt-5 bg-surface border border-line rounded-2xl shadow-sm p-6">
           <FocusListPanel />
         </div>
 
         {/* ── Study activity heatmap ────────────────────────────────────────── */}
-        <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
+        <div className="mt-5 bg-surface border border-line rounded-2xl shadow-sm p-6">
           <div className="mb-5 flex items-center gap-2">
             <Activity size={14} className="text-muted" />
             <h2 className="text-sm font-semibold text-ink-soft tracking-tight">Study activity</h2>
@@ -496,7 +496,7 @@ export default function StudyPage() {
         </div>
 
         {/* ── Recent sessions + notes ───────────────────────────────────────── */}
-        <div className="mt-5 bg-white dark:bg-surface border border-line rounded-2xl shadow-sm p-6">
+        <div className="mt-5 bg-surface border border-line rounded-2xl shadow-sm p-6">
           <StudySessionsNotesCard />
         </div>
 

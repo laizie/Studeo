@@ -4,6 +4,7 @@ import DialogShell from '../../components/DialogShell';
 import type { Task } from '../../../shared/types';
 import { generateRepeats } from '../../../shared/repeat';
 import { useCreateTask, useCreateTasks, useUpdateTask } from '../../lib/queries/useTasks';
+import { INPUT_CLASS } from '../../lib/inputClass';
 
 interface Props {
   task?: Task;
@@ -11,11 +12,6 @@ interface Props {
   onClose: () => void;
 }
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-muted ' +
-  'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
   const isEditing = !!task;

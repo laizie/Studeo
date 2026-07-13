@@ -5,6 +5,7 @@ import { COURSE_COLORS, DEFAULT_COURSE_COLOR } from '../../lib/colors';
 import { useCreateCourse, useUpdateCourse } from '../../lib/queries/useCourses';
 import { useTerms } from '../../lib/queries/useTerms';
 import type { Course } from '../../../shared/types';
+import { INPUT_CLASS } from '../../lib/inputClass';
 
 interface Props {
   isOpen: boolean;
@@ -24,11 +25,6 @@ function deriveAbbreviation(name: string): string {
     .slice(0, 4);
 }
 
-const INPUT_CLASS =
-  'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-muted ' +
-  'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function CourseDialog({ isOpen, onClose, course }: Props) {
   const isEdit = course !== undefined;

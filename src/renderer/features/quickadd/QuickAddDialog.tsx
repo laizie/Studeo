@@ -15,6 +15,7 @@ import { parseQuickAdd } from '../../../shared/quickParse';
 import { ASSIGNMENT_TYPES, type AssignmentType } from '../../../shared/types';
 import { useFocusTrap } from '../../lib/useFocusTrap';
 import { cn } from '../../lib/utils';
+import { INPUT_CLASS as INPUT } from '../../lib/inputClass';
 
 interface Props {
   isOpen: boolean;
@@ -23,11 +24,6 @@ interface Props {
 
 type Tab = 'assignment' | 'task' | 'note';
 
-const INPUT =
-  'w-full px-3 py-2 text-sm border border-stone-300 rounded-lg ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 focus:border-transparent ' +
-  'placeholder:text-muted ' +
-  'dark:bg-inset dark:border-line dark:text-ink dark:placeholder:text-muted dark:focus:ring-muted';
 
 export default function QuickAddDialog({ isOpen, onClose }: Props) {
   // Remember the last-used tab across sessions (the Settings tip promises this).
@@ -203,7 +199,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
                 className={cn(
                   'px-3 py-1 text-xs rounded-md transition-colors capitalize',
                   tab === t
-                    ? 'bg-white dark:bg-surface-hi text-ink shadow-sm font-medium'
+                    ? 'bg-surface dark:bg-surface-hi text-ink shadow-sm font-medium'
                     : 'text-muted hover:text-ink-soft'
                 )}
               >

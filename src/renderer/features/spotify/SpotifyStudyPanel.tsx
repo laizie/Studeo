@@ -238,7 +238,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
               className={cn(
                 'w-full pl-8 pr-3 py-2 text-sm border rounded-lg',
                 'border-line',
-                'bg-white dark:bg-inset',
+                'bg-surface dark:bg-inset',
                 'text-ink',
                 'placeholder:text-muted',
                 'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',

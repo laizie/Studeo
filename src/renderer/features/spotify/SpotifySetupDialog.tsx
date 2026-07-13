@@ -58,7 +58,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-lg mx-4 bg-white dark:bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden animate-pop"
+        className="relative w-full max-w-lg mx-4 bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden animate-pop"
       >
 
         {/* Header */}
@@ -150,7 +150,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   'w-full px-3 py-2 text-sm border rounded-lg mb-4',
                   'font-mono placeholder:font-sans placeholder:text-muted',
                   'border-line',
-                  'bg-white dark:bg-inset',
+                  'bg-surface dark:bg-inset',
                   'text-ink',
                   'focus:outline-none focus:ring-2 focus:ring-[#1DB954]/40',
                 )}

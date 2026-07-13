@@ -164,6 +164,27 @@ export default function ThisWeekPage() {
   const completedCount  = relevant.filter(i => i.data.status === 'completed').length;
   const remainingCount  = relevant.filter(i => i.data.status !== 'completed').length;
 
+  // Completed count for the window regardless of the showCompleted filter —
+  // it's what lets the empty state celebrate a cleared week instead of hedging.
+  const windowDoneCount = useMemo(() => {
+    let n = 0;
+    const inWindow = (dueDate: string) => {
+      const due = parseDateLocal(dueDate);
+      if (due > windowConfig.end) return false;
+      if (windowConfig.start && due < windowConfig.start) return false;
+      return true;
+    };
+    for (const a of assignments ?? []) {
+      if (a.status === 'completed' && inWindow(a.due_date)) n++;
+    }
+    if (showTasks) {
+      for (const t of tasks ?? []) {
+        if (t.status === 'completed' && inWindow(t.due_date)) n++;
+      }
+    }
+    return n;
+  }, [assignments, tasks, windowConfig, showTasks]);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="p-8">
@@ -252,20 +273,21 @@ export default function ThisWeekPage() {
         </div>
       )}
 
-      {/* Empty */}
+      {/* Empty — and when the week was actually cleared, say so (peak-end:
+          the user knows they finished; the app should too). */}
       {!isLoading && !assignmentsError && !(showTasks && tasksError) && relevant.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-muted text-sm">
-            {showCompleted
-              ? `Nothing due ${windowConfig.title.toLowerCase()}.`
-              : `Nothing due ${windowConfig.title.toLowerCase()} — or everything is done.`}
+          <p className="text-sm text-ink-soft">
+            {windowDoneCount > 0
+              ? `All ${windowDoneCount} ${windowDoneCount === 1 ? 'item' : 'items'} done ${windowConfig.title.toLowerCase()} — nicely cleared. 🎉`
+              : `Nothing due ${windowConfig.title.toLowerCase()}.`}
           </p>
-          {!showCompleted && (
+          {!showCompleted && windowDoneCount > 0 && (
             <button
               onClick={() => setShowCompleted(true)}
               className="mt-2 text-xs text-muted underline hover:text-ink transition-colors"
             >
-              Show completed
+              Show {windowDoneCount} completed
             </button>
           )}
         </div>
@@ -278,7 +300,7 @@ export default function ThisWeekPage() {
             <div key={label} className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
                 'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-inset',
-                label === 'Overdue' ? 'text-red-400' : 'text-muted'
+                label === 'Overdue' ? 'text-red-700 dark:text-red-400' : 'text-muted'
               )}>
                 {label}
               </div>

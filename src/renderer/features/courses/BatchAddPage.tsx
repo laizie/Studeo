@@ -25,7 +25,7 @@ function makeRow(name = '', type: AssignmentType = 'Assignment', dueDate = ''): 
 
 const INPUT =
   'w-full px-2.5 py-1.5 text-sm border border-line rounded-lg ' +
-  'bg-white dark:bg-inset text-ink ' +
+  'bg-surface dark:bg-inset text-ink ' +
   'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted focus:border-transparent ' +
   'placeholder:text-muted';
 
@@ -251,7 +251,7 @@ export default function BatchAddPage() {
         </button>
 
         {importOpen && (
-          <div className="p-5 border-t border-line bg-white dark:bg-inset space-y-4">
+          <div className="p-5 border-t border-line bg-surface dark:bg-inset space-y-4">
             <p className="text-xs text-muted">
               Each line is treated as one assignment. Dates like "Jan 15", "2/14", or "March 1st"
               are extracted automatically. Lines with no date will appear in the grid with an empty
@@ -341,7 +341,7 @@ export default function BatchAddPage() {
               : [];
             return (
               <div key={row.id}>
-                <div className="grid grid-cols-[1fr_150px_160px_64px] gap-x-2 items-center px-4 py-2 bg-white dark:bg-inset hover:bg-surface-hi/60 transition-colors">
+                <div className="grid grid-cols-[1fr_150px_160px_64px] gap-x-2 items-center px-4 py-2 bg-surface dark:bg-inset hover:bg-surface-hi/60 transition-colors">
                   <input
                     ref={el => { nameRefs.current[row.id] = el; }}
                     type="text"
