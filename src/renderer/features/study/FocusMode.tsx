@@ -22,6 +22,7 @@ import SpotifyMiniPlayer from '../spotify/SpotifyMiniPlayer';
 import SpotifyUpNext from '../spotify/SpotifyUpNext';
 import ProgressRing from './ProgressRing';
 import StudyPickerDialog from './StudyPickerDialog';
+import { contrastTextColor } from '../../lib/colors';
 import { cn } from '../../lib/utils';
 
 // ── The room ────────────────────────────────────────────────────────────────────
@@ -35,6 +36,7 @@ const ROOM = {
   line:  '#3a2c1e', // hairlines, input wells
   well:  '#160f0a', // input background
   card:  '#1f1710', // reflection card
+  done:  '#5fa37a', // success check — the room's on-dark green
 } as const;
 
 // The lamplight. Amber while you work (the brand "Lamplight Amber"); it cools to a
@@ -491,7 +493,7 @@ function FocusList({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="mb-2 flex items-center justify-between px-3">
-        <p className="text-[0.7rem] font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
+        <p className="text-caption font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
           On your list{items.length > 0 && <span className="ml-1.5 normal-case tracking-normal opacity-80">{doneCount}/{items.length}</span>}
         </p>
         <button
@@ -526,7 +528,7 @@ function FocusList({ onAdd }: { onAdd: () => void }) {
                 title={item.done ? 'Mark incomplete' : 'Mark complete'}
               >
                 {item.done
-                  ? <CheckCircle2 size={16} style={{ color: '#5fa37a' }} />
+                  ? <CheckCircle2 size={16} style={{ color: ROOM.done }} />
                   : <Circle size={16} style={{ color: ROOM.muted }} />}
               </button>
               <span
@@ -567,7 +569,7 @@ function AmbienceControls() {
 
   return (
     <div>
-      <p className="mb-2 px-3 text-[0.7rem] font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
+      <p className="mb-2 px-3 text-caption font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
         Ambience
       </p>
       <div className="flex flex-wrap gap-1.5 px-1">
@@ -618,7 +620,7 @@ function MusicSidebar() {
     <div className="flex h-full min-h-0 flex-col">
       <AmbienceControls />
       <div className="my-4 border-t" style={{ borderColor: ROOM.line }} />
-      <p className="mb-2 px-3 text-[0.7rem] font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
+      <p className="mb-2 px-3 text-caption font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
         Music
       </p>
       {!defaultMusicService ? (
@@ -861,8 +863,8 @@ export default function FocusMode() {
                 </button>
                 <button
                   onClick={isRunning ? pause : start}
-                  className="flex items-center gap-2 rounded-full px-10 py-3.5 text-sm font-medium text-white transition-all hover:opacity-90 active:scale-95"
-                  style={{ backgroundColor: color, boxShadow: `0 8px 30px ${color}55` }}
+                  className="flex items-center gap-2 rounded-full px-10 py-3.5 text-sm font-medium transition-all hover:opacity-90 active:scale-95"
+                  style={{ backgroundColor: color, color: contrastTextColor(color), boxShadow: `0 8px 30px ${color}55` }}
                 >
                   {isRunning ? <Pause size={16} /> : <Play size={16} />}
                   {isRunning ? 'Pause' : 'Start'}

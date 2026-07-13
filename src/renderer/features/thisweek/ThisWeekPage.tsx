@@ -195,7 +195,7 @@ export default function ThisWeekPage() {
           >
             <span className={cn(
               'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-              showTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-surface'
+              showTasks ? 'bg-task' : 'bg-stone-300 dark:bg-surface'
             )}>
               <span className={cn(
                 'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',

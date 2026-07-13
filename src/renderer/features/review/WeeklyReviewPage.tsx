@@ -101,7 +101,7 @@ function DoneRow({ item, course }: { item: ReviewItem; course: Course | undefine
       <CheckCircle2 size={15} className="shrink-0 text-green-600 dark:text-green-500" />
       {item.kind === 'assignment'
         ? <CourseBadge course={course} />
-        : <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />}
+        : <div className="w-1 h-5 rounded-full shrink-0 bg-task" />}
       <span className="flex-1 min-w-0 truncate text-sm text-muted line-through decoration-stone-300 dark:decoration-stone-600">
         {item.name}
       </span>
@@ -114,7 +114,7 @@ function RolloverRow({ item, course }: { item: ReviewItem; course: Course | unde
     <div className="flex items-center gap-3 px-3 py-2">
       {item.kind === 'assignment'
         ? <CourseBadge course={course} />
-        : <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />}
+        : <div className="w-1 h-5 rounded-full shrink-0 bg-task" />}
       <span className="flex-1 min-w-0 truncate text-sm text-ink-soft">{item.name}</span>
       <span className="shrink-0 text-xs font-medium text-muted tabular-nums">
         was {formatDueDate(item.dueDate)}

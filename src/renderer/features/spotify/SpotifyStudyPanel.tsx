@@ -181,7 +181,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">Music</h2>
-          <span className="flex items-center gap-1 text-[10px] text-[#1DB954]">
+          <span className="flex items-center gap-1 text-caption text-[#1DB954]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#1DB954]" />
             {status.displayName}
           </span>
@@ -197,7 +197,7 @@ export default function SpotifyStudyPanel({ nowPlayingOnly = false }: { nowPlayi
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">
           Music
         </h2>
-        <span className="flex items-center gap-1 text-[10px] text-[#1DB954]">
+        <span className="flex items-center gap-1 text-caption text-[#1DB954]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#1DB954]" />
           {status.displayName}
         </span>

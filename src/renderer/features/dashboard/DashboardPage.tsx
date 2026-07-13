@@ -253,7 +253,7 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
 
   return (
     <div className="group relative flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-hi transition-colors">
-      <div className="w-1 h-5 rounded-full shrink-0 bg-[#7c6abf]" />
+      <div className="w-1 h-5 rounded-full shrink-0 bg-task" />
       {/* Row edits in place — no detour through the Tasks page to re-find it. */}
       <button
         type="button"

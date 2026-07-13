@@ -34,7 +34,7 @@ export default function SemesterTimelineStrip({ term, courses, assignments }: Pr
     <section className="mb-8">
       <div className="mb-2 flex items-center justify-between px-1">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">This semester</h2>
-        <div className="flex items-center gap-3 text-[11px] text-muted">
+        <div className="flex items-center gap-3 text-caption text-muted">
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted" /> assignment
           </span>
@@ -59,7 +59,7 @@ export default function SemesterTimelineStrip({ term, courses, assignments }: Pr
             {labelWeeks.map(w => (
               <span
                 key={w.index}
-                className="absolute top-0 -translate-x-1/2 text-[10px] text-muted"
+                className="absolute top-0 -translate-x-1/2 text-caption text-muted"
                 style={{ left: `${Math.min(w.startPosition + halfWeek, 1) * 100}%` }}
               >
                 W{w.index}
@@ -110,7 +110,7 @@ export default function SemesterTimelineStrip({ term, courses, assignments }: Pr
 
         {/* Per-week load histogram — the pileup at a glance */}
         <div className="mt-2 flex items-end">
-          <div className={cn(GUTTER, 'pr-2 text-right text-[10px] text-muted')}>Load</div>
+          <div className={cn(GUTTER, 'pr-2 text-right text-caption text-muted')}>Load</div>
           <div className="relative h-8 flex-1">
             {t.weeks.map(w => {
               const heightPct = t.maxWeekCount > 0 ? (w.count / t.maxWeekCount) * 100 : 0;
@@ -135,7 +135,7 @@ export default function SemesterTimelineStrip({ term, courses, assignments }: Pr
         </div>
 
         {t.peakWeekIndex !== null && t.maxWeekCount >= 2 && (
-          <p className="mt-2 pl-20 text-[11px] text-muted">
+          <p className="mt-2 pl-20 text-caption text-muted">
             Heaviest week: <span className="font-medium text-ink-soft">Week {t.peakWeekIndex}</span> · {t.maxWeekCount} due
           </p>
         )}

@@ -59,10 +59,10 @@ function ActivePlayer() {
 
         {/* Track info */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[#e8d5c0] truncate leading-tight">
+          <p className="text-xs font-medium text-sidebar-ink truncate leading-tight">
             {track?.name ?? 'Nothing playing'}
           </p>
-          <p className="text-[10px] text-[#c4a882] truncate leading-tight mt-0.5">
+          <p className="text-caption text-sidebar-muted truncate leading-tight mt-0.5">
             {track?.artists.join(', ') ?? '—'}
           </p>
         </div>
@@ -72,7 +72,7 @@ function ActivePlayer() {
           <button
             onClick={() => previous.mutate()}
             disabled={previous.isPending}
-            className="p-1 rounded text-[#c4a882] hover:text-[#e8d5c0] hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-white/10 transition-colors disabled:opacity-40"
             title="Previous"
           >
             <SkipBack size={11} />
@@ -91,7 +91,7 @@ function ActivePlayer() {
           <button
             onClick={() => next.mutate()}
             disabled={next.isPending}
-            className="p-1 rounded text-[#c4a882] hover:text-[#e8d5c0] hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-white/10 transition-colors disabled:opacity-40"
             title="Next"
           >
             <SkipForward size={11} />
@@ -125,7 +125,7 @@ export default function SpotifyMiniPlayer({ borderless }: Props = {}) {
 
   return (
     <>
-      <div className={borderless ? undefined : 'border-t border-[#3d2b1f]'}>
+      <div className={borderless ? undefined : 'border-t border-sidebar-line'}>
         {!status ? (
           // Loading — show nothing
           null
@@ -134,7 +134,7 @@ export default function SpotifyMiniPlayer({ borderless }: Props = {}) {
           <div className="px-3 py-2.5">
             <button
               onClick={() => setSetupOpen(true)}
-              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-[#c4a882] hover:bg-[#3d2b1f] hover:text-[#e8d5c0] transition-colors"
+              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-lg text-sidebar-muted hover:bg-sidebar-line hover:text-sidebar-ink transition-colors"
             >
               <div className="w-4 h-4 rounded-full bg-[#1DB954]/20 flex items-center justify-center shrink-0">
                 <Music size={9} className="text-[#1DB954]" />
@@ -148,13 +148,13 @@ export default function SpotifyMiniPlayer({ borderless }: Props = {}) {
             <div className="flex items-center justify-between px-3 pt-2 pb-0">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-[#1DB954] shrink-0" />
-                <span className="text-[10px] text-[#c4a882] truncate max-w-[120px]">
+                <span className="text-caption text-sidebar-muted truncate max-w-[120px]">
                   {status.displayName}
                 </span>
               </div>
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-1 rounded text-[#775544] hover:text-[#c4a882] transition-colors"
+                className="p-1 rounded text-[#775544] hover:text-sidebar-muted transition-colors"
                 title="Spotify options"
               >
                 <LogOut size={10} />
@@ -162,13 +162,13 @@ export default function SpotifyMiniPlayer({ borderless }: Props = {}) {
             </div>
 
             {showMenu && (
-              <div className="mx-3 mb-1 mt-1 bg-[#3d2b1f] rounded-lg overflow-hidden">
+              <div className="mx-3 mb-1 mt-1 bg-sidebar-line rounded-lg overflow-hidden">
                 <button
                   onClick={() => { disconnect.mutate(); setShowMenu(false); }}
                   disabled={disconnect.isPending}
                   className={cn(
-                    'w-full text-left px-3 py-2 text-xs text-[#c4a882] hover:bg-[#553311]',
-                    'hover:text-[#e8d5c0] transition-colors disabled:opacity-50'
+                    'w-full text-left px-3 py-2 text-xs text-sidebar-muted hover:bg-[#553311]',
+                    'hover:text-sidebar-ink transition-colors disabled:opacity-50'
                   )}
                 >
                   Disconnect Spotify

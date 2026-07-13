@@ -19,8 +19,11 @@ export const PHASE_LABELS: Record<Phase, string> = {
   long_break:  'Long break',
 };
 
+// Focus is the lamp: Lamplight Amber, the same word on every surface (the old
+// muted red read as the danger family). Breaks stay in the green rest family;
+// Focus Mode's GLOW map carries the brighter on-dark tones of the same hues.
 export const PHASE_COLORS: Record<Phase, string> = {
-  focus:       '#b85050',
+  focus:       '#e2a53b',
   short_break: '#467a59',
   long_break:  '#34604a',
 };

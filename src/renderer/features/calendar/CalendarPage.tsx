@@ -15,7 +15,7 @@ import { useTasks } from '../../lib/queries/useTasks';
 import { useStudyBlocks, useUpdateStudyBlock } from '../../lib/queries/useStudyBlocks';
 import { parseDateLocal, formatClock12 } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
-import { contrastTextColor } from '../../lib/colors';
+import { contrastTextColor, TASK_COLOR } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
 import { showToast } from '../../store/useToastStore';
 import LectureNotesDialog from '../notes/LectureNotesDialog';
@@ -293,7 +293,7 @@ export default function CalendarPage() {
     }
     if (event.resource.type === 'task') {
       const done = event.resource.task.status === 'completed';
-      const bg = done ? '#d6d3d1' : '#7c6abf';
+      const bg = done ? '#d6d3d1' : TASK_COLOR;
       return {
         style: {
           backgroundColor: bg,
@@ -342,7 +342,7 @@ export default function CalendarPage() {
             >
               <span className={cn(
                 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-200',
-                calendarShowTasks ? 'bg-[#7c6abf]' : 'bg-stone-300 dark:bg-surface'
+                calendarShowTasks ? 'bg-task' : 'bg-stone-300 dark:bg-surface'
               )}>
                 <span className={cn(
                   'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-200',

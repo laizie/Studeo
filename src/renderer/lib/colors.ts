@@ -36,6 +36,11 @@ export type CourseColorValue = typeof COURSE_COLORS[number]['value'];
 
 export const DEFAULT_COURSE_COLOR: CourseColorValue = '#6393e1';
 
+/** Standalone-task violet (DESIGN.md §2 Secondary). The CSS token `--task`
+ *  carries it in classes (bg-task); this constant is for JS style objects
+ *  (calendar event chips). One value, two consumers. */
+export const TASK_COLOR = '#7c6abf';
+
 /**
  * Pick a readable text color for content rendered ON a course color
  * (calendar event chips, filled badges). Pastel colors need dark ink;

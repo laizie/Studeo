@@ -23,8 +23,8 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
 
   return (
     <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[#d4c8b8] dark:hover:border-line transition-all group">
-      {/* Color accent strip */}
-      <div className="h-2 shrink-0 w-full" style={{ backgroundColor: course.color }} />
+      {/* Color accent strip — 2px, per DESIGN.md's sanctioned top strip */}
+      <div className="h-0.5 shrink-0 w-full" style={{ backgroundColor: course.color }} />
 
       {/* Card body */}
       <div className="flex-1 p-5 min-w-0">

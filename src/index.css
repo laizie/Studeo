@@ -40,6 +40,34 @@
    a :root custom property that blocknote-theme.css reads via var(--font-serif). */
 @theme {
   --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+
+  /* Type-ramp extensions (DESIGN.md §3): one ratified micro-caption step —
+     replacing the drifted 0.6rem/10px/11px/0.7rem fragments — and a display
+     step for the timer hero numerals. */
+  --text-caption: 0.6875rem;  /* 11px */
+  --text-display: 3.25rem;    /* 52px */
+}
+
+/* Chrome + secondary accents — deliberately constant across all three themes
+   (the espresso sidebar IS the dark room the lamp sits in), so they live
+   outside the theme-switching block above. Consumed as bg-sidebar,
+   text-sidebar-muted, bg-task, … instead of inline hexes. */
+:root {
+  --sidebar:       #2c1f14;  /* sidebar background */
+  --sidebar-line:  #3d2b1f;  /* sidebar dividers + hover fill */
+  --sidebar-hover: #4a3527;  /* stronger hover (timer chip) */
+  --sidebar-muted: #c4a882;  /* inactive nav labels/icons */
+  --sidebar-ink:   #e8d5c0;  /* wordmark + hovered nav text */
+  --task:          #7c6abf;  /* standalone-task violet (DESIGN.md §2) */
+}
+
+@theme inline {
+  --color-sidebar:       var(--sidebar);
+  --color-sidebar-line:  var(--sidebar-line);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-ink:   var(--sidebar-ink);
+  --color-task:          var(--task);
 }
 
 /* Dark = "the espresso room at night" (DESIGN.md North Star): near-neutral

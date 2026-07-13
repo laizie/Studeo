@@ -12,7 +12,7 @@ export default function AppleMusicPlaylistsList({ max = 12 }: { max?: number }) 
 
   return (
     <div className="mt-3">
-      <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-[#c4a882]">
+      <p className="px-3 pb-1 text-caption font-medium uppercase tracking-wider text-sidebar-muted">
         Your playlists
       </p>
       <div>
@@ -29,8 +29,8 @@ export default function AppleMusicPlaylistsList({ max = 12 }: { max?: number }) 
                 : <ListMusic size={11} className="text-[#fc3c44]" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs leading-tight text-[#e8d5c0]">{pl.name}</p>
-              <p className="mt-0.5 truncate text-[10px] leading-tight text-[#c4a882]">{pl.trackCount} tracks</p>
+              <p className="truncate text-xs leading-tight text-sidebar-ink">{pl.name}</p>
+              <p className="mt-0.5 truncate text-caption leading-tight text-sidebar-muted">{pl.trackCount} tracks</p>
             </div>
             <Play size={11} fill="currentColor" className="shrink-0 text-[#fc3c44] opacity-0 transition-opacity group-hover:opacity-100" />
           </button>

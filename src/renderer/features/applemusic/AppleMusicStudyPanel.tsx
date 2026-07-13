@@ -63,7 +63,7 @@ function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => voi
           {track.artistName}{track.albumName ? ` · ${track.albumName}` : ''}
         </p>
       </div>
-      <span className="text-[10px] tabular-nums text-muted shrink-0 mr-1 group-hover:hidden">
+      <span className="text-caption tabular-nums text-muted shrink-0 mr-1 group-hover:hidden">
         {formatMs(track.durationMs)}
       </span>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:flex">
@@ -117,10 +117,10 @@ function PlaybackControls() {
           />
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[10px] tabular-nums text-muted">
+          <span className="text-caption tabular-nums text-muted">
             {formatMs(progressMs)}
           </span>
-          <span className="text-[10px] tabular-nums text-muted">
+          <span className="text-caption tabular-nums text-muted">
             {formatMs(durationMs)}
           </span>
         </div>
@@ -257,7 +257,7 @@ export default function AppleMusicStudyPanel({ nowPlayingOnly = false }: { nowPl
       <div className="w-full flex flex-col">
         <div className="flex items-center justify-between mb-4 shrink-0">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">Music</h2>
-          <span className="flex items-center gap-1 text-[10px] text-[#fc3c44]">
+          <span className="flex items-center gap-1 text-caption text-[#fc3c44]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#fc3c44]" />
             Apple Music
           </span>
@@ -279,7 +279,7 @@ export default function AppleMusicStudyPanel({ nowPlayingOnly = false }: { nowPl
       {/* Section header */}
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">Music</h2>
-        <span className="flex items-center gap-1 text-[10px] text-[#fc3c44]">
+        <span className="flex items-center gap-1 text-caption text-[#fc3c44]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#fc3c44]" />
           Apple Music
         </span>

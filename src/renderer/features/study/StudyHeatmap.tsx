@@ -83,7 +83,7 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
           {/* Month labels */}
           <div className={cn('flex pl-8', gap)}>
             {monthLabels.map((label, i) => (
-              <div key={i} className={cn(cellSize, 'shrink-0 text-[0.6rem] text-muted')}>
+              <div key={i} className={cn(cellSize, 'shrink-0 text-caption text-muted')}>
                 {label && <span className="relative -left-px whitespace-nowrap">{label}</span>}
               </div>
             ))}
@@ -93,7 +93,7 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
             {/* Weekday labels */}
             <div className={cn('flex w-7 shrink-0 flex-col pr-1', gap)}>
               {DAY_LABELS.map((d, i) => (
-                <div key={i} className={cn(cellSize, 'flex items-center justify-end text-[0.6rem] leading-none text-muted')}>
+                <div key={i} className={cn(cellSize, 'flex items-center justify-end text-caption leading-none text-muted')}>
                   {d}
                 </div>
               ))}
@@ -117,7 +117,7 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-end gap-1.5 pt-1 text-[0.6rem] text-muted">
+          <div className="flex items-center justify-end gap-1.5 pt-1 text-caption text-muted">
             <span>Less</span>
             {([0, 1, 2, 3, 4] as const).map(l => (
               <div key={l} className={cn(cellSize, 'rounded-sm')} style={levelStyle(l)} />

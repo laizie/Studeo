@@ -43,10 +43,10 @@ function ActivePlayer() {
           }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[#e8d5c0] truncate leading-tight">
+          <p className="text-xs font-medium text-sidebar-ink truncate leading-tight">
             {track?.name ?? 'Nothing playing'}
           </p>
-          <p className="text-[10px] text-[#c4a882] truncate leading-tight mt-0.5">
+          <p className="text-caption text-sidebar-muted truncate leading-tight mt-0.5">
             {track?.artistName ?? '—'}
           </p>
         </div>
@@ -54,7 +54,7 @@ function ActivePlayer() {
           <button
             onClick={() => previous.mutate()}
             disabled={previous.isPending}
-            className="p-1 rounded text-[#c4a882] hover:text-[#e8d5c0] hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-white/10 transition-colors disabled:opacity-40"
           >
             <SkipBack size={11} />
           </button>
@@ -71,7 +71,7 @@ function ActivePlayer() {
           <button
             onClick={() => next.mutate()}
             disabled={next.isPending}
-            className="p-1 rounded text-[#c4a882] hover:text-[#e8d5c0] hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-white/10 transition-colors disabled:opacity-40"
           >
             <SkipForward size={11} />
           </button>
@@ -87,7 +87,7 @@ function ActivePlayer() {
 export default function AppleMusicMiniPlayer({ borderless }: Props = {}) {
   const { data: status } = useAppleMusicStatus();
 
-  const borderClass = borderless ? undefined : 'border-t border-[#3d2b1f]';
+  const borderClass = borderless ? undefined : 'border-t border-sidebar-line';
 
   if (!status?.running) {
     return (
@@ -109,7 +109,7 @@ export default function AppleMusicMiniPlayer({ borderless }: Props = {}) {
       <div className="flex items-center px-3 pt-2 pb-0">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] shrink-0" />
-          <span className="text-[10px] text-[#c4a882]">Apple Music</span>
+          <span className="text-caption text-sidebar-muted">Apple Music</span>
         </div>
       </div>
       <ActivePlayer />

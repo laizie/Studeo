@@ -70,6 +70,18 @@ typography:
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "normal"
+  caption:
+    fontFamily: "DM Sans, system-ui, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.35
+    letterSpacing: "normal"
+  display:
+    fontFamily: "DM Sans, system-ui, sans-serif"
+    fontSize: "3.25rem"
+    fontWeight: 600
+    lineHeight: 1.05
+    letterSpacing: "-0.02em"
 rounded:
   pill: "4px"
   md: "6px"
@@ -151,7 +163,7 @@ This system explicitly rejects the **corporate SaaS dashboard** (metric-tile coc
 A committed warm-espresso palette: cream and white content surfaces, deep-brown chrome, one amber voice, and a 28-step per-course accent system that carries meaning, not decoration.
 
 ### Primary
-- **Lamplight Amber** (`#e2a53b`): The single voice color. Primary buttons, the active sidebar nav item, focus-list stars, the "soon" deadline tier, current-time indicators. Pressed/hover deepens to **Amber Deep** (`#d49530`). Text *on* amber is always **Amber Ink** (`#1e1208`) — near-black for contrast, never white.
+- **Lamplight Amber** (`#e2a53b`): The single voice color. Primary buttons, the active sidebar nav item, focus-list stars, the "soon" deadline tier, current-time indicators — and the **focus phase** of the timer, on every surface (`PHASE_COLORS.focus`). Focus is the lamp; it is never red. Pressed/hover deepens to **Amber Deep** (`#d49530`). Text *on* amber is always **Amber Ink** (`#1e1208`) — near-black for contrast, never white.
 
 ### Neutral — Light (content)
 - **Cream BG** (`#f9f5f0`): The application body background. The "page" the work sits on.
@@ -168,7 +180,10 @@ A committed warm-espresso palette: cream and white content surfaces, deep-brown 
 - **Cream Text** (`#e8d5c0`): The "Studeo" wordmark and hovered nav text on the sidebar.
 
 ### Secondary
-- **Task Violet** (`#7c6abf`): The standalone-task accent — the task indicator bar and the "show tasks" toggle. Distinguishes course-bound assignments (course color) from free-floating tasks.
+- **Task Violet** (`#7c6abf`): The standalone-task accent — the task indicator bar and the "show tasks" toggle. Distinguishes course-bound assignments (course color) from free-floating tasks. Carried by the `--task` token (`bg-task`) in classes and `TASK_COLOR` from `lib/colors.ts` in JS style objects.
+
+### Scene palette — Focus Mode
+Focus Mode is its own fixed warm-dark room, deliberately outside the theme tokens (they flip bright in the light theme and would wash out the room). Its palette lives in the `ROOM` constant in `FocusMode.tsx` — ink `#f0e0cc`, soft `#d8c5ab`, muted `#a08a6e`, line `#3a2c1e`, well `#160f0a`, card `#1f1710`, done-green `#5fa37a` — plus the backdrop gradient stops (`#241a12 → #160f0a → #0c0806`) and the on-dark phase glows in `GLOW`. These are ratified scene colors, not drift; change them in `ROOM`/`GLOW` only.
 
 ### Tertiary — Per-course accents
 A fixed 28-color palette (14 hues × normal + pastel) lives in `src/renderer/lib/colors.ts` (`COURSE_COLORS`). Each course owns one. It appears as: a 2px top strip on dashboard cards, a 10px dot, the abbreviation pill (course color text on a 25%-alpha tint of itself, `${color}40`), and the progress-bar fill. **Never hardcode these hexes elsewhere — import from `colors.ts`.**
@@ -180,11 +195,11 @@ Deadline badges map urgency to a warm→cool ramp (text / tint): **overdue & tod
 `dark` mode is the North Star scene taken literally — a near-neutral roasted espresso (Gruvbox-style low chroma) where the warmth lives in the cream text and the amber lamp, never in saturated brown surfaces: bg `#211a13`, surfaces `#2c241b`/`#3a3128`, borders `#423627`, text `#f0e0cc`, muted `#c9b594`. `warm` mode stays the committed mid-brown identity, pitched one notch deeper so cream text clears AA: bg `#3d2918`, surfaces `#6a4b2f`/`#7a5a3c`, borders `#5c4128`, with a soft gold muted (`#ecca8a`). Both keep Lamplight Amber unchanged. Switched via `.dark` class and `html[data-theme="warm"]` (warm applies `.dark` plus variable overrides).
 
 ### Named Rules
-**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark` and `html[data-theme="warm"]`, so a component writes **one class, never a light/dark/warm hex trio**. Writing an inline theme hex in a component is prohibited — add or reuse a token.
+**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark` and `html[data-theme="warm"]`, so a component writes **one class, never a light/dark/warm hex trio**. Writing an inline theme hex in a component is prohibited — add or reuse a token. The theme-*invariant* chrome has tokens too (`--sidebar`, `--sidebar-line`, `--sidebar-hover`, `--sidebar-muted`, `--sidebar-ink`, `--task` → `bg-sidebar`, `text-sidebar-muted`, `bg-task`, …) so even constant colors are written once.
 
 **The One Lamp Rule.** Lamplight Amber appears only where the user should act, what is currently selected, or a live state indicator. If amber is on screen as decoration, it is wrong. Its rarity is what makes it read as "look here."
 
-**The Color-Is-Data Rule.** Per-course colors encode *which class* and nothing else. They are dots, pills, and 2px strips — never a card background, never a full-width fill. Status and urgency get their own semantic ramp; course color never doubles as either.
+**The Color-Is-Data Rule.** Per-course colors encode *which class* and nothing else. They appear as dots, pills, the 2px card top-strip, and the **leading identity bar** — a ≤6px vertical bar at the head of a row or page header (the task-violet bar on task rows, the course bar on the Course Detail header). Never a card background, never a full-width fill, and never a bar *and* a dot on the same element (one identity cue per element). Status and urgency get their own semantic ramp; course color never doubles as either.
 
 ## 3. Typography
 
@@ -200,6 +215,8 @@ Deadline badges map urgency to a warm→cool ramp (text / tint): **overdue & tod
 - **Body** (400, `0.875rem` / text-sm, lh 1.5): The default — list-row text, assignment names, descriptions. `stone-body` on light. Prose blocks cap at 65–75ch.
 - **Label** (500, `0.75rem` / text-xs): Form labels, meta, pill text, deadline badges. Form labels use `stone-body`; meta uses `stone-muted`.
 - **Section Label** (600, `0.75rem`, uppercase, `tracking-wide` 0.025em): List-group headers inside cards ("Overdue", "Due this week", day dividers). The one place uppercase tracking is allowed — it labels *data groups*, not brand sections.
+- **Caption** (500, `0.6875rem` / `text-caption`): The smallest step — dense metadata only: music-player track meta, heatmap and timeline axis labels, service badges. One value; the drifted 0.6rem/10px/11px/0.7rem fragments are retired. Never body or label text.
+- **Display** (600, `3.25rem` / `text-display`, tabular-nums): The timer hero numerals. The one step above Stat; nothing else uses it.
 
 ### Named Rules
 **The One Family Rule.** DM Sans does every job. Introducing a second typeface — especially a display or serif face for "personality" — breaks the calm and is prohibited. Personality comes from weight, spacing, and the amber accent.
@@ -282,7 +299,7 @@ Components are **warm and tactile**: gentle radii, hairline sand borders, the am
 - **Don't** let it read as a **generic gray to-do app** — that's the thing students are upgrading from. Keep the warmth and considered hierarchy.
 - **Don't** add **loud or gamified** flourishes: no streaks, confetti, badges, or bright competing primaries. The app lowers stimulation.
 - **Don't** recreate a **cluttered institutional LMS** — keep it scannable, calm, and personal.
-- **Don't** flood any surface with a course color or use it as a card background. Color is data: dots, pills, and the single 2px card top-strip only. (The `border-left`/`border-right` colored side-stripe is prohibited; the sanctioned exception is the full-width 2px *top* strip on dashboard cards.)
+- **Don't** flood any surface with a course color or use it as a card background. Color is data: dots, pills, the 2px card top-strip, and the ≤6px leading identity bar (see The Color-Is-Data Rule). Decorative `border-left`/`border-right` side-stripes on cards and callouts remain prohibited.
 - **Don't** introduce a second typeface or a display/serif face. DM Sans does every job; hierarchy is weight and size.
 - **Don't** use amber for input focus rings, decorative borders, or large fills — focus rings are the calm gray `ring-stone-400`.
 - **Don't** ship gradient text, decorative glassmorphism, a hero-metric template, or spinners-in-content.

@@ -10,7 +10,7 @@ export default function SpotifyUpNext({ max = 10 }: { max?: number }) {
 
   return (
     <div className="mt-3">
-      <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-[#c4a882]">
+      <p className="px-3 pb-1 text-caption font-medium uppercase tracking-wider text-sidebar-muted">
         Up next
       </p>
       <div>
@@ -22,8 +22,8 @@ export default function SpotifyUpNext({ max = 10 }: { max?: number }) {
                 : <Music size={11} className="text-[#1DB954]" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs leading-tight text-[#e8d5c0]">{track.name}</p>
-              <p className="mt-0.5 truncate text-[10px] leading-tight text-[#c4a882]">{track.artists.join(', ')}</p>
+              <p className="truncate text-xs leading-tight text-sidebar-ink">{track.name}</p>
+              <p className="mt-0.5 truncate text-caption leading-tight text-sidebar-muted">{track.artists.join(', ')}</p>
             </div>
           </div>
         ))}

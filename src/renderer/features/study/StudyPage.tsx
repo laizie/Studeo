@@ -16,6 +16,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import StudySessionsNotesCard from './StudySessionsNotesCard';
+import { contrastTextColor } from '../../lib/colors';
 import StudyHeatmap from './StudyHeatmap';
 import ProgressRing from './ProgressRing';
 import { useFocusStore } from '../../store/useFocusStore';
@@ -396,10 +397,9 @@ export default function StudyPage() {
             <div className="relative flex items-center justify-center mb-7">
               <ProgressRing phase={phase} timeLeft={timeLeft} totalSecs={totalSecs} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span
-                  className="text-5xl lg:text-[3.25rem] font-semibold tabular-nums tracking-tight"
-                  style={{ color }}
-                >
+                {/* Ink digits, always AA on the white card; the ring and Start
+                    button carry the phase color. */}
+                <span className="text-5xl lg:text-display font-semibold tabular-nums tracking-tight text-ink">
                   {formatClock(timeLeft)}
                 </span>
                 <span className="text-xs text-muted mt-1">
@@ -419,8 +419,8 @@ export default function StudyPage() {
               </button>
               <button
                 onClick={isRunning ? pause : start}
-                className="flex items-center gap-2 px-8 py-3 rounded-full text-white font-medium text-sm shadow-sm transition-all hover:opacity-90 active:scale-95"
-                style={{ backgroundColor: color }}
+                className="flex items-center gap-2 px-8 py-3 rounded-full font-medium text-sm shadow-sm transition-all hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: color, color: contrastTextColor(color) }}
               >
                 {isRunning ? <Pause size={15} /> : <Play size={15} />}
                 {isRunning ? 'Pause' : 'Start'}

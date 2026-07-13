@@ -32,11 +32,8 @@ function NoteCard({ note, course }: { note: NoteWithCourse; course?: Course }) {
       to={`/notes/${note.id}`}
       className="flex gap-3 rounded-xl border border-line bg-surface p-4 hover:bg-surface-hi transition-colors"
     >
-      <span
-        className={cn('w-1 shrink-0 self-stretch rounded-full', !course && 'bg-line')}
-        style={course ? { backgroundColor: course.color } : undefined}
-        aria-hidden="true"
-      />
+      {/* Which-class is carried by the dot + abbreviation below — the old
+          side bar doubled it and broke the system's side-stripe ban. */}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="truncate font-medium text-ink">{note.title || 'Untitled'}</h3>
