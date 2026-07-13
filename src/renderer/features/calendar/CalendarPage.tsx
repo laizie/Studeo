@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { Pencil, NotebookPen, CheckCircle2, ArrowRight, Circle } from 'lucide-react';
 import { format, parse, startOfWeek, endOfWeek, getDay, startOfMonth, endOfMonth } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import type { View } from 'react-big-calendar';
@@ -17,8 +18,11 @@ import { parseDateLocal, formatClock12 } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
 import { contrastTextColor, TASK_COLOR } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
-import { showToast } from '../../store/useToastStore';
+import { showUndoToast } from '../../store/useToastStore';
 import LectureNotesDialog from '../notes/LectureNotesDialog';
+import AddAssignmentDialog from '../courses/AddAssignmentDialog';
+import AddTaskDialog from '../tasks/AddTaskDialog';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import { cn } from '../../lib/utils';
 
 // ── Localizer ────────────────────────────────────────────────────────────────
@@ -123,11 +127,151 @@ function expandMeetingsForRange(
   return events;
 }
 
+// ── Event popover ─────────────────────────────────────────────────────────────
+// One click model for the whole calendar: clicking any event opens this, and the
+// popover holds the verbs. Before, a click did four different things depending on
+// what you hit — and on a study block it silently *wrote* (toggled it done). A
+// calendar click should show, not mutate; the mutation is now a labeled button.
+//
+// `position: fixed` because the calendar's scroll containers have overflow
+// clipping — an absolutely-positioned popover inside a month cell gets cut off.
+
+interface PopoverProps {
+  event: CalEvent;
+  /** Viewport coords of the click that opened it. */
+  anchor: { x: number; y: number };
+  onClose: () => void;
+  onEditAssignment: (a: Assignment) => void;
+  onEditTask: (t: Task) => void;
+  onOpenLectureNotes: (m: ClassMeeting, course: Course | undefined, date: string) => void;
+  onToggleStudyBlock: (b: StudyBlock) => void;
+  studyBlockPending: boolean;
+}
+
+const POPOVER_W = 248;
+
+function EventPopover({
+  event, anchor, onClose,
+  onEditAssignment, onEditTask, onOpenLectureNotes, onToggleStudyBlock, studyBlockPending,
+}: PopoverProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(true, panelRef);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Keep the panel on screen: flip left / lift up near the viewport edges.
+  const left = Math.min(anchor.x, window.innerWidth - POPOVER_W - 12);
+  const top  = Math.min(anchor.y + 8, window.innerHeight - 190);
+
+  const r = event.resource;
+  const course = r.type === 'task' ? undefined : r.course;
+
+  // One shared action-row recipe so every verb in the popover looks alike.
+  const ACTION =
+    'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft ' +
+    'hover:bg-surface-hi transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400';
+
+  return (
+    <>
+      {/* Click-away scrim. Transparent, but it also stops the click landing on
+          another event underneath and immediately reopening the popover. */}
+      <div className="fixed inset-0 z-[60]" onClick={onClose} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-label="Calendar item"
+        className="animate-pop fixed z-[61] rounded-xl border border-line bg-surface p-2 shadow-2xl"
+        style={{ left, top, width: POPOVER_W }}
+      >
+        {/* Identity — who this is, before what you can do to it */}
+        <div className="flex items-start gap-2 px-2 pb-2 pt-1">
+          {course && (
+            <span
+              className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: course.color }}
+              aria-hidden
+            />
+          )}
+          {r.type === 'task' && (
+            <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full bg-task" aria-hidden />
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-ink">
+              {r.type === 'assignment' ? r.assignment.name
+                : r.type === 'task'    ? r.task.name
+                : r.type === 'meeting' ? (course?.name ?? 'Class')
+                : r.block.title}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted">
+              {r.type === 'assignment' ? r.assignment.type
+                : r.type === 'task'    ? 'Task'
+                : r.type === 'meeting' ? `${format(event.start, 'EEE, MMM d')} · ${format(event.start, 'p')}`
+                : `Study block · ${r.block.duration_minutes} min`}
+            </p>
+          </div>
+        </div>
+
+        <div className="h-px bg-line" />
+
+        <div className="pt-1">
+          {r.type === 'assignment' && (
+            <button className={ACTION} onClick={() => { onEditAssignment(r.assignment); onClose(); }}>
+              <Pencil size={14} className="shrink-0 text-muted" /> Edit assignment
+            </button>
+          )}
+
+          {r.type === 'task' && (
+            <button className={ACTION} onClick={() => { onEditTask(r.task); onClose(); }}>
+              <Pencil size={14} className="shrink-0 text-muted" /> Edit task
+            </button>
+          )}
+
+          {r.type === 'meeting' && (
+            <button
+              className={ACTION}
+              onClick={() => { onOpenLectureNotes(r.meeting, r.course, toDateStr(event.start)); onClose(); }}
+            >
+              <NotebookPen size={14} className="shrink-0 text-muted" /> Lecture notes
+            </button>
+          )}
+
+          {r.type === 'studyBlock' && (
+            <button
+              className={ACTION}
+              disabled={studyBlockPending}
+              onClick={() => { onToggleStudyBlock(r.block); onClose(); }}
+            >
+              {r.block.status === 'done'
+                ? <><Circle size={14} className="shrink-0 text-muted" /> Back to planned</>
+                : <><CheckCircle2 size={14} className="shrink-0 text-muted" /> Mark done</>}
+            </button>
+          )}
+
+          {course && (
+            <Link
+              to={`/courses/${course.id}`}
+              onClick={onClose}
+              className={ACTION}
+            >
+              <ArrowRight size={14} className="shrink-0 text-muted" /> Open {course.abbreviation || course.name}
+            </Link>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 type Mode = CalendarMode;
 
 export default function CalendarPage() {
-  const navigate = useNavigate();
   const { data: courses,     isError: coursesError,     refetch: refetchCourses     } = useCourses();
   const { data: assignments, isError: assignmentsError, refetch: refetchAssignments } = useAssignments();
   const { data: allMeetings, isError: meetingsError,    refetch: refetchMeetings    } = useClassMeetings();
@@ -147,8 +291,14 @@ export default function CalendarPage() {
   const calendarShowStudyBlocks    = usePageFiltersStore(s => s.calendarShowStudyBlocks);
   const setCalendarShowStudyBlocks = usePageFiltersStore(s => s.setCalendarShowStudyBlocks);
   const [calDate, setCalDate] = useState(new Date());
-  // The dated lecture whose notes dialog is open (set when a meeting event is clicked).
+  // The dated lecture whose notes dialog is open (opened from the event popover).
   const [lectureSel, setLectureSel] = useState<{ meeting: ClassMeeting; course?: Course; date: string } | null>(null);
+  // The clicked event and where it was clicked — drives the one event popover.
+  const [selected, setSelected] = useState<{ event: CalEvent; anchor: { x: number; y: number } } | null>(null);
+  // Editors opened from the popover, so a calendar item edits in the same dialog
+  // it would from its own list — one row model everywhere.
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Track the visible range so we only expand meetings for what's on screen.
   // react-big-calendar only reports a range on NAVIGATION, so the initial value
@@ -240,35 +390,39 @@ export default function CalendarPage() {
     []
   );
 
+  // Clicking an event never mutates or navigates on its own — it opens the
+  // popover next to the click, and the popover carries the verbs.
   const handleSelectEvent = useCallback(
-    (event: CalEvent) => {
-      if (event.resource.type === 'assignment' && event.resource.course) {
-        navigate(`/courses/${event.resource.course.id}`);
-      } else if (event.resource.type === 'task') {
-        navigate('/tasks');
-      } else if (event.resource.type === 'studyBlock') {
-        // Tick a planned block off (or back on) right from the calendar.
-        // Pending guard: a double-click must not race two toggles.
-        if (updateStudyBlock.isPending) return;
-        const block = event.resource.block;
-        const nowDone = block.status !== 'done';
-        updateStudyBlock.mutate(
-          { id: block.id, input: { status: nowDone ? 'done' : 'planned' } },
-          {
-            onSuccess: () =>
-              showToast(nowDone ? `Marked “${block.title}” done` : `“${block.title}” back to planned`),
-          },
-        );
-      } else if (event.resource.type === 'meeting') {
-        // Open notes for this specific dated lecture.
-        setLectureSel({
-          meeting: event.resource.meeting,
-          course: event.resource.course,
-          date: toDateStr(event.start),
-        });
-      }
+    (event: CalEvent, e: React.SyntheticEvent<HTMLElement>) => {
+      const native = e.nativeEvent as MouseEvent;
+      // Keyboard activation reports 0,0 — fall back to the event chip's own box.
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const anchor = native.clientX || native.clientY
+        ? { x: native.clientX, y: native.clientY }
+        : { x: rect.left, y: rect.bottom };
+      setSelected({ event, anchor });
     },
-    [navigate, updateStudyBlock]
+    []
+  );
+
+  // The explicit "Mark done" verb from the popover. Undoable, like every other
+  // status change in the app.
+  const toggleStudyBlock = useCallback(
+    (block: StudyBlock) => {
+      if (updateStudyBlock.isPending) return;
+      const nowDone = block.status !== 'done';
+      updateStudyBlock.mutate(
+        { id: block.id, input: { status: nowDone ? 'done' : 'planned' } },
+        {
+          onSuccess: () =>
+            showUndoToast(
+              nowDone ? `Marked “${block.title}” done` : `“${block.title}” back to planned`,
+              () => updateStudyBlock.mutate({ id: block.id, input: { status: block.status } }),
+            ),
+        },
+      );
+    },
+    [updateStudyBlock]
   );
 
   const eventPropGetter = useCallback((event: CalEvent) => {
@@ -436,6 +590,36 @@ export default function CalendarPage() {
           showMultiDayTimes
         />
       </div>
+      )}
+
+      {selected && (
+        <EventPopover
+          event={selected.event}
+          anchor={selected.anchor}
+          onClose={() => setSelected(null)}
+          onEditAssignment={setEditingAssignment}
+          onEditTask={setEditingTask}
+          onOpenLectureNotes={(meeting, course, date) => setLectureSel({ meeting, course, date })}
+          onToggleStudyBlock={toggleStudyBlock}
+          studyBlockPending={updateStudyBlock.isPending}
+        />
+      )}
+
+      {editingAssignment && (
+        <AddAssignmentDialog
+          courseId={editingAssignment.course_id}
+          assignment={editingAssignment}
+          isOpen
+          onClose={() => setEditingAssignment(null)}
+        />
+      )}
+
+      {editingTask && (
+        <AddTaskDialog
+          task={editingTask}
+          isOpen
+          onClose={() => setEditingTask(null)}
+        />
       )}
 
       {lectureSel && (
