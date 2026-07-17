@@ -4,6 +4,7 @@ import {
   sittingsByDay,
   sittingIntentions,
   lastReflection,
+  timeOfDay,
   SITTING_GAP_MS,
 } from '../studySittings';
 import type { StudySession } from '../types';
@@ -204,6 +205,32 @@ describe('sittingIntentions', () => {
       block('b', '2026-03-02T13:30:00', 25),
     ]);
     expect(sittingIntentions(sitting)).toEqual([]);
+  });
+});
+
+describe('timeOfDay', () => {
+  const named = (local: string) => timeOfDay(new Date(local));
+
+  it('names each part of the day', () => {
+    expect(named('2026-03-02T08:30:00')).toBe('morning');
+    expect(named('2026-03-02T13:00:00')).toBe('afternoon');
+    expect(named('2026-03-02T19:30:00')).toBe('evening');
+    expect(named('2026-03-02T23:30:00')).toBe('late night');
+  });
+
+  it('puts the small hours in the night they belong to, not the morning', () => {
+    expect(named('2026-03-02T01:00:00')).toBe('late night');
+    expect(named('2026-03-02T04:59:00')).toBe('late night');
+  });
+
+  it('changes exactly on the boundaries', () => {
+    expect(named('2026-03-02T05:00:00')).toBe('morning');
+    expect(named('2026-03-02T11:59:00')).toBe('morning');
+    expect(named('2026-03-02T12:00:00')).toBe('afternoon');
+    expect(named('2026-03-02T16:59:00')).toBe('afternoon');
+    expect(named('2026-03-02T17:00:00')).toBe('evening');
+    expect(named('2026-03-02T20:59:00')).toBe('evening');
+    expect(named('2026-03-02T21:00:00')).toBe('late night');
   });
 });
 

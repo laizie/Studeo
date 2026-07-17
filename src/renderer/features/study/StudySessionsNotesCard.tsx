@@ -7,7 +7,9 @@ import {
   sittingsByDay,
   sittingIntentions,
   lastReflection,
+  timeOfDay,
   type Sitting,
+  type TimeOfDay,
 } from '../../../shared/studySittings';
 import EntityNotesList from '../notes/EntityNotesList';
 
@@ -20,6 +22,27 @@ function dayLabel(date: Date): string {
   if (isToday(date))     return 'Today';
   if (isYesterday(date)) return 'Yesterday';
   return format(date, 'EEE, MMM d');
+}
+
+const TIME_OF_DAY_LABEL: Record<TimeOfDay, string> = {
+  morning:      'Morning session',
+  afternoon:    'Afternoon session',
+  evening:      'Evening session',
+  'late night': 'Late night session',
+};
+
+/**
+ * What to call a sitting. A session is best known by what it was *for*, so the
+ * intentions title the row — "Essay outline" says more than the clock ever will, and
+ * it's the one thing that tells two identical-looking afternoons apart. Failing that
+ * (no intention set), fall back to when it happened, which at least distinguishes
+ * this morning's stretch from tonight's.
+ */
+function sittingTitle(sitting: Sitting): string {
+  const intentions = sittingIntentions(sitting);
+  return intentions.length > 0
+    ? intentions.join(' · ')
+    : TIME_OF_DAY_LABEL[timeOfDay(sitting.startedAt)];
 }
 
 /** "1h 40m" · "35m". Rounded to the minute — seconds are noise at this scale. */
@@ -56,12 +79,15 @@ function SittingNotesDialog({ sitting, onClose }: { sitting: Sitting; onClose: (
       <div className="absolute inset-0 bg-black/30 animate-fade" />
       <div className="relative max-h-[88vh] w-full max-w-md mx-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl animate-pop">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <h2 className="text-base font-semibold text-ink">
-            Study session{' '}
-            <span className="font-normal text-muted">
-              · {dayLabel(sitting.startedAt)}, {timeRange(sitting)}
-            </span>
-          </h2>
+          {/* Same identity as the row that opened it — the title, then the clock. */}
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-ink first-letter:uppercase">
+              {sittingTitle(sitting)}
+            </h2>
+            <p className="mt-0.5 text-xs text-muted">
+              {dayLabel(sitting.startedAt)}, {timeRange(sitting)} · {durationLabel(sitting.focusSeconds)} focused
+            </p>
+          </div>
           <button onClick={onClose} className="mt-0.5 shrink-0 text-muted hover:text-ink transition-colors" aria-label="Close">
             <X size={18} />
           </button>
@@ -120,7 +146,6 @@ export default function StudySessionsNotesCard() {
 
               <div className="divide-y divide-line">
                 {day.sittings.map((sitting) => {
-                  const intentions = sittingIntentions(sitting);
                   const reflection = lastReflection(sitting);
                   return (
                     <button
@@ -129,23 +154,23 @@ export default function StudySessionsNotesCard() {
                       className="group flex w-full items-start gap-3 rounded-lg px-1 py-2.5 text-left hover:bg-surface-hi transition-colors"
                     >
                       <div className="min-w-0 flex-1">
-                        <span className="text-sm text-ink-soft">{timeRange(sitting)}</span>
-                        {/* Only worth saying once there's more than one block to fold. */}
-                        {sitting.blocks.length > 1 && (
-                          <span className="ml-2 text-xs text-muted">
-                            {sitting.blocks.length} blocks
-                          </span>
-                        )}
-                        {intentions.length > 0 && (
-                          <p className="mt-0.5 truncate text-xs text-muted">
-                            <span className="text-muted/80">Intention:</span> {intentions.join(' · ')}
-                          </p>
-                        )}
+                        {/* The title carries the identity, so it gets primary ink; the
+                            clock drops to meta beneath it. `first-letter:uppercase`
+                            presents a typed-in intention as a title without editing
+                            the user's own words. */}
+                        <p className="truncate text-sm text-ink first-letter:uppercase">
+                          {sittingTitle(sitting)}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {timeRange(sitting)}
+                          {/* Only worth saying once there's more than one block folded in. */}
+                          {sitting.blocks.length > 1 && <> · {sitting.blocks.length} blocks</>}
+                        </p>
                         {reflection && (
                           <p className="mt-0.5 truncate text-xs italic text-muted">“{reflection}”</p>
                         )}
                       </div>
-                      <span className="mt-0.5 shrink-0 text-xs text-muted tabular-nums">
+                      <span className="shrink-0 text-xs text-muted tabular-nums">
                         {durationLabel(sitting.focusSeconds)}
                       </span>
                       <NotebookPen

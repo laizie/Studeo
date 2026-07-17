@@ -123,6 +123,22 @@ export function sittingsByDay(sittings: Sitting[]): SittingDay[] {
   return ordered;
 }
 
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'late night';
+
+/**
+ * Which part of the day a sitting began in — enough to tell this afternoon's stretch
+ * from tonight's when nothing else distinguishes them. The boundaries are the ordinary
+ * human ones rather than even quarters, and "late night" deliberately runs until 5am:
+ * a 1am session belongs to the night it started in, not to the next morning.
+ */
+export function timeOfDay(date: Date): TimeOfDay {
+  const hour = date.getHours();
+  if (hour >= 5  && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'late night';
+}
+
 /**
  * The intentions the user set across a sitting's blocks — deduped and in order, so
  * one row can say what the whole stretch was for without repeating "essay" ×5.
