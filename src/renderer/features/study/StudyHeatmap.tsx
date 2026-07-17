@@ -57,16 +57,24 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
     };
   }, [sessions]);
 
-  // Month labels sit above the first column of each month.
-  const monthLabels = grid.map((week, i) => {
-    const firstOfMonth = week[0];
-    const prev = grid[i - 1]?.[0];
-    const show = i === 0 ? false : firstOfMonth.date.getMonth() !== prev?.date.getMonth();
-    return show ? MONTHS[firstOfMonth.date.getMonth()] : '';
+  // A column is labelled when the 1st of a month falls inside it, so "Mar" sits over
+  // the week March actually starts — not over the first week whose *Sunday* happens to
+  // be in March, which drifts the label up to six days late. Months are at least four
+  // columns apart, so two labels can never collide.
+  const monthLabels = grid.map((week) => {
+    const first = week.find((cell) => cell.date.getDate() === 1);
+    return first ? MONTHS[first.date.getMonth()] : '';
   });
 
-  const cellSize = compact ? 'h-2.5 w-2.5' : 'h-3 w-3';
-  const gap = compact ? 'gap-[3px]' : 'gap-1';
+  // Height and width are kept apart because the weekday gutter needs the cell's
+  // *height* (to line up with its row) but its own full width — squeezing "Wed" into a
+  // 12px-wide box is what clipped those labels away.
+  const cellH = compact ? 'h-2.5' : 'h-3';
+  const cellW = compact ? 'w-2.5' : 'w-3';
+  const gap   = compact ? 'gap-[3px]' : 'gap-1';
+  // Wide enough for "Wed" at the caption size, and shared by the month row's spacer so
+  // the two rows stay aligned from one number instead of two kept in step by hand.
+  const gutter = 'w-8 pr-1.5';
 
   return (
     <div>
@@ -88,20 +96,26 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
 
       <div className="overflow-x-auto pb-1">
         <div className="inline-flex flex-col gap-1">
-          {/* Month labels */}
-          <div className={cn('flex pl-8', gap)}>
-            {monthLabels.map((label, i) => (
-              <div key={i} className={cn(cellSize, 'shrink-0 text-caption text-muted')}>
-                {label && <span className="relative -left-px whitespace-nowrap">{label}</span>}
-              </div>
-            ))}
+          {/* Month labels — a spacer stands in for the weekday gutter so the labels
+              track their columns exactly. Each sits in a cell-width box and is left to
+              overflow to the right (there's a month of empty columns to spill into),
+              which keeps every box on the grid's pitch. */}
+          <div className="flex gap-1">
+            <div className={cn(gutter, 'shrink-0')} aria-hidden />
+            <div className={cn('flex', gap)}>
+              {monthLabels.map((label, i) => (
+                <div key={i} className={cn(cellW, 'shrink-0 text-caption leading-none text-muted')}>
+                  {label && <span className="whitespace-nowrap">{label}</span>}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex gap-1">
-            {/* Weekday labels */}
-            <div className={cn('flex w-7 shrink-0 flex-col pr-1', gap)}>
+            {/* Weekday labels — full gutter width, right-aligned against the grid. */}
+            <div className={cn('flex shrink-0 flex-col', gutter, gap)}>
               {DAY_LABELS.map((d, i) => (
-                <div key={i} className={cn(cellSize, 'flex items-center justify-end text-caption leading-none text-muted')}>
+                <div key={i} className={cn(cellH, 'flex w-full items-center justify-end text-caption leading-none text-muted')}>
                   {d}
                 </div>
               ))}
@@ -115,7 +129,7 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
                     <div
                       key={cell.key}
                       title={cellTitle(cell)}
-                      className={cn(cellSize, 'shrink-0 rounded-sm', cell.future && 'opacity-0')}
+                      className={cn(cellH, cellW, 'shrink-0 rounded-sm', cell.future && 'opacity-0')}
                       style={cell.future ? undefined : levelStyle(cell.level)}
                     />
                   ))}
@@ -128,7 +142,7 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
           <div className="flex items-center justify-end gap-1.5 pt-1 text-caption text-muted">
             <span>Less</span>
             {([0, 1, 2, 3, 4] as const).map(l => (
-              <div key={l} className={cn(cellSize, 'rounded-sm')} style={levelStyle(l)} />
+              <div key={l} className={cn(cellH, cellW, 'rounded-sm')} style={levelStyle(l)} />
             ))}
             <span>More</span>
           </div>

@@ -40,7 +40,7 @@ function PlaylistRow({ playlist, onPlay }: { playlist: AppleMusicPlaylist; onPla
         <p className="text-xs text-muted mt-0.5">{playlist.trackCount} tracks</p>
       </div>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <Play size={9} fill="white" className="text-white ml-0.5" />
+        <Play size={9} fill="white" className="text-white" />
       </div>
     </button>
   );
@@ -67,7 +67,7 @@ function TrackRow({ track, onPlay }: { track: AppleMusicTrack; onPlay: () => voi
         {formatMs(track.durationMs)}
       </span>
       <div className="shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-[#fc3c44] to-[#ff6b6b] items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:flex">
-        <Play size={9} fill="white" className="text-white ml-0.5" />
+        <Play size={9} fill="white" className="text-white" />
       </div>
     </button>
   );
@@ -142,7 +142,7 @@ function PlaybackControls() {
         >
           {playback?.isPlaying
             ? <Pause size={16} fill="white" />
-            : <Play  size={16} fill="white" className="ml-0.5" />
+            : <Play  size={16} fill="white" />
           }
         </button>
         <button

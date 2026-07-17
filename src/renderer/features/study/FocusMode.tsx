@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Play, Pause, RotateCcw, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, Volume2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, Volume2 } from 'lucide-react';
 import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
 } from '../../store/useTimerStore';
@@ -322,18 +322,50 @@ function IntentionLine({ running }: { running: boolean }) {
 // ── Cycle dots ───────────────────────────────────────────────────────────────────
 // Classic Pomodoro earns a long break every fourth focus block. These four dots show
 // where you are in the current cycle — real progress, not decoration.
+//
+// Alongside them, a way out: "End sitting" closes the stretch by hand rather than
+// waiting out the hour-long gap that would end it on its own. It appears only once
+// there's a sitting to end — an always-present button offering to end nothing would
+// be one more thing in a room built to hold as little as possible.
 function CycleDots({ color }: { color: string }) {
   const focusCount = useTimerStore(s => s.focusCount);
+  const phase      = useTimerStore(s => s.phase);
+  const timeLeft   = useTimerStore(s => s.timeLeft);
+  const focusSecs  = useTimerStore(s => s.focusSecs);
+  const endSitting = useTimerStore(s => s.endSitting);
+
   const filled = focusCount === 0 ? 0 : (focusCount % 4 || 4);
+  // A sitting is underway once a block has completed, or once there's time on the
+  // board in the current one — that unfinished work is exactly what someone hitting
+  // "End sitting" wants banked rather than dropped.
+  const underway = focusCount > 0 || (phase === 'focus' && timeLeft < focusSecs);
+
   return (
-    <div className="flex items-center gap-2" aria-label={`${filled} of 4 focus blocks this cycle`}>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <span
-          key={i}
-          className="h-1.5 w-1.5 rounded-full transition-colors"
-          style={{ backgroundColor: i < filled ? color : '#ffffff1a' }}
-        />
-      ))}
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2" aria-label={`${filled} of 4 focus blocks this cycle`}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full transition-colors"
+            style={{ backgroundColor: i < filled ? color : '#ffffff1a' }}
+          />
+        ))}
+      </div>
+      {underway && (
+        <>
+          <span aria-hidden style={{ color: ROOM.line }}>·</span>
+          <button
+            onClick={endSitting}
+            title="End this sitting — banks the minutes you've put in and starts a fresh cycle"
+            className="rounded-md px-2 py-0.5 text-xs transition-colors hover:bg-white/[0.06]"
+            style={{ color: ROOM.muted }}
+            onMouseEnter={e => (e.currentTarget.style.color = ROOM.soft)}
+            onMouseLeave={e => (e.currentTarget.style.color = ROOM.muted)}
+          >
+            End sitting
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -662,6 +694,7 @@ export default function FocusMode() {
   const start = useTimerStore(s => s.start);
   const pause = useTimerStore(s => s.pause);
   const reset = useTimerStore(s => s.reset);
+  const skip  = useTimerStore(s => s.skip);
   const awaitingReflection = useTimerStore(s => s.awaitingReflection);
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -746,11 +779,12 @@ export default function FocusMode() {
       if (typing) return;
       if (e.code === 'Space') { e.preventDefault(); if (isRunning) pause(); else start(); }
       else if (e.key === 'r' || e.key === 'R') { reset(); }
+      else if (e.key === 's' || e.key === 'S') { skip(); }
       else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); parkingInputRef.current?.focus(); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, isRunning, pickerOpen, pause, start, reset]);
+  }, [isOpen, isRunning, pickerOpen, pause, start, reset, skip]);
 
   if (!isOpen) return null;
 
@@ -887,16 +921,29 @@ export default function FocusMode() {
                   {isRunning ? <Pause size={16} /> : <Play size={16} />}
                   {isRunning ? 'Pause' : 'Start'}
                 </button>
-                <div className="w-[42px]" />
+                {/* Skip fills the slot that was an empty spacer holding Start centred. */}
+                <button
+                  onClick={skip}
+                  title={phase === 'focus' ? 'Skip to break — keeps the minutes you\'ve put in' : 'Skip the break — back to focus'}
+                  aria-label={phase === 'focus' ? 'Skip to break' : 'Skip break'}
+                  className="rounded-full p-2.5 transition-colors hover:bg-white/[0.06]"
+                  style={{ color: ROOM.muted }}
+                  onMouseEnter={e => (e.currentTarget.style.color = ROOM.ink)}
+                  onMouseLeave={e => (e.currentTarget.style.color = ROOM.muted)}
+                >
+                  <SkipForward size={18} />
+                </button>
               </div>
 
               <MethodSwitcher />
 
-              <p className="text-xs" style={{ color: ROOM.muted }}>
+              <p className="max-w-lg text-center text-xs leading-relaxed" style={{ color: ROOM.muted }}>
                 <kbd className="rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Space</kbd>
                 <span className="mx-1.5">start / pause</span>·
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>R</kbd>
                 <span className="mx-1.5">reset</span>·
+                <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>S</kbd>
+                <span className="mx-1.5">skip</span>·
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>P</kbd>
                 <span className="mx-1.5">park a thought</span>·
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Esc</kbd>

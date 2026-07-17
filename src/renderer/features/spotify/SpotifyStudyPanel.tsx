@@ -41,7 +41,7 @@ function PlaylistRow({ playlist, onPlay }: { playlist: SpotifyPlaylist; onPlay: 
         </p>
       </div>
       <div className="shrink-0 w-6 h-6 rounded-full bg-[#1DB954] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <Play size={9} fill="white" className="text-white ml-0.5" />
+        <Play size={9} fill="white" className="text-white" />
       </div>
     </button>
   );
@@ -113,7 +113,7 @@ function PlaybackControls() {
         >
           {playback?.isPlaying
             ? <Pause size={14} fill="white" />
-            : <Play  size={14} fill="white" className="ml-0.5" />
+            : <Play  size={14} fill="white" />
           }
         </button>
         <button

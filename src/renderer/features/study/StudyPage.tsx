@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2, Maximize2, Activity } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2, Maximize2, Activity } from 'lucide-react';
 import {
   useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
   PHASE_LABELS, PHASE_COLORS, formatClock,
@@ -262,7 +262,7 @@ function MusicStudyColumn() {
 export default function StudyPage() {
   const {
     phase, isRunning, timeLeft, autoAdvance, focusSecs, breakSecs, longBreakSecs,
-    setPhase, start, pause, reset, toggleAutoAdvance,
+    setPhase, start, pause, reset, skip, toggleAutoAdvance,
     setFocusMins, setBreakMins,
     customTechnique, setCustomTechnique,
   } = useTimerStore();
@@ -296,11 +296,13 @@ export default function StudyPage() {
         if (isRunning) pause(); else start();
       } else if (e.key === 'r' || e.key === 'R') {
         reset();
+      } else if (e.key === 's' || e.key === 'S') {
+        skip();
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isRunning, pause, start, reset]);
+  }, [isRunning, pause, start, reset, skip]);
 
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -425,15 +427,25 @@ export default function StudyPage() {
                 {isRunning ? <Pause size={15} /> : <Play size={15} />}
                 {isRunning ? 'Pause' : 'Start'}
               </button>
-              <div className="w-[42px]" />
+              {/* Skip fills the slot that was an empty spacer holding Start centred. */}
+              <button
+                onClick={skip}
+                title={phase === 'focus' ? "Skip to break — keeps the minutes you've put in" : 'Skip the break — back to focus'}
+                aria-label={phase === 'focus' ? 'Skip to break' : 'Skip break'}
+                className="p-2.5 text-muted hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
+              >
+                <SkipForward size={17} />
+              </button>
             </div>
 
             {/* Keyboard hint */}
-            <p className="text-xs text-muted mb-4">
+            <p className="text-center text-xs text-muted mb-4">
               <kbd className="px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">Space</kbd>
               <span className="mx-1.5">start / pause</span>·
               <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">R</kbd>
-              <span className="ml-1.5">reset</span>
+              <span className="mx-1.5">reset</span>·
+              <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">S</kbd>
+              <span className="ml-1.5">skip</span>
             </p>
 
             {/* Auto-advance */}

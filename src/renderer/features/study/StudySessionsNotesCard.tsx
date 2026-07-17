@@ -1,20 +1,47 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Timer, X, NotebookPen } from 'lucide-react';
-import { format } from 'date-fns';
-import type { StudySession } from '../../../shared/types';
+import { format, isToday, isYesterday } from 'date-fns';
 import { useStudySessions } from '../../lib/queries/useStudySessions';
+import {
+  groupIntoSittings,
+  sittingsByDay,
+  sittingIntentions,
+  lastReflection,
+  type Sitting,
+} from '../../../shared/studySittings';
 import EntityNotesList from '../notes/EntityNotesList';
 
-const MAX_SHOWN = 6;
+// How many *days* of history to show. Days, not blocks: the point of this card is
+// that an afternoon reads as an afternoon, so "the last few days I studied" is the
+// unit a student actually recognises.
+const MAX_DAYS = 5;
 
-function sessionLabel(s: StudySession): string {
-  return format(new Date(s.started_at), 'EEE, MMM d · h:mm a');
-}
-function durationLabel(s: StudySession): string {
-  return `${Math.max(1, Math.round(s.duration_seconds / 60))} min`;
+function dayLabel(date: Date): string {
+  if (isToday(date))     return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'EEE, MMM d');
 }
 
-function SessionNotesDialog({ session, onClose }: { session: StudySession; onClose: () => void }) {
+/** "1h 40m" · "35m". Rounded to the minute — seconds are noise at this scale. */
+function durationLabel(seconds: number): string {
+  const mins  = Math.max(1, Math.round(seconds / 60));
+  const hours = Math.floor(mins / 60);
+  const rest  = mins % 60;
+  if (hours === 0) return `${rest}m`;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}
+
+/** "1:00 – 3:20 PM", dropping the repeated meridiem when both ends share one. */
+function timeRange(sitting: Sitting): string {
+  const [startTime, startMeridiem] = format(sitting.startedAt, 'h:mm a').split(' ');
+  const [endTime,   endMeridiem]   = format(sitting.endedAt,   'h:mm a').split(' ');
+
+  return startMeridiem === endMeridiem
+    ? `${startTime} – ${endTime} ${endMeridiem}`
+    : `${startTime} ${startMeridiem} – ${endTime} ${endMeridiem}`;
+}
+
+function SittingNotesDialog({ sitting, onClose }: { sitting: Sitting; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -28,18 +55,21 @@ function SessionNotesDialog({ session, onClose }: { session: StudySession; onClo
     >
       <div className="absolute inset-0 bg-black/30 animate-fade" />
       <div className="relative max-h-[88vh] w-full max-w-md mx-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-2xl animate-pop">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <h2 className="text-base font-semibold text-ink">
-            Study session <span className="font-normal text-muted">· {sessionLabel(session)}</span>
+            Study session{' '}
+            <span className="font-normal text-muted">
+              · {dayLabel(sitting.startedAt)}, {timeRange(sitting)}
+            </span>
           </h2>
-          <button onClick={onClose} className="text-muted hover:text-ink transition-colors" aria-label="Close">
+          <button onClick={onClose} className="mt-0.5 shrink-0 text-muted hover:text-ink transition-colors" aria-label="Close">
             <X size={18} />
           </button>
         </div>
         <EntityNotesList
           entityType="study_session"
-          entityId={session.id}
-          newNoteTitle={`Study ${format(new Date(session.started_at), 'MMM d')} — `}
+          entityId={sitting.id}
+          newNoteTitle={`Study ${format(sitting.startedAt, 'MMM d')} — `}
           heading="Session notes"
         />
       </div>
@@ -47,17 +77,21 @@ function SessionNotesDialog({ session, onClose }: { session: StudySession; onClo
   );
 }
 
-/** Recent focus sessions, each opening its own notes dialog ("what I studied"). */
+/**
+ * Recent study, grouped the way it was actually lived: by day, and within a day by
+ * sitting rather than by Pomodoro block. The timer logs a row per block, so a normal
+ * afternoon used to land here as five identical 25-minute entries; `groupIntoSittings`
+ * folds those back into the one stretch they were.
+ *
+ * Notes hang off the sitting's first block (its anchor id), so each stretch keeps a
+ * single notes thread instead of one per block.
+ */
 export default function StudySessionsNotesCard() {
   const { data: sessions } = useStudySessions();
-  const [selected, setSelected] = useState<StudySession | null>(null);
+  const [selected, setSelected] = useState<Sitting | null>(null);
 
-  const recentFocus = useMemo(
-    () =>
-      (sessions ?? [])
-        .filter((s) => s.kind === 'focus')
-        .sort((a, b) => b.started_at.localeCompare(a.started_at))
-        .slice(0, MAX_SHOWN),
+  const days = useMemo(
+    () => sittingsByDay(groupIntoSittings(sessions ?? [])).slice(0, MAX_DAYS),
     [sessions],
   );
 
@@ -68,39 +102,67 @@ export default function StudySessionsNotesCard() {
         <h2 className="text-sm font-semibold text-ink-soft tracking-tight">Recent sessions</h2>
       </div>
 
-      {recentFocus.length === 0 ? (
+      {days.length === 0 ? (
         <p className="text-sm text-muted">Finish a focus session to jot down what you studied.</p>
       ) : (
-        <div className="divide-y divide-line">
-          {recentFocus.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setSelected(s)}
-              className="group flex w-full items-start gap-3 px-1 py-2.5 text-left hover:bg-surface-hi rounded-lg transition-colors"
-            >
-              <div className="min-w-0 flex-1">
-                <span className="text-sm text-ink-soft">{sessionLabel(s)}</span>
-                {s.intention && (
-                  <p className="mt-0.5 truncate text-xs text-muted">
-                    <span className="text-muted/80">Intention:</span> {s.intention}
-                  </p>
-                )}
-                {s.reflection && (
-                  <p className="mt-0.5 truncate text-xs italic text-muted">“{s.reflection}”</p>
-                )}
+        <div className="space-y-4">
+          {days.map((day) => (
+            <div key={day.key}>
+              {/* The day's own total — what "how long did I study Tuesday?" is asking. */}
+              <div className="flex items-baseline justify-between gap-3 border-b border-line pb-1.5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {dayLabel(day.date)}
+                </h3>
+                <span className="shrink-0 text-xs font-medium tabular-nums text-ink-soft">
+                  {durationLabel(day.focusSeconds)}
+                </span>
               </div>
-              <span className="mt-0.5 shrink-0 text-xs text-muted tabular-nums">{durationLabel(s)}</span>
-              <NotebookPen
-                size={14}
-                className="mt-0.5 shrink-0 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-hidden="true"
-              />
-            </button>
+
+              <div className="divide-y divide-line">
+                {day.sittings.map((sitting) => {
+                  const intentions = sittingIntentions(sitting);
+                  const reflection = lastReflection(sitting);
+                  return (
+                    <button
+                      key={sitting.id}
+                      onClick={() => setSelected(sitting)}
+                      className="group flex w-full items-start gap-3 rounded-lg px-1 py-2.5 text-left hover:bg-surface-hi transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm text-ink-soft">{timeRange(sitting)}</span>
+                        {/* Only worth saying once there's more than one block to fold. */}
+                        {sitting.blocks.length > 1 && (
+                          <span className="ml-2 text-xs text-muted">
+                            {sitting.blocks.length} blocks
+                          </span>
+                        )}
+                        {intentions.length > 0 && (
+                          <p className="mt-0.5 truncate text-xs text-muted">
+                            <span className="text-muted/80">Intention:</span> {intentions.join(' · ')}
+                          </p>
+                        )}
+                        {reflection && (
+                          <p className="mt-0.5 truncate text-xs italic text-muted">“{reflection}”</p>
+                        )}
+                      </div>
+                      <span className="mt-0.5 shrink-0 text-xs text-muted tabular-nums">
+                        {durationLabel(sitting.focusSeconds)}
+                      </span>
+                      <NotebookPen
+                        size={14}
+                        className="mt-0.5 shrink-0 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {selected && <SessionNotesDialog session={selected} onClose={() => setSelected(null)} />}
+      {selected && <SittingNotesDialog sitting={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
