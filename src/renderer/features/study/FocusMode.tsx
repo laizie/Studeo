@@ -693,8 +693,11 @@ function MusicSidebar() {
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
+          {/* shrink-0: an overflow-hidden flex child can otherwise collapse below its
+              content when the rail is short (windowed, not fullscreen), clipping the card.
+              Keep it at natural height and let the list below take the slack / scroll. */}
           <div
-            className="overflow-hidden rounded-xl border"
+            className="shrink-0 overflow-hidden rounded-xl border"
             style={{ backgroundColor: '#ffffff08', borderColor: ROOM.line }}
           >
             <AutoNowPlaying service={pinnedService} />
