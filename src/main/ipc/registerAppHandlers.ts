@@ -17,6 +17,8 @@ const SETTING_KEYS = new Set([
   'dueDigestEnabled',
   'dueDigestTime',
   'timerSound',
+  'reflectionPrompt',
+  'ambienceVolume',
   // Pomodoro timer configuration.
   'focusMins',
   'breakMins',
