@@ -253,14 +253,7 @@ function MusicStudyColumn() {
     <div className="flex-1 flex flex-col min-h-0">
       {musicMode === 'spotify'      ? <SpotifyStudyPanel />
         : musicMode === 'apple_music' ? <AppleMusicStudyPanel />
-        : (
-          <div>
-            <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Music</h2>
-            <div className="overflow-hidden rounded-xl border border-line">
-              <AutoNowPlaying tone="surface" />
-            </div>
-          </div>
-        )}
+        : <AutoNowPlaying tone="surface" size="panel" />}
     </div>
   );
 }

@@ -17,7 +17,9 @@ import {
   useSpotifyStatus, useSpotifyPlayback,
   useSpotifyPlay, useSpotifyPause, useSpotifyNext, useSpotifyPrevious,
 } from '../../lib/queries/useSpotify';
-import NowPlayingCard, { type NowPlayingView, type NowPlayingTone } from './NowPlayingCard';
+import NowPlayingCard, {
+  type NowPlayingView, type NowPlayingTone, type NowPlayingSize,
+} from './NowPlayingCard';
 
 const SPOTIFY_ACCENT = '#1DB954';
 const APPLE_ACCENT   = '#fc3c44';
@@ -27,9 +29,11 @@ interface Props {
   service?: MusicService;
   /** 'dark' for the sidebar / Focus room (default), 'surface' for a theme surface. */
   tone?: NowPlayingTone;
+  /** 'mini' compact row (default) or 'panel' big layout for the Study card. */
+  size?: NowPlayingSize;
 }
 
-export default function AutoNowPlaying({ service, tone = 'dark' }: Props = {}) {
+export default function AutoNowPlaying({ service, tone = 'dark', size = 'mini' }: Props = {}) {
   // Spotify
   const { data: spotifyStatus }   = useSpotifyStatus();
   const { data: spotifyPlayback } = useSpotifyPlayback();
@@ -69,6 +73,21 @@ export default function AutoNowPlaying({ service, tone = 'dark' }: Props = {}) {
       : 'Play something in Apple Music or Spotify';
     const chip = tone === 'surface' ? 'bg-inset' : 'bg-white/10';
     const text = tone === 'surface' ? 'text-muted' : 'text-sidebar-muted';
+
+    // Panel: a centred placeholder that fills the Study card. Mini: a quiet inline row.
+    if (size === 'panel') {
+      return (
+        <div className="flex h-full flex-col">
+          <h2 className={`mb-4 text-xs font-semibold uppercase tracking-wide ${text}`}>Music</h2>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center">
+            <div className={`flex h-14 w-14 items-center justify-center rounded-full ${chip}`}>
+              <Music size={22} className={text} />
+            </div>
+            <p className={`max-w-[15rem] text-sm ${text}`}>{hint}</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-2 px-4 py-4">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${chip}`}>
@@ -85,6 +104,7 @@ export default function AutoNowPlaying({ service, tone = 'dark' }: Props = {}) {
         serviceLabel: service ? 'Spotify' : 'Now Playing',
         accent: SPOTIFY_ACCENT,
         tone,
+        size,
         title:      spotifyPlayback?.track?.name ?? null,
         artist:     spotifyPlayback?.track?.artists.join(', ') ?? null,
         artworkUrl: spotifyPlayback?.track?.albumArt ?? null,
@@ -100,6 +120,7 @@ export default function AutoNowPlaying({ service, tone = 'dark' }: Props = {}) {
         serviceLabel: service ? 'Apple Music' : 'Now Playing',
         accent: APPLE_ACCENT,
         tone,
+        size,
         title:      applePlayback?.track?.name ?? null,
         artist:     applePlayback?.track?.artistName ?? null,
         artworkUrl: applePlayback?.track?.artworkUrl ?? null,
