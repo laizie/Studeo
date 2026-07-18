@@ -16,10 +16,9 @@ import { focusMinutesSince, startOfDay } from '../../../shared/studyStats';
 import { buildParkingLotNote } from '../../../shared/parkingLot';
 import { AMBIENCE_SOUNDS } from '../../../shared/ambience';
 import { ambienceEngine } from './ambience/ambienceEngine';
-import AppleMusicMiniPlayer from '../applemusic/AppleMusicMiniPlayer';
 import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
-import SpotifyMiniPlayer from '../spotify/SpotifyMiniPlayer';
 import SpotifyUpNext from '../spotify/SpotifyUpNext';
+import AutoNowPlaying from '../music/AutoNowPlaying';
 import ProgressRing from './ProgressRing';
 import StudyPickerDialog from './StudyPickerDialog';
 import { contrastTextColor } from '../../lib/colors';
@@ -246,6 +245,31 @@ function MethodSwitcher() {
         );
       })}
     </div>
+  );
+}
+
+// ── Auto-advance toggle ────────────────────────────────────────────────────────────
+// The same session-level switch the Study page offers, surfaced in the room so you can
+// decide whether breaks flow into focus (and back) on their own without leaving. It reads
+// and writes the one timer-store flag, so the two screens always agree.
+function AutoAdvanceToggle() {
+  const autoAdvance = useTimerStore(s => s.autoAdvance);
+  const toggle      = useTimerStore(s => s.toggleAutoAdvance);
+
+  return (
+    <label
+      className="flex cursor-pointer select-none items-center gap-2 text-xs transition-colors"
+      style={{ color: autoAdvance ? ROOM.soft : ROOM.muted }}
+    >
+      <input
+        type="checkbox"
+        checked={autoAdvance}
+        onChange={toggle}
+        className="h-3.5 w-3.5 cursor-pointer rounded"
+        style={{ accentColor: GLOW.focus }}
+      />
+      Auto-advance to next phase
+    </label>
   );
 }
 
@@ -646,10 +670,16 @@ function AmbienceControls() {
 }
 
 // ── Music sidebar ─────────────────────────────────────────────────────────────────
-// Ambience sits on top (always available — no service needed); below it, the music
-// service's now-playing card and, for Spotify, the upcoming queue ("Up next").
+// Ambience sits on top (always available — no service needed); below it, the polished
+// now-playing card and, for the full Spotify/Apple modes, the upcoming queue ("Up next")
+// or a playlist quick-pick. The "Now Playing" mode shows just the card, auto-following
+// whichever service is playing.
 function MusicSidebar() {
-  const { defaultMusicService, nowPlayingOnly } = useSettingsStore();
+  const { musicMode } = useSettingsStore();
+
+  // Spotify/Apple modes pin the card to that service; Now Playing auto-follows.
+  const pinnedService = musicMode === 'spotify' || musicMode === 'apple_music' ? musicMode : undefined;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <AmbienceControls />
@@ -657,9 +687,9 @@ function MusicSidebar() {
       <p className="mb-2 px-3 text-caption font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
         Music
       </p>
-      {!defaultMusicService ? (
+      {!musicMode ? (
         <p className="mx-1 rounded-lg border border-dashed px-3 py-6 text-center text-xs leading-relaxed" style={{ borderColor: ROOM.line, color: ROOM.muted }}>
-          Pick Spotify or Apple Music in Settings to play it here.
+          Pick Apple Music, Spotify, or Now Playing in Settings to play it here.
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -667,11 +697,11 @@ function MusicSidebar() {
             className="overflow-hidden rounded-xl border"
             style={{ backgroundColor: '#ffffff08', borderColor: ROOM.line }}
           >
-            {defaultMusicService === 'spotify' ? <SpotifyMiniPlayer borderless /> : <AppleMusicMiniPlayer borderless />}
+            <AutoNowPlaying service={pinnedService} />
           </div>
-          {!nowPlayingOnly && (
+          {musicMode !== 'now_playing' && (
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              {defaultMusicService === 'spotify' ? <SpotifyUpNext /> : <AppleMusicPlaylistsList />}
+              {musicMode === 'spotify' ? <SpotifyUpNext /> : <AppleMusicPlaylistsList />}
             </div>
           )}
         </div>
@@ -935,7 +965,10 @@ export default function FocusMode() {
                 </button>
               </div>
 
-              <MethodSwitcher />
+              <div className="flex flex-col items-center gap-3">
+                <MethodSwitcher />
+                <AutoAdvanceToggle />
+              </div>
 
               <p className="max-w-lg text-center text-xs leading-relaxed" style={{ color: ROOM.muted }}>
                 <kbd className="rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Space</kbd>

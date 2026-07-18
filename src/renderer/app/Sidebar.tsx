@@ -10,6 +10,7 @@ import { useCourses } from '../lib/queries/useCourses';
 import { cn } from '../lib/utils';
 import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
 import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
+import AutoNowPlaying from '../features/music/AutoNowPlaying';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock } from '../store/useTimerStore';
 
@@ -114,9 +115,9 @@ function TimerChip() {
 }
 
 function MusicSection() {
-  const { defaultMusicService } = useSettingsStore();
+  const { musicMode } = useSettingsStore();
 
-  if (!defaultMusicService) {
+  if (!musicMode) {
     return (
       <div className="border-t border-sidebar-line px-3 py-2.5">
         <Link
@@ -130,9 +131,13 @@ function MusicSection() {
     );
   }
 
-  return defaultMusicService === 'spotify'
-    ? <SpotifyMiniPlayer />
-    : <AppleMusicMiniPlayer />;
+  if (musicMode === 'spotify')     return <SpotifyMiniPlayer />;
+  if (musicMode === 'apple_music') return <AppleMusicMiniPlayer />;
+  return (
+    <div className="border-t border-sidebar-line">
+      <AutoNowPlaying />
+    </div>
+  );
 }
 
 interface Props {

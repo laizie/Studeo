@@ -10,6 +10,7 @@ import { getAllSettings, setSetting } from '../settings';
 // never write an arbitrary key. Keep in sync with the settings store in the renderer.
 const SETTING_KEYS = new Set([
   'theme',
+  'musicMode',
   'defaultMusicService',
   'classRemindersEnabled',
   'reminderLeadMinutes',

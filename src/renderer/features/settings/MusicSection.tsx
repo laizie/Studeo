@@ -1,23 +1,25 @@
 import { useState } from 'react';
-import { Music, Check, Minimize2 } from 'lucide-react';
+import { Music, Check, Radio } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useSpotifyStatus } from '../../lib/queries/useSpotify';
 import { useAppleMusicStatus } from '../../lib/queries/useAppleMusic';
 import SpotifySetupDialog from '../spotify/SpotifySetupDialog';
-import { SectionHeading, SettingsCard, SettingsRow, Toggle } from './components';
+import { SectionHeading, SettingsCard } from './components';
 import { cn } from '../../lib/utils';
 
-function MusicServiceCard({
-  label, accentColor, statusLine,
-  isDefault, onSetDefault,
-  action,
+// One selectable row: an icon chip, a label + status line, an optional side action
+// (connect/disconnect), and the Select button that makes it the active music mode.
+function MusicModeCard({
+  label, accentColor, statusLine, icon,
+  isSelected, onSelect, action,
 }: {
   label:       string;
   accentColor: string;
   statusLine:  string;
-  isDefault:   boolean;
-  onSetDefault: () => void;
+  icon?:       React.ReactNode;
+  isSelected:  boolean;
+  onSelect:    () => void;
   action?:     React.ReactNode;
 }) {
   return (
@@ -27,7 +29,7 @@ function MusicServiceCard({
           className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
           style={{ backgroundColor: `${accentColor}22` }}
         >
-          <Music size={14} style={{ color: accentColor }} />
+          {icon ?? <Music size={14} style={{ color: accentColor }} />}
         </div>
         <div>
           <p className="text-sm font-medium text-ink-soft">{label}</p>
@@ -37,16 +39,17 @@ function MusicServiceCard({
       <div className="flex items-center gap-2 shrink-0 ml-4">
         {action}
         <button
-          onClick={onSetDefault}
+          onClick={onSelect}
+          aria-pressed={isSelected}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-            isDefault
+            isSelected
               ? 'bg-accent text-accent-ink'
               : 'border border-line text-muted hover:bg-surface-hi'
           )}
         >
-          {isDefault && <Check size={11} />}
-          {isDefault ? 'Default' : 'Set as default'}
+          {isSelected && <Check size={11} />}
+          {isSelected ? 'Selected' : 'Select'}
         </button>
       </div>
     </div>
@@ -54,7 +57,7 @@ function MusicServiceCard({
 }
 
 export default function MusicSection() {
-  const { defaultMusicService, setDefaultMusicService, nowPlayingOnly, setNowPlayingOnly } = useSettingsStore();
+  const { musicMode, setMusicMode } = useSettingsStore();
   const { data: spotifyStatus } = useSpotifyStatus();
   const { data: amStatus }      = useAppleMusicStatus();
   const [setupOpen, setSetupOpen] = useState(false);
@@ -64,7 +67,7 @@ export default function MusicSection() {
     mutationFn: () => window.api.spotify.disconnect(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['spotify'] });
-      if (defaultMusicService === 'spotify') setDefaultMusicService(null);
+      if (musicMode === 'spotify') setMusicMode(null);
     },
   });
 
@@ -72,17 +75,17 @@ export default function MusicSection() {
     <div className="mb-8">
       <SectionHeading>Music</SectionHeading>
       <p className="text-xs text-muted mb-3 -mt-1">
-        The default service appears in the sidebar and on the Study page.
+        Pick what shows in the sidebar, on the Study page, and in Focus Mode.
       </p>
       <SettingsCard>
-        <MusicServiceCard
+        <MusicModeCard
           label="Spotify"
           accentColor="#1DB954"
           statusLine={spotifyStatus?.connected
             ? `Connected as ${spotifyStatus.displayName}`
             : 'Not connected'}
-          isDefault={defaultMusicService === 'spotify'}
-          onSetDefault={() => setDefaultMusicService('spotify')}
+          isSelected={musicMode === 'spotify'}
+          onSelect={() => setMusicMode('spotify')}
           action={spotifyStatus?.connected ? (
             <button
               onClick={() => disconnectSpotify.mutate()}
@@ -100,22 +103,23 @@ export default function MusicSection() {
             </button>
           )}
         />
-        <MusicServiceCard
+        <MusicModeCard
           label="Apple Music"
           accentColor="#fc3c44"
           statusLine={amStatus?.running
             ? 'Music app is open and ready'
             : 'Open the Music app to enable controls'}
-          isDefault={defaultMusicService === 'apple_music'}
-          onSetDefault={() => setDefaultMusicService('apple_music')}
+          isSelected={musicMode === 'apple_music'}
+          onSelect={() => setMusicMode('apple_music')}
         />
-        <SettingsRow
-          icon={<Minimize2 size={16} />}
-          label="Now playing only"
-          description="Hide playlists and search — show just the current track and controls."
-        >
-          <Toggle checked={nowPlayingOnly} onChange={setNowPlayingOnly} />
-        </SettingsRow>
+        <MusicModeCard
+          label="Now Playing"
+          accentColor="#e2a53b"
+          icon={<Radio size={14} style={{ color: '#e2a53b' }} />}
+          statusLine="A minimal card that follows whatever's playing — Apple Music or Spotify"
+          isSelected={musicMode === 'now_playing'}
+          onSelect={() => setMusicMode('now_playing')}
+        />
       </SettingsCard>
       <SpotifySetupDialog isOpen={setupOpen} onClose={() => setSetupOpen(false)} />
     </div>

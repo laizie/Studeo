@@ -1,18 +1,24 @@
 import { create } from 'zustand';
 
 export type Theme = 'light' | 'dark' | 'warm';
+/** A real, playable music service. */
 export type MusicService = 'spotify' | 'apple_music';
+/** What the music UI shows: a specific service, or the auto "Now Playing" card. */
+export type MusicMode = MusicService | 'now_playing';
 
 interface SettingsState {
   theme: Theme;
   setTheme: (t: Theme) => void;
 
-  defaultMusicService: MusicService | null;
-  setDefaultMusicService: (s: MusicService | null) => void;
-
-  /** Collapse the music UI to just the now-playing card (hide playlists + search). */
-  nowPlayingOnly: boolean;
-  setNowPlayingOnly: (v: boolean) => void;
+  /**
+   * What the music UI shows across the sidebar, Study page, and Focus Mode:
+   *  - 'spotify' / 'apple_music' — that service's full panel
+   *  - 'now_playing'            — a compact card that follows whichever connected
+   *                               service is actually playing (Apple Music or Spotify)
+   *  - null                     — nothing selected yet
+   */
+  musicMode: MusicMode | null;
+  setMusicMode: (m: MusicMode | null) => void;
 
   classRemindersEnabled: boolean;
   setClassRemindersEnabled: (v: boolean) => void;
@@ -74,11 +80,17 @@ const initTheme: Theme = storedTheme ?? (legacyDark ? 'warm' : 'light');
 if (!storedTheme && legacyDark) saveSetting('theme', initTheme);
 applyTheme(initTheme);
 
-const storedMusic = readSetting('defaultMusicService', 'studeo:defaultMusicService');
-const initMusic: MusicService | null =
-  storedMusic === 'spotify' || storedMusic === 'apple_music' ? storedMusic : null;
-
-const initNowPlayingOnly = readSetting('nowPlayingOnly', 'studeo:nowPlayingOnly') === 'true';
+// The music picker used to be a service (spotify/apple_music) plus a separate
+// "now playing only" toggle; it's now a single three-way choice. Read the new key if
+// present, otherwise fall back to the old service so existing users keep their pick.
+const storedMode    = readSetting('musicMode', 'studeo:musicMode');
+const storedService = readSetting('defaultMusicService', 'studeo:defaultMusicService');
+const initMusicMode: MusicMode | null =
+  storedMode === 'spotify' || storedMode === 'apple_music' || storedMode === 'now_playing'
+    ? storedMode
+    : storedService === 'spotify' || storedService === 'apple_music'
+      ? storedService
+      : null;
 
 const initRemindersEnabled = readSetting('classRemindersEnabled', 'studeo:classRemindersEnabled') === 'true';
 const storedLead = parseInt(readSetting('reminderLeadMinutes', 'studeo:reminderLeadMinutes') ?? '', 10);
@@ -119,18 +131,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     set({ theme: t });
   },
 
-  defaultMusicService: initMusic,
+  musicMode: initMusicMode,
 
-  setDefaultMusicService: (s) => {
-    // Empty string represents "none" — read-side only accepts the two known services.
-    saveSetting('defaultMusicService', s ?? '');
-    set({ defaultMusicService: s });
-  },
-
-  nowPlayingOnly: initNowPlayingOnly,
-  setNowPlayingOnly: (v) => {
-    saveSetting('nowPlayingOnly', String(v));
-    set({ nowPlayingOnly: v });
+  setMusicMode: (m) => {
+    // Empty string represents "none" — the read side only accepts the known values.
+    saveSetting('musicMode', m ?? '');
+    // Keep the legacy key roughly in sync so a specific service still resolves if the
+    // new key is ever missing (e.g. an older build reads the store).
+    if (m === 'spotify' || m === 'apple_music') saveSetting('defaultMusicService', m);
+    set({ musicMode: m });
   },
 
   classRemindersEnabled: initRemindersEnabled,

@@ -12,6 +12,7 @@ import { useUpdateTask } from '../../lib/queries/useTasks';
 import StudyPickerDialog from './StudyPickerDialog';
 import AppleMusicStudyPanel from '../applemusic/AppleMusicStudyPanel';
 import SpotifyStudyPanel from '../spotify/SpotifyStudyPanel';
+import AutoNowPlaying from '../music/AutoNowPlaying';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -224,18 +225,18 @@ function FocusListPanel() {
 // ── Music study column ────────────────────────────────────────────────────────
 
 function MusicStudyColumn() {
-  const { defaultMusicService, nowPlayingOnly } = useSettingsStore();
+  const { musicMode } = useSettingsStore();
 
-  if (!defaultMusicService) {
+  if (!musicMode) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3 text-center h-full">
         <div className="w-10 h-10 rounded-full bg-inset flex items-center justify-center">
           <Music2 size={18} className="text-muted" />
         </div>
         <div>
-          <p className="text-sm font-medium text-ink-soft">No music service selected</p>
+          <p className="text-sm font-medium text-ink-soft">No music selected</p>
           <p className="text-xs text-muted mt-1">
-            Choose Spotify or Apple Music in Settings
+            Choose Apple Music, Spotify, or Now Playing in Settings
           </p>
         </div>
         <Link
@@ -250,9 +251,16 @@ function MusicStudyColumn() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {defaultMusicService === 'spotify'
-        ? <SpotifyStudyPanel nowPlayingOnly={nowPlayingOnly} />
-        : <AppleMusicStudyPanel nowPlayingOnly={nowPlayingOnly} />}
+      {musicMode === 'spotify'      ? <SpotifyStudyPanel />
+        : musicMode === 'apple_music' ? <AppleMusicStudyPanel />
+        : (
+          <div>
+            <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Music</h2>
+            <div className="overflow-hidden rounded-xl border border-line">
+              <AutoNowPlaying tone="surface" />
+            </div>
+          </div>
+        )}
     </div>
   );
 }
