@@ -21,6 +21,12 @@
    single class (bg-surface) instead of a light/dark/warm trio. Add new colors
    HERE, not as inline hexes in components. */
 :root {
+  /* Tells the browser which palette to use for the parts it paints itself:
+     the date/time picker glyph + popup, scrollbars, native select menus.
+     Without this it always assumes light, so the calendar icon stayed a dark
+     glyph on the dark/warm surfaces. Flipped to `dark` in the .dark block. */
+  color-scheme: light;
+
   --bg:          #f9f5f0;  /* app body */
   --surface:     #ffffff;  /* cards, dialogs, list containers */
   --surface-hi:  #f6f1e9;  /* hovered rows — warm-tinted so hover is visible on white */
@@ -75,6 +81,11 @@
    roasted darks (low chroma, like Gruvbox's approach) so the warmth is carried
    by the cream text and the amber lamp — not by saturated brown surfaces. */
 .dark {
+  /* Warm also lands here (applyTheme adds .dark for both), so one line gives
+     both dark themes a light picker glyph, a dark picker popup, and dark
+     scrollbars instead of light-mode chrome punched into a dark room. */
+  color-scheme: dark;
+
   --bg:         #211a13;
   --surface:    #2c241b;
   --surface-hi: #3a3128;
@@ -148,6 +159,23 @@ html[data-theme="warm"] {
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+
+  /* The date/time picker glyph. `color-scheme` (above) decides whether it's a
+     dark or light glyph; this only tunes it to the app's voice — resting at
+     roughly --muted weight instead of full contrast, and coming forward on
+     hover so it reads as the affordance it is. */
+  ::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  ::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+  input:disabled::-webkit-calendar-picker-indicator {
+    opacity: 0.3;
+    cursor: default;
   }
 }
 
