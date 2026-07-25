@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, Volume2 } from 'lucide-react';
 import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
@@ -123,12 +123,19 @@ function useDraggable(storageKey: string, scale: number) {
 
   // Keep `value` so the panel stays fully on-screen (with an 8px margin), given the
   // element's un-offset top-left `base` and size — all in rendered (post-zoom) px.
-  function clampAxis(value: number, base: number, size: number, viewport: number): number {
-    const M = 8;
-    const lo = (M - base) / scale;                       // don't cross the near edge
-    const hi = (viewport - M - size - base) / scale;      // don't cross the far edge
-    return clampNum(value, lo, hi);
-  }
+  //
+  // useCallback keyed on `scale` — the only thing this closes over. The clamp effect
+  // below already re-runs on [scale], so it was correct by coincidence; pinning the
+  // identity makes that provable instead, and lets the effect list its real dependency.
+  const clampAxis = useCallback(
+    (value: number, base: number, size: number, viewport: number): number => {
+      const M = 8;
+      const lo = (M - base) / scale;                       // don't cross the near edge
+      const hi = (viewport - M - size - base) / scale;      // don't cross the far edge
+      return clampNum(value, lo, hi);
+    },
+    [scale],
+  );
 
   function onPointerDown(e: React.PointerEvent) {
     const rect = ref.current?.getBoundingClientRect();
@@ -189,7 +196,7 @@ function useDraggable(storageKey: string, scale: number) {
     clampToView();
     window.addEventListener('resize', clampToView);
     return () => window.removeEventListener('resize', clampToView);
-  }, [scale]);
+  }, [scale, clampAxis]);
 
   return { offset, dragging, reset, ref, handleProps: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp } };
 }
@@ -784,7 +791,16 @@ export default function FocusMode() {
   // As the sitting ends, dump any parked distractions into a loose note. We read the
   // store fresh via getState() so the Esc-key path (whose closure can be a render or
   // two stale) still flushes the current list, not an old one.
-  function leave() {
+  //
+  // useCallback + honest deps, because the Escape handler below captures this function.
+  // It used to be a plain function absent from that effect's dependency list, so Escape
+  // ran whichever `leave` existed when the effect last subscribed — and `isFullscreen`
+  // is updated by its own listener from the main process. Enter Focus Mode, go
+  // fullscreen, press Escape, and the stale closure saw isFullscreen === false: the
+  // room closed but the window stayed fullscreen. (The getState() call above already
+  // dodged staleness for the parking lot; isFullscreen just never got the same
+  // treatment. react-hooks/exhaustive-deps flags exactly this.)
+  const leave = useCallback(function leave() {
     const { items, clear } = useParkingLotStore.getState();
     const note = buildParkingLotNote(items.map(i => i.text));
     if (note) {
@@ -798,7 +814,7 @@ export default function FocusMode() {
     stopAmbience(); // silence ambience and reset the selection for next time
     if (isFullscreen) window.api.app.setFullscreen(false);
     close();
-  }
+  }, [createNote, isFullscreen, stopAmbience, close]);
 
   // Esc leaves Focus Mode; Space/R mirror the Study page's keyboard controls. While
   // the picker is open it owns the keyboard (its own Esc closes just the picker).
@@ -817,7 +833,7 @@ export default function FocusMode() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, isRunning, pickerOpen, pause, start, reset, skip]);
+  }, [isOpen, isRunning, pickerOpen, pause, start, reset, skip, leave]);
 
   if (!isOpen) return null;
 

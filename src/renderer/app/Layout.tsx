@@ -5,6 +5,7 @@ import QuickAddDialog from '../features/quickadd/QuickAddDialog';
 import CommandPalette from './CommandPalette';
 import FocusMode from '../features/study/FocusMode';
 import Toaster from '../components/Toaster';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { useTimerDriver } from '../lib/useTimerDriver';
 import { useReminderNavigation } from '../lib/useReminderNavigation';
 import { useToastStore, showToast } from '../store/useToastStore';
@@ -53,8 +54,14 @@ export default function Layout() {
           full-height parent. The transition's transform reverts the moment it
           finishes (backwards fill), so page-rendered `fixed` dialogs — opened
           well after it — still anchor to the viewport, not to <main>. */}
+      {/* A render throw inside a page would otherwise blank the whole window — the
+          sidebar included — with no way back in a packaged app. Scoped to <main> so the
+          chrome survives and the user can just click another screen. Keyed by path so
+          navigating away clears a stuck error. */}
       <main key={location.pathname} className="animate-screen flex-1 overflow-auto min-w-0">
-        <Outlet />
+        <ErrorBoundary resetKey={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <QuickAddDialog isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
       <CommandPalette

@@ -97,17 +97,28 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
   async function captureLecture() {
     if (!nextSession) return;
     const abbrev = courses.find((c) => c.id === nextSession.courseId)?.abbreviation ?? '';
-    const id = await createLectureNote({
-      courseId: nextSession.courseId,
-      courseAbbrev: abbrev,
-      meetingId: nextSession.meetingId,
-      date: nextSession.date,
-    });
-    onClose();
-    navigate(`/notes/${id}`);
+    try {
+      const id = await createLectureNote({
+        courseId: nextSession.courseId,
+        courseAbbrev: abbrev,
+        meetingId: nextSession.meetingId,
+        date: nextSession.date,
+      });
+      onClose();
+      navigate(`/notes/${id}`);
+    } catch {
+      // Stay open on failure rather than navigating to a note that was never created.
+      // createLectureNote() is built on mutateAsync, so the mutation cache's global
+      // onError has already told the user the save failed.
+    }
   }
 
-  // Reset form whenever the dialog opens
+  // Reset the form whenever the dialog opens — and ONLY then.
+  //
+  // exhaustive-deps wanted `courses` here, but adding it would be the actual bug: this
+  // effect clears the form, so re-running it on a background courses refetch would wipe
+  // whatever the user had just typed. The right fix is to stop reading `courses` here at
+  // all and let the sync effect below own course selection, which it already does.
   useEffect(() => {
     if (!isOpen) return;
     setName('');
@@ -116,15 +127,15 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     setCourseTouched(false);
     setTypeTouched(false);
     setDateTouched(false);
-    // Pre-select the first course if none selected yet
-    setCourseId(prev => prev || (courses[0]?.id ?? ''));
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen]);
 
-  // Keep courseId in sync if courses load after dialog opens
+  // Sole owner of the default course pick: fills it in on open, and again if the course
+  // list arrives after the dialog was opened. Guarded on `!courseId`, so it never
+  // overrides a course the user (or the parser) already chose.
   useEffect(() => {
     if (!courseId && courses.length > 0) setCourseId(courses[0].id);
-  }, [courses]);
+  }, [courseId, courses]);
 
   // Escape to close
   useEffect(() => {
@@ -142,38 +153,49 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
     nameRef.current?.focus();
   }
 
+  // mutateAsync REJECTS on failure (unlike mutate), so every await here needs a catch.
+  // Without one this produced a genuine unhandled promise rejection, and — more visibly —
+  // everything after the await silently never ran: no confirmation toast, no Undo
+  // registered, and the dialog neither closed nor reset. The inline isError message and
+  // the global toast still fired, so it looked like "nothing happened", which is the
+  // worst possible reading of a failed save.
   async function handleSubmit(e: React.FormEvent, opts?: { stay?: boolean }) {
     e.preventDefault();
     if (!name.trim()) return;
     if (tab !== 'note' && !dueDate) return;
 
-    // Confirm-with-takeback: the dialog closes silently, so the toast is the
-    // proof it saved — and its Undo deletes the row we just created.
-    if (tab === 'assignment') {
-      if (!courseId || !cleanName) return;
-      const created = await createAssignment.mutateAsync({ courseId, name: cleanName, type, dueDate });
-      const abbrev = courses.find(c => c.id === courseId)?.abbreviation;
-      showUndoToast(
-        `Added “${cleanName}”${abbrev ? ` to ${abbrev}` : ''} · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
-        () => deleteAssignment.mutate(created.id),
-      );
-    } else if (tab === 'task') {
-      const created = await createTask.mutateAsync({ name: cleanName, dueDate });
-      showUndoToast(
-        `Added “${cleanName}” · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
-        () => deleteTask.mutate(created.id),
-      );
-    } else {
-      // A note opens straight into the editor — no due date, and nothing to
-      // stay for.
-      const note = await createNote.mutateAsync({ title: name.trim() });
-      onClose();
-      navigate(`/notes/${note.id}`);
-      return;
-    }
+    try {
+      // Confirm-with-takeback: the dialog closes silently, so the toast is the
+      // proof it saved — and its Undo deletes the row we just created.
+      if (tab === 'assignment') {
+        if (!courseId || !cleanName) return;
+        const created = await createAssignment.mutateAsync({ courseId, name: cleanName, type, dueDate });
+        const abbrev = courses.find(c => c.id === courseId)?.abbreviation;
+        showUndoToast(
+          `Added “${cleanName}”${abbrev ? ` to ${abbrev}` : ''} · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
+          () => deleteAssignment.mutate(created.id),
+        );
+      } else if (tab === 'task') {
+        const created = await createTask.mutateAsync({ name: cleanName, dueDate });
+        showUndoToast(
+          `Added “${cleanName}” · ${format(parseDateLocal(dueDate), 'EEE, MMM d')}`,
+          () => deleteTask.mutate(created.id),
+        );
+      } else {
+        // A note opens straight into the editor — no due date, and nothing to
+        // stay for.
+        const note = await createNote.mutateAsync({ title: name.trim() });
+        onClose();
+        navigate(`/notes/${note.id}`);
+        return;
+      }
 
-    if (opts?.stay) resetForNext();
-    else onClose();
+      if (opts?.stay) resetForNext();
+      else onClose();
+    } catch {
+      // Keep the dialog open with the user's text intact so they can retry.
+      // The error itself is already on screen (isError below) and in a toast.
+    }
   }
 
   const isPending = createAssignment.isPending || createTask.isPending || createNote.isPending;

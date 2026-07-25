@@ -25,13 +25,12 @@ export default function DialogShell({ isOpen, onClose, title, maxWidth = 'max-w-
   const titleId = useId();
   useFocusTrap(isOpen, panelRef);
 
+  // Initial focus, keyed on `isOpen` ALONE — see the note in ConfirmDialog. Call sites
+  // pass an inline onClose, so including it here restarted this timer on every parent
+  // re-render, and a late-firing timer could steal focus from a field the user had
+  // already clicked into.
   useEffect(() => {
     if (!isOpen) return;
-
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('keydown', onKey);
 
     // If the dialog's own content didn't claim focus (most forms autofocus a
     // field), put it on the first focusable element so Tab starts inside.
@@ -45,10 +44,17 @@ export default function DialogShell({ isOpen, onClose, title, maxWidth = 'max-w-
         ?.focus();
     }, 50);
 
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      clearTimeout(claim);
-    };
+    return () => clearTimeout(claim);
+  }, [isOpen]);
+
+  // Escape depends on `onClose` and is safe to re-subscribe.
+  useEffect(() => {
+    if (!isOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

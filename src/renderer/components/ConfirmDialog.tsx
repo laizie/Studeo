@@ -27,10 +27,28 @@ export default function ConfirmDialog({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
+  // Focus ownership, deliberately keyed on `isOpen` ALONE.
+  //
+  // This used to be one effect with [isOpen, onClose]. Every call site passes an inline
+  // arrow (onClose={() => setConfirmOpen(false)}), which is a new function identity on
+  // every render — so the effect tore down and re-ran whenever the parent re-rendered for
+  // any reason at all (a React Query refetch, a mutation settling). Two things broke:
+  // focus was yanked back to Cancel mid-interaction, and `previousFocus` was reassigned
+  // to whatever was focused *inside* the dialog, so closing restored focus to a button
+  // that no longer exists and it fell to <body>.
+  //
+  // Splitting it is the fix: run-once behaviour gets a run-once dependency list.
   useEffect(() => {
     if (!isOpen) return;
     previousFocus.current = document.activeElement as HTMLElement | null;
     cancelRef.current?.focus();
+    return () => { previousFocus.current?.focus(); };
+  }, [isOpen]);
+
+  // The listener genuinely depends on `onClose`, so it gets its own effect and may
+  // re-subscribe freely — adding and removing a keydown listener is side-effect-free.
+  useEffect(() => {
+    if (!isOpen) return;
 
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -41,10 +59,7 @@ export default function ConfirmDialog({
       }
     }
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      previousFocus.current?.focus();
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
