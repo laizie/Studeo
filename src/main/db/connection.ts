@@ -112,6 +112,25 @@ const MIGRATIONS: { name: string; sql: string }[] = [
   { name: '014_completed_at.sql', sql: migration014 },
 ];
 
+/**
+ * Apply every pending migration, each inside its own transaction.
+ *
+ * Why the transaction is load-bearing: `exec()` runs a multi-statement file one
+ * statement at a time with autocommit on. Without a transaction, a file that fails
+ * halfway leaves its earlier statements committed while the `_migrations` row is
+ * never written — so the next launch sees the migration as pending, replays it from
+ * the top, and dies on `table already exists` / `duplicate column name`. That state
+ * is permanent: the app can never start again, and the user has no way in to reach
+ * their data. Most of our migrations are bare `ALTER TABLE ADD COLUMN`, which SQLite
+ * has no `IF NOT EXISTS` form for, so they cannot be made replay-safe individually.
+ *
+ * Binding the schema change and its bookkeeping row into one transaction makes each
+ * migration all-or-nothing: it either applies and is recorded, or the database is
+ * left exactly as it was and startup fails loudly having damaged nothing.
+ *
+ * (SQLite supports transactional DDL, so CREATE/ALTER really do roll back here. That
+ * is not true of every database — MySQL, for instance, commits DDL implicitly.)
+ */
 function runMigrations(database: DatabaseSync): void {
   database.exec(`
     CREATE TABLE IF NOT EXISTS _migrations (
@@ -128,8 +147,23 @@ function runMigrations(database: DatabaseSync): void {
 
   for (const { name, sql } of MIGRATIONS) {
     if (ran.has(name)) continue;
-    database.exec(sql);
-    database.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
+
+    database.exec('BEGIN');
+    try {
+      database.exec(sql);
+      database.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
+      database.exec('COMMIT');
+    } catch (err) {
+      // SQLite auto-rolls-back on some errors, in which case ROLLBACK itself throws
+      // ("no transaction is active"). Swallow that so the *original* failure is what
+      // reaches the caller — it's the one that says what actually went wrong.
+      try { database.exec('ROLLBACK'); } catch { /* already rolled back by SQLite */ }
+      throw new Error(
+        `Migration ${name} failed and was rolled back — your data is unchanged. ` +
+          `Cause: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
+      );
+    }
     console.log(`[DB] Migration applied: ${name}`);
   }
 }
