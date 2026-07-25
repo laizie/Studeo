@@ -284,15 +284,25 @@ interface TimerSnapshot {
   lastBlockEndedAt: number | null;
 }
 
+const SNAPSHOT_KEY = 'studeo:timerState';
+
 function readSnapshot(): TimerSnapshot | null {
   try {
-    const raw = localStorage.getItem('studeo:timerState');
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as TimerSnapshot;
     if (s.phase !== 'focus' && s.phase !== 'short_break' && s.phase !== 'long_break') return null;
     return s;
   } catch {
     return null;
+  }
+}
+
+function writeSnapshot(s: TimerSnapshot): void {
+  try {
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(s));
+  } catch {
+    /* storage full or unavailable — a lost resume beats a thrown error at module scope */
   }
 }
 
@@ -371,6 +381,19 @@ const restored = (() => {
     : phaseSecs(s.phase, initFocusSecs, initBreakSecs, initLongBreakSecs);
   return { phase: s.phase, timeLeft, isRunning: false, endsAt: null, focusCount, intention, lastBlockEndedAt };
 })();
+
+// Retire the snapshot we just consumed, by overwriting it with what we actually
+// restored. This is what makes startup recovery IDEMPOTENT, and it is load-bearing:
+// the "phase finished while the app was closed" branch above LOGS A STUDY SESSION.
+// The write-back below is a store subscription, and Zustand only notifies on later
+// set() calls — so without this line the stale {isRunning: true, endsAt: <past>}
+// snapshot would survive untouched whenever the user doesn't touch the timer, and
+// every subsequent launch would log that same focus block again, silently inflating
+// the heatmap, "focused this week", and the Weekly Review with phantom sessions.
+//
+// Rule of thumb: a recovery routine has to retire the state it consumes, or it isn't
+// recovery — it's a replay.
+writeSnapshot(restored);
 
 export const useTimerStore = create<TimerState>((set, get) => ({
   phase:       restored.phase,
@@ -508,7 +531,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
 // Snapshot every change so a session survives quitting the app (restored above).
 useTimerStore.subscribe((s) => {
-  const snapshot: TimerSnapshot = {
+  writeSnapshot({
     phase: s.phase,
     timeLeft: s.timeLeft,
     isRunning: s.isRunning,
@@ -516,6 +539,5 @@ useTimerStore.subscribe((s) => {
     focusCount: s.focusCount,
     intention: s.intention,
     lastBlockEndedAt: s.lastBlockEndedAt,
-  };
-  localStorage.setItem('studeo:timerState', JSON.stringify(snapshot));
+  });
 });
