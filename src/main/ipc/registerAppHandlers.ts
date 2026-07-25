@@ -24,6 +24,8 @@ const SETTING_KEYS = new Set([
   'breakMins',
   'longBreakMins',
   'customTechnique',
+  // Last .ics feed URL used on the Import page, so a re-import is one click.
+  'canvasFeedUrl',
 ]);
 
 // App-level utilities for a local-first app: let the user see exactly where
@@ -41,9 +43,20 @@ export function registerAppHandlers(): void {
   });
 
   ipcMain.handle(IPC.APP.SET_SETTING, (_event, key: string, value: string) => {
-    // Ignore unknown keys / non-string values rather than throwing — a bad call just
-    // doesn't persist anything.
-    if (SETTING_KEYS.has(key) && typeof value === 'string') setSetting(key, value);
+    // The allowlist is the security boundary: IPC input is untrusted, so we never write
+    // an arbitrary key. But dropping unknown keys *silently* turned a one-word typo into
+    // an invisible product bug — 'canvasFeedUrl' was written by the Import page and
+    // discarded here for however long, so the feed URL was simply never remembered and
+    // nothing anywhere said so. Refusing is still right; refusing quietly is not.
+    if (!SETTING_KEYS.has(key)) {
+      console.warn(`[settings] Ignoring unknown key "${key}" — add it to SETTING_KEYS if it's real.`);
+      return;
+    }
+    if (typeof value !== 'string') {
+      console.warn(`[settings] Ignoring non-string value for "${key}" (got ${typeof value}).`);
+      return;
+    }
+    setSetting(key, value);
   });
 
   // True OS fullscreen for Focus Mode. The HTML Fullscreen API can leave the window

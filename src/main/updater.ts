@@ -30,7 +30,10 @@ export function initAutoUpdater(): void {
   updateElectronApp({
     updateSource: {
       type: UpdateSourceType.ElectronPublicUpdateService,
-      repo: 'laizie/classtrack',
+      // Must match the repo the release workflow publishes to — this pointed at the
+      // old "classtrack" working title long after the rename, so every installed copy
+      // asked an endpoint that has no releases and silently never updated.
+      repo: 'laizie/Studeo',
     },
     // Check on launch and then hourly. The service is cheap to hit and this
     // keeps a long-running app reasonably fresh without being chatty.
