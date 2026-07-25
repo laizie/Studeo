@@ -11,7 +11,8 @@ import { useTasks } from '../../lib/queries/useTasks';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
 import { useTerms } from '../../lib/queries/useTerms';
 import { useStudySessions } from '../../lib/queries/useStudySessions';
-import { useTermFilter } from '../../lib/useTermFilter';
+import { useTermFilter, matchesTermFilter } from '../../lib/useTermFilter';
+import { useToday, useHourOfDay } from '../../lib/useToday';
 import type { Assignment, Course, ClassMeeting, Task } from '../../../shared/types';
 import { parseDateLocal, computeDeadlineLabel, dueSortValue, formatDueDate } from '../../../shared/deadlines';
 import { localDayKey } from '../../../shared/studyStats';
@@ -25,15 +26,14 @@ import SemesterTimelineStrip from './SemesterTimelineStrip';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function greetingText(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
+function greetingText(hour: number): string {
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
   return 'Good evening';
 }
 
-function todayLabel(): string {
-  return new Date().toLocaleDateString('en-US', {
+function todayLabel(today: Date): string {
+  return today.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 }
@@ -43,8 +43,7 @@ function formatTime(t: string): string {
   return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
-function getWeekEnd(): Date {
-  const today = new Date();
+function getWeekEnd(today: Date): Date {
   const day = today.getDay();
   const diffToMon = day === 0 ? -6 : 1 - day;
   const mon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diffToMon);
@@ -52,15 +51,14 @@ function getWeekEnd(): Date {
 }
 
 /** A YYYY-MM-DD key `offsetDays` from today, built from local date parts (DST-safe). */
-function dayKeyFromToday(offsetDays: number): string {
-  const d = new Date();
-  return localDayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() + offsetDays));
+function dayKeyFromToday(today: Date, offsetDays: number): string {
+  return localDayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetDays));
 }
 
 /** The *next* Monday's key — always ≥1 day out, so it never resolves to today. */
-function nextMondayKey(): string {
-  const dow = new Date().getDay(); // 0=Sun … 6=Sat
-  return dayKeyFromToday(((8 - dow) % 7) || 7);
+function nextMondayKey(today: Date): string {
+  const dow = today.getDay(); // 0=Sun … 6=Sat
+  return dayKeyFromToday(today, ((8 - dow) % 7) || 7);
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -95,18 +93,20 @@ function SectionLabel({ title, count, urgent }: {
  * selected; picks a target date (presets or a native date field) and moves the
  * whole selection at once — far less friction than editing each item's dialog.
  */
-function RescheduleBar({ count, date, onDateChange, onApply, onClear, pending }: {
+function RescheduleBar({ count, date, today, onDateChange, onApply, onClear, pending }: {
   count: number;
   date: string;
+  /** Local midnight today, from useToday() — so the presets don't freeze at mount. */
+  today: Date;
   onDateChange: (key: string) => void;
   onApply: () => void;
   onClear: () => void;
   pending: boolean;
 }) {
   const presets: { label: string; key: string }[] = [
-    { label: 'Today',    key: dayKeyFromToday(0) },
-    { label: 'Tomorrow', key: dayKeyFromToday(1) },
-    { label: 'Next Mon', key: nextMondayKey() },
+    { label: 'Today',    key: dayKeyFromToday(today, 0) },
+    { label: 'Tomorrow', key: dayKeyFromToday(today, 1) },
+    { label: 'Next Mon', key: nextMondayKey(today) },
   ];
   return (
     <div className="mb-2 flex flex-wrap items-center gap-2 px-3 py-2 rounded-lg bg-surface border border-line">
@@ -359,7 +359,7 @@ export default function DashboardPage() {
   const isLoading = coursesLoading || assignmentsLoading;
 
   const allCourses = useMemo(() =>
-    (courses ?? []).filter(c => termFilter === null || c.term_id === termFilter),
+    (courses ?? []).filter(c => matchesTermFilter(c, termFilter)),
     [courses, termFilter],
   );
 
@@ -370,19 +370,22 @@ export default function DashboardPage() {
     [allCourses],
   );
 
-  const todayMidnight = useMemo(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  }, []);
+  // Every date-derived section below hangs off this one value, which changes when the
+  // local day does — so leaving the app open overnight no longer strands the page on
+  // yesterday. (The hour drives only the greeting.)
+  const todayMidnight = useToday();
+  const hourOfDay     = useHourOfDay();
 
-  const weekEnd    = useMemo(() => getWeekEnd(), []);
-  const todayDow   = new Date().getDay();
+  const weekEnd  = useMemo(() => getWeekEnd(todayMidnight), [todayMidnight]);
+  const todayDow = todayMidnight.getDay();
 
   const allAssignments = useMemo(() =>
     (assignments ?? []).filter(a => courseIds.has(a.course_id)),
     [assignments, courseIds],
   );
-  const allTasks    = tasks    ?? [];
+  // Wrapped so the identity is stable: `tasks ?? []` produced a fresh array every render,
+  // which invalidated the pendingTasks memo below every time (flagged by exhaustive-deps).
+  const allTasks = useMemo(() => tasks ?? [], [tasks]);
   const allMeetings = useMemo(() =>
     (meetings ?? []).filter(m => courseIds.has(m.course_id)),
     [meetings, courseIds],
@@ -525,12 +528,12 @@ export default function DashboardPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">{greetingText()}</h1>
+          <h1 className="text-2xl font-semibold text-ink">{greetingText(hourOfDay)}</h1>
           <p className="mt-0.5 text-sm text-muted">
-            {todayLabel()}
+            {todayLabel(todayMidnight)}
             {focusedThisWeek && <> · {focusedThisWeek} focused this week</>}
             {/* Weekend nudge — the Weekly Review's seasonal front door */}
-            {[0, 6].includes(new Date().getDay()) && (
+            {[0, 6].includes(todayDow) && (
               <>
                 {' · '}
                 <Link to="/review" className="underline hover:text-ink transition-colors">
@@ -622,6 +625,7 @@ export default function DashboardPage() {
                     <RescheduleBar
                       count={selectedOverdue.size}
                       date={rescheduleDate}
+                      today={todayMidnight}
                       onDateChange={setRescheduleDate}
                       onApply={applyReschedule}
                       onClear={() => setSelectedOverdue(new Set())}

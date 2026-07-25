@@ -15,6 +15,7 @@ import CourseDialog from './CourseDialog';
 import GradeSectionsCard from './GradeSectionsCard';
 import EntityNotesList from '../notes/EntityNotesList';
 import { parseGradeSections, computeSectionStanding, formatPercent } from '../../../shared/grades';
+import { parseDateLocal } from '../../../shared/deadlines';
 import ClassMeetingDialog from './ClassMeetingDialog';
 import MeetingExceptionDialog from './MeetingExceptionDialog';
 import QueryErrorState from '../../components/QueryErrorState';
@@ -39,11 +40,16 @@ const DUE_FILTERS: { label: string; value: DueFilter }[] = [
 ];
 
 // Keep overdue items visible in every filtered view — students need to see them.
+//
+// parseDateLocal, not `new Date(str)`: the latter reads "2026-07-25" as UTC midnight,
+// which is the evening of the 24th anywhere west of Greenwich, so items on the boundary
+// day fell on the wrong side of the cutoff. shared/deadlines.ts exists for exactly this
+// and is used correctly everywhere else; this was the one site that missed it.
 function applyDueFilter(assignments: Assignment[], filter: DueFilter): Assignment[] {
   if (filter === 'all') return assignments;
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() + parseInt(filter));
-  return assignments.filter(a => new Date(a.due_date) <= cutoff);
+  cutoff.setDate(cutoff.getDate() + parseInt(filter, 10));
+  return assignments.filter(a => parseDateLocal(a.due_date) <= cutoff);
 }
 
 export default function CourseDetailPage() {

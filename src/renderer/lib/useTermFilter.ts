@@ -10,6 +10,25 @@ import { localDayKey } from '../../shared/studyStats';
  * on every null would snap the dropdown back when the user explicitly picks
  * "All semesters".
  */
+/**
+ * Does this course belong in the current term view?
+ *
+ * A course with no semester is *unfiled*, not "filed under a different semester" — so
+ * it stays visible in every view. Without this, adding a course from the Dashboard and
+ * leaving Semester on its default ("— No semester —") made it vanish the moment it
+ * saved, because the dropdown had already auto-selected the current term. If it was the
+ * only course, the page then rendered the empty state: "No courses yet." Indistinguishable
+ * from data loss, on the very first thing a new student does after the setup wizard.
+ *
+ * Shared by every screen that filters by semester so they can't disagree about it.
+ */
+export function matchesTermFilter(
+  course: { term_id: string | null },
+  termFilter: string | null,
+): boolean {
+  return termFilter === null || course.term_id === null || course.term_id === termFilter;
+}
+
 export function useTermFilter() {
   const { data: terms = [] } = useTerms();
   const termFilter            = usePageFiltersStore(s => s.termFilter);

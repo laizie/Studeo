@@ -8,6 +8,7 @@ import TaskRow from './TaskRow';
 import AddTaskDialog from './AddTaskDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 import { usePageFiltersStore, type TasksDueFilter } from '../../store/usePageFiltersStore';
+import { useToday } from '../../lib/useToday';
 
 type DueFilter = TasksDueFilter;
 
@@ -17,20 +18,18 @@ const FILTERS: { label: string; value: DueFilter }[] = [
   { label: 'All',        value: 'all'   },
 ];
 
-function getWeekEnd(): Date {
-  const today = new Date();
+function getWeekEnd(today: Date): Date {
   const day = today.getDay();
   const diffToMon = day === 0 ? -6 : 1 - day;
   const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diffToMon);
   return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
 }
 
-function getMonthEnd(): Date {
-  const today = new Date();
+function getMonthEnd(today: Date): Date {
   return new Date(today.getFullYear(), today.getMonth() + 1, 0); // day 0 of next month = last day of this month
 }
 
-function applyFilter(tasks: Task[], filter: DueFilter, showCompleted: boolean): Task[] {
+function applyFilter(tasks: Task[], filter: DueFilter, showCompleted: boolean, today: Date): Task[] {
   let result = tasks;
 
   if (!showCompleted) {
@@ -38,10 +37,10 @@ function applyFilter(tasks: Task[], filter: DueFilter, showCompleted: boolean): 
   }
 
   if (filter === 'week') {
-    const end = getWeekEnd();
+    const end = getWeekEnd(today);
     result = result.filter(t => parseDateLocal(t.due_date) <= end);
   } else if (filter === 'month') {
-    const end = getMonthEnd();
+    const end = getMonthEnd(today);
     result = result.filter(t => parseDateLocal(t.due_date) <= end);
   }
 
@@ -58,11 +57,15 @@ export default function TasksPage() {
   const [dialogOpen, setDialogOpen]            = useState(false);
   const [editingTask, setEditingTask]          = useState<Task | undefined>();
 
-  const allTasks = tasks ?? [];
+  // Stable identity so the memo below doesn't recompute on every render (exhaustive-deps).
+  const allTasks = useMemo(() => tasks ?? [], [tasks]);
+
+  // "This week" / "This month" are relative to today, so they have to move when it does.
+  const today = useToday();
 
   const filtered = useMemo(
-    () => applyFilter(allTasks, filter, showCompleted),
-    [allTasks, filter, showCompleted]
+    () => applyFilter(allTasks, filter, showCompleted, today),
+    [allTasks, filter, showCompleted, today]
   );
 
   function openAdd() {

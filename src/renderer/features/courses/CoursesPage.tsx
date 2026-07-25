@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Download, GraduationCap } from 'lucide-react';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
-import { useTermFilter } from '../../lib/useTermFilter';
+import { useTermFilter, matchesTermFilter } from '../../lib/useTermFilter';
 import CourseCard from './CourseCard';
 import { parseGradeSections, computeSectionStanding } from '../../../shared/grades';
 import CourseDialog from './CourseDialog';
@@ -16,7 +16,7 @@ export default function CoursesPage() {
   const { terms, termFilter, setTermFilter } = useTermFilter();
 
   const filtered = useMemo(() =>
-    (courses ?? []).filter(c => termFilter === null || c.term_id === termFilter),
+    (courses ?? []).filter(c => matchesTermFilter(c, termFilter)),
     [courses, termFilter],
   );
 

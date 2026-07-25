@@ -14,6 +14,7 @@ import AddTaskDialog from '../tasks/AddTaskDialog';
 import QueryErrorState from '../../components/QueryErrorState';
 import { usePageFiltersStore, type ThisWeekWindow } from '../../store/usePageFiltersStore';
 import Switch from '../../components/Switch';
+import { useToday } from '../../lib/useToday';
 
 // ── Window types + bounds ─────────────────────────────────────────────────────
 
@@ -27,8 +28,7 @@ interface WindowConfig {
   end:      Date;
 }
 
-function getWindowConfig(win: Window): WindowConfig {
-  const today = new Date();
+function getWindowConfig(win: Window, today: Date): WindowConfig {
   const d = today.getDate();
   const day = today.getDay();
   const diffToMon = day === 0 ? -6 : 1 - day;
@@ -61,9 +61,7 @@ function getWindowConfig(win: Window): WindowConfig {
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function dayLabel(date: Date): string {
-  const today = new Date();
-  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+function dayLabel(date: Date, todayMid: Date): string {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diff = Math.round((d.getTime() - todayMid.getTime()) / 86_400_000);
   if (diff < 0) return 'Overdue';
@@ -104,12 +102,19 @@ export default function ThisWeekPage() {
 
   const isLoading = assignmentsLoading || (showTasks && tasksLoading);
 
+  // Local midnight, refreshed when the day rolls over — the window ranges and the
+  // Today/Tomorrow/Overdue labels below are all relative to it.
+  const today = useToday();
+
   const courseMap = useMemo(
     () => new Map((courses ?? []).map(c => [c.id, c])),
     [courses]
   );
 
-  const windowConfig = useMemo(() => getWindowConfig(activeWindow), [activeWindow]);
+  const windowConfig = useMemo(
+    () => getWindowConfig(activeWindow, today),
+    [activeWindow, today],
+  );
 
   const relevant = useMemo((): DueItem[] => {
     const items: DueItem[] = [];
@@ -144,13 +149,13 @@ export default function ThisWeekPage() {
   const grouped = useMemo(() => {
     const map = new Map<string, DueItem[]>();
     for (const item of relevant) {
-      const label = dayLabel(parseDateLocal(item.data.due_date));
+      const label = dayLabel(parseDateLocal(item.data.due_date), today);
       const bucket = map.get(label) ?? [];
       if (!map.has(label)) map.set(label, bucket);
       bucket.push(item);
     }
     return map;
-  }, [relevant]);
+  }, [relevant, today]);
 
   function openEditAssignment(a: Assignment) {
     setEditingAssignment(a);
