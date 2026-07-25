@@ -1,10 +1,11 @@
 import { ipcMain } from 'electron';
-import { IPC } from '../../shared/types';
+import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES } from '../../shared/types';
 import type {
   AssignmentStatus,
   CreateAssignmentInput,
   UpdateAssignmentInput,
 } from '../../shared/types';
+import { assertOptionalOneOf } from '../../shared/validate';
 import {
   listAssignments,
   createAssignment,
@@ -33,6 +34,16 @@ function validateDueTime(input: { dueTime?: string | null }): void {
   }
 }
 
+// type/status are fixed enums the whole UI branches on, but they were being written
+// straight to SQL unchecked (and the columns carry no CHECK constraint either). The
+// dropdowns only ever produce valid values — that's exactly the assumption main isn't
+// allowed to make. The ICS importer and syllabus parser are the realistic ways a
+// surprise value gets in.
+function validateEnums(input: { type?: unknown; status?: unknown }): void {
+  assertOptionalOneOf(input.type, ASSIGNMENT_TYPES, 'type');
+  assertOptionalOneOf(input.status, ASSIGNMENT_STATUSES, 'status');
+}
+
 export function registerAssignmentHandlers(): void {
   ipcMain.handle(
     IPC.ASSIGNMENTS.LIST,
@@ -46,6 +57,7 @@ export function registerAssignmentHandlers(): void {
     if (!input.dueDate)       throw new Error('dueDate is required');
     validateGradeFields(input);
     validateDueTime(input);
+    validateEnums(input);
     return createAssignment(input);
   });
 
@@ -57,6 +69,10 @@ export function registerAssignmentHandlers(): void {
       if (!input.name?.trim()) throw new Error('Assignment name is required on every row');
       if (!input.dueDate)      throw new Error('dueDate is required on every row');
       validateDueTime(input);
+      validateEnums(input);
+      // The batch path skipped this while the single-create path had it — and the
+      // importer is the likeliest source of a nonsense score in the first place.
+      validateGradeFields(input);
     }
     return createAssignments(inputs);
   });
@@ -65,6 +81,7 @@ export function registerAssignmentHandlers(): void {
     if (!id) throw new Error('Assignment id is required');
     validateGradeFields(input);
     validateDueTime(input);
+    validateEnums(input);
     return updateAssignment(id, input);
   });
 

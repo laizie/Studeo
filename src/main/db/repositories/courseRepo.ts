@@ -69,9 +69,30 @@ export function updateCourse(id: string, input: UpdateCourseInput): Course {
  *    make the whole delete fail for any course that was ever studied;
  *  - study blocks planned for the course are removed (directly, or via the
  *    assignment CASCADE for exam back-planning blocks);
- *  - notes survive; only their links to this course are removed;
+ *  - notes survive; their links to the course AND to its assignments and lectures are
+ *    removed, because those rows are about to disappear too (see NOTE_LINK_SCOPE);
  *  - assignments → subtasks and class meetings → exceptions go via ON DELETE CASCADE.
  */
+/**
+ * Every note_link that dies with this course. `entity_id` is polymorphic, so it can't be
+ * a cascading foreign key — which means the cascade that removes the course's assignments
+ * and class meetings leaves *their* links behind, pointing at ids that no longer exist.
+ * The per-row delete handlers call deleteLinksForEntity(); the cascade path bypasses them.
+ *
+ * Written once and used by both the snapshot and the DELETE below, because the invariant
+ * that actually matters is that those two never drift: anything removed has to be
+ * captured first, or Undo silently restores less than it took away.
+ *
+ * Study-session links are deliberately absent — sessions survive a course delete (their
+ * course_id is nulled), so their notes should stay attached.
+ *
+ * Takes the course id three times (?, ?, ?).
+ */
+const NOTE_LINK_SCOPE = `
+  (entity_type = 'course'        AND entity_id = ?)
+   OR (entity_type = 'assignment'    AND entity_id IN (SELECT id FROM assignments     WHERE course_id = ?))
+   OR (entity_type = 'class_meeting' AND entity_id IN (SELECT id FROM class_meetings  WHERE course_id = ?))`;
+
 export function deleteCourse(id: string): CourseSnapshot | null {
   const db = getDb();
   const course = getCourse(id);
@@ -106,15 +127,17 @@ export function deleteCourse(id: string): CourseSnapshot | null {
       db.prepare('SELECT id FROM study_sessions WHERE course_id = ?').all(id) as { id: string }[]
     ).map(r => r.id),
     noteLinks: db
-      .prepare("SELECT * FROM note_links WHERE entity_type = 'course' AND entity_id = ?")
-      .all(id) as unknown as NoteLink[],
+      .prepare(`SELECT * FROM note_links WHERE ${NOTE_LINK_SCOPE}`)
+      .all(id, id, id) as unknown as NoteLink[],
   };
 
   db.exec('BEGIN');
   try {
     db.prepare('UPDATE study_sessions SET course_id = NULL WHERE course_id = ?').run(id);
     db.prepare('DELETE FROM study_blocks WHERE course_id = ?').run(id);
-    db.prepare("DELETE FROM note_links WHERE entity_type = 'course' AND entity_id = ?").run(id);
+    // Must run BEFORE the course delete: once the cascade has removed the assignments
+    // and meetings, the subselects above can no longer find which links belonged to them.
+    db.prepare(`DELETE FROM note_links WHERE ${NOTE_LINK_SCOPE}`).run(id, id, id);
     db.prepare('DELETE FROM courses WHERE id = ?').run(id);
     db.exec('COMMIT');
   } catch (err) {

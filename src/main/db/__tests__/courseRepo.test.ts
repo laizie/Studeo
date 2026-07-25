@@ -20,6 +20,8 @@ import { createAssignment, listAssignments } from '../repositories/assignmentRep
 import { createSubtask, listSubtasks } from '../repositories/subtaskRepo';
 import { createClassMeeting, listClassMeetings } from '../repositories/classMeetingRepo';
 import { createStudySession, listStudySessions } from '../repositories/studySessionRepo';
+import { createNote, getNote } from '../repositories/noteRepo';
+import { createNoteLink, listLinksForNote } from '../repositories/noteLinkRepo';
 
 beforeEach(() => {
   mockDb.current = createTestDb();
@@ -187,6 +189,43 @@ describe('courseRepo', () => {
       // Cascades really ran: the children are gone from the DB, not just the course.
       expect(listAssignments({ courseId: c.id })).toHaveLength(0);
     });
+
+    // entity_id is polymorphic so it can't be a cascading FK. The per-row delete
+    // handlers clean links up; the course cascade bypasses them, which used to leave
+    // links pointing at assignment and meeting ids that no longer existed.
+    it('removes note links for its assignments and lectures, not just for itself', () => {
+      const c = createCourse({ name: 'Physics', abbreviation: 'PHY', color: '#111' });
+      const a = createAssignment({ courseId: c.id, name: 'Lab 1', type: 'Lab', dueDate: '2026-03-10' });
+      const m = createClassMeeting({ courseId: c.id, dayOfWeek: 1, startTime: '09:00', endTime: '10:00' });
+      const note = createNote({ title: 'Week 1' });
+      createNoteLink({ noteId: note.id, entityType: 'course', entityId: c.id });
+      createNoteLink({ noteId: note.id, entityType: 'assignment', entityId: a.id });
+      createNoteLink({ noteId: note.id, entityType: 'class_meeting', entityId: m.id, occurrenceDate: '2026-03-09' });
+
+      const snap = deleteCourse(c.id)!;
+
+      // All three were captured, so Undo can put back exactly what was taken.
+      expect(snap.noteLinks).toHaveLength(3);
+      expect(snap.noteLinks.map(l => l.entity_type).sort())
+        .toEqual(['assignment', 'class_meeting', 'course']);
+      // And none survive as dangling rows.
+      expect(listLinksForNote(note.id)).toHaveLength(0);
+      // The note itself is untouched — notes outlive the courses they mention.
+      expect(getNote(note.id)).not.toBeNull();
+    });
+
+    it('leaves study-session links alone, since the sessions themselves survive', () => {
+      const c = createCourse({ name: 'Physics', abbreviation: 'PHY', color: '#111' });
+      const session = createStudySession({
+        startedAt: '2026-03-01T10:00:00Z', durationSeconds: 1500, kind: 'focus', courseId: c.id,
+      });
+      const note = createNote({ title: 'Session notes' });
+      createNoteLink({ noteId: note.id, entityType: 'study_session', entityId: session.id });
+
+      deleteCourse(c.id);
+
+      expect(listLinksForNote(note.id)).toHaveLength(1);
+    });
   });
 
   // ── restoreCourse (the Undo path) ───────────────────────────────────────────
@@ -226,6 +265,24 @@ describe('courseRepo', () => {
       // The study session is re-linked to the course it was logged against.
       const sessions = listStudySessions();
       expect(sessions.find(x => x.id === session.id)!.course_id).toBe(c.id);
+    });
+
+    it('re-attaches the notes that were linked to its assignments and lectures', () => {
+      const c = createCourse({ name: 'Physics', abbreviation: 'PHY', color: '#111' });
+      const a = createAssignment({ courseId: c.id, name: 'Lab 1', type: 'Lab', dueDate: '2026-03-10' });
+      const m = createClassMeeting({ courseId: c.id, dayOfWeek: 1, startTime: '09:00', endTime: '10:00' });
+      const note = createNote({ title: 'Week 1' });
+      createNoteLink({ noteId: note.id, entityType: 'course', entityId: c.id });
+      createNoteLink({ noteId: note.id, entityType: 'assignment', entityId: a.id });
+      createNoteLink({ noteId: note.id, entityType: 'class_meeting', entityId: m.id, occurrenceDate: '2026-03-09' });
+
+      restoreCourse(deleteCourse(c.id)!);
+
+      // Restore puts the same ids back, so every link resolves to a real row again.
+      const links = listLinksForNote(note.id);
+      expect(links).toHaveLength(3);
+      expect(links.map(l => l.entity_type).sort()).toEqual(['assignment', 'class_meeting', 'course']);
+      expect(links.find(l => l.entity_type === 'class_meeting')!.occurrence_date).toBe('2026-03-09');
     });
 
     it('restores a course that had no children', () => {

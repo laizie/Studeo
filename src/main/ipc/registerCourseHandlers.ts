@@ -9,6 +9,7 @@ import {
   deleteCourse,
   restoreCourse,
 } from '../db/repositories/courseRepo';
+import { assertHexColor } from '../../shared/validate';
 
 export function registerCourseHandlers(): void {
   ipcMain.handle(IPC.COURSES.LIST, () => listCourses());
@@ -19,11 +20,15 @@ export function registerCourseHandlers(): void {
     if (!input.name?.trim())         throw new Error('Course name is required');
     if (!input.abbreviation?.trim()) throw new Error('Abbreviation is required');
     if (!input.color)                throw new Error('Color is required');
+    // The color is rendered straight into CSS (accent bars, pills, calendar chips),
+    // so a truthiness check isn't enough — check the shape.
+    assertHexColor(input.color, 'Course color');
     return createCourse(input);
   });
 
   ipcMain.handle(IPC.COURSES.UPDATE, (_event, id: string, input: UpdateCourseInput) => {
     if (!id) throw new Error('Course id is required');
+    if (input.color !== undefined) assertHexColor(input.color, 'Course color');
     if (input.gradeSections !== undefined && input.gradeSections !== null) {
       const sections = input.gradeSections;
       if (!Array.isArray(sections)) throw new Error('gradeSections must be an array');
