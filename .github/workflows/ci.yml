@@ -23,5 +23,10 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      # Fails the build on errors only; exhaustive-deps and the non-null-assertion
+      # backlog stay warnings, so they're visible without blocking every push.
+      - name: Lint
+        run: npm run lint
+
       - name: Test with coverage
         run: npm run test:coverage

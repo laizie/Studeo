@@ -10,11 +10,30 @@
     "plugin:@typescript-eslint/recommended",
     "plugin:import/recommended",
     "plugin:import/electron",
-    "plugin:import/typescript"
+    "plugin:import/typescript",
+    "plugin:react/recommended",
+    "plugin:react/jsx-runtime",
+    "plugin:react-hooks/recommended"
   ],
   "parser": "@typescript-eslint/parser",
+  "settings": {
+    "react": { "version": "detect" }
+  },
   "rules": {
-    "import/no-unresolved": ["error", { "ignore": ["\\.sql\\?raw$"] }]
+    "import/no-unresolved": ["error", { "ignore": ["\\.sql\\?raw$"] }],
+
+    "react/prop-types": "off",
+
+    "react/no-unescaped-entities": "off",
+
+    "react-hooks/rules-of-hooks": "error",
+
+    "react-hooks/exhaustive-deps": "warn",
+
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ]
   },
   "ignorePatterns": [
     "vite.main.config.ts",
