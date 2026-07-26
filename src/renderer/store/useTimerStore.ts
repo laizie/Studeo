@@ -529,9 +529,21 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 }));
 
-// Snapshot every change so a session survives quitting the app (restored above).
-useTimerStore.subscribe((s) => {
-  writeSnapshot({
+// Snapshot so a session survives quitting the app (restored above) — but only when
+// something that MATTERS to the restore has changed.
+//
+// This used to write on every store change, and tick() sets timeLeft once a second, so
+// a running timer meant a synchronous JSON serialise + localStorage write every second
+// for the life of the session. It bought nothing: while the timer runs, `endsAt` is the
+// source of truth and timeLeft is derived from it (that's the whole reason the countdown
+// survives navigation and OS throttling without drifting). The only moment timeLeft is
+// load-bearing is while PAUSED — and pausing flips isRunning, which is in this list.
+//
+// So: persist on the transitions, and once more on the way out for anything in flight.
+let lastWritten = '';
+
+function snapshotOf(s: TimerState): TimerSnapshot {
+  return {
     phase: s.phase,
     timeLeft: s.timeLeft,
     isRunning: s.isRunning,
@@ -539,5 +551,20 @@ useTimerStore.subscribe((s) => {
     focusCount: s.focusCount,
     intention: s.intention,
     lastBlockEndedAt: s.lastBlockEndedAt,
-  });
+  };
+}
+
+useTimerStore.subscribe((s) => {
+  const snap = snapshotOf(s);
+  // Compare on everything except timeLeft — the once-a-second field.
+  const key = JSON.stringify({ ...snap, timeLeft: 0 });
+  if (key === lastWritten) return;
+  lastWritten = key;
+  writeSnapshot(snap);
+});
+
+// A running timer's timeLeft has been changing without being written; capture the real
+// remaining time as the window goes away, so a quit mid-block resumes where it stopped.
+window.addEventListener('beforeunload', () => {
+  writeSnapshot(snapshotOf(useTimerStore.getState()));
 });

@@ -7,7 +7,7 @@ import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../shared/deadlines';
 import { useUpdateAssignment, useDeleteAssignment, useCreateAssignment } from '../../lib/queries/useAssignments';
-import { useSubtasks } from '../../lib/queries/useSubtasks';
+import { useSubtasksFor } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
 import { URGENCY_CLASS } from '../../lib/urgency';
@@ -40,8 +40,9 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const [stepsOpen, setStepsOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
 
-  const { data: allSubtasks } = useSubtasks();
-  const subtasks = (allSubtasks ?? []).filter(s => s.assignment_id === assignment.id);
+  // Selects only this assignment's steps out of the shared query, so a change to some
+  // other row's checklist doesn't re-render this one (see useSubtasksFor).
+  const { data: subtasks = [] } = useSubtasksFor(assignment.id);
   const doneSteps = subtasks.filter(s => s.completed === 1).length;
 
   const deadline = computeDeadlineLabel(assignment.due_date);
