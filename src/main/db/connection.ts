@@ -18,6 +18,8 @@ import migration011 from './migrations/011_study_session_reflection.sql?raw';
 import migration012 from './migrations/012_study_blocks.sql?raw';
 import migration013 from './migrations/013_assignment_due_time.sql?raw';
 import migration014 from './migrations/014_completed_at.sql?raw';
+import migration015 from './migrations/015_indexes.sql?raw';
+import migration016 from './migrations/016_status_checks.sql?raw';
 
 let db: DatabaseSync | null = null;
 let dbPath: string | null = null;
@@ -95,7 +97,24 @@ export function validateBackupFile(filePath: string): void {
 // Migrations run in order on every startup; already-applied ones are skipped.
 // To add a new migration: import its SQL above and append a new entry below.
 
-const MIGRATIONS: { name: string; sql: string }[] = [
+interface Migration {
+  name: string;
+  sql: string;
+  /**
+   * Run this migration with foreign-key enforcement disabled.
+   *
+   * Needed only for the twelve-step table rebuild SQLite requires when a constraint has
+   * to change (there is no ALTER TABLE ADD CONSTRAINT). The trap: with foreign keys ON,
+   * `DROP TABLE assignments` performs an implicit DELETE of every row first — which
+   * fires ON DELETE CASCADE and would silently wipe every subtask and study block in
+   * the database. And `PRAGMA foreign_keys` is a NO-OP inside a transaction, so a
+   * migration file can't turn it off for itself: the runner has to do it out here,
+   * around the BEGIN. Hence the flag rather than a line of SQL.
+   */
+  foreignKeysOff?: boolean;
+}
+
+const MIGRATIONS: Migration[] = [
   { name: '001_initial.sql', sql: migration001 },
   { name: '002_meeting_exceptions.sql', sql: migration002 },
   { name: '003_subtasks.sql', sql: migration003 },
@@ -110,6 +129,10 @@ const MIGRATIONS: { name: string; sql: string }[] = [
   { name: '012_study_blocks.sql', sql: migration012 },
   { name: '013_assignment_due_time.sql', sql: migration013 },
   { name: '014_completed_at.sql', sql: migration014 },
+  { name: '015_indexes.sql', sql: migration015 },
+  // Rebuilds assignments + tasks; see Migration.foreignKeysOff for why the flag is
+  // mandatory here rather than a PRAGMA line inside the file.
+  { name: '016_status_checks.sql', sql: migration016, foreignKeysOff: true },
 ];
 
 /**
@@ -145,12 +168,28 @@ function runMigrations(database: DatabaseSync): void {
       .map(r => r.name)
   );
 
-  for (const { name, sql } of MIGRATIONS) {
+  for (const { name, sql, foreignKeysOff } of MIGRATIONS) {
     if (ran.has(name)) continue;
+
+    // Must be toggled outside the transaction — see Migration.foreignKeysOff.
+    if (foreignKeysOff) database.exec('PRAGMA foreign_keys = OFF');
 
     database.exec('BEGIN');
     try {
       database.exec(sql);
+
+      // With enforcement off we've been running unchecked, so verify before committing
+      // that the rebuild didn't leave an orphan behind. This is the safety net that
+      // makes turning foreign keys off acceptable at all.
+      if (foreignKeysOff) {
+        const violations = database.prepare('PRAGMA foreign_key_check').all();
+        if (violations.length > 0) {
+          throw new Error(
+            `left ${violations.length} orphaned row(s) behind — foreign_key_check failed`,
+          );
+        }
+      }
+
       database.prepare('INSERT INTO _migrations (name) VALUES (?)').run(name);
       database.exec('COMMIT');
     } catch (err) {
@@ -163,6 +202,10 @@ function runMigrations(database: DatabaseSync): void {
           `Cause: ${err instanceof Error ? err.message : String(err)}`,
         { cause: err },
       );
+    } finally {
+      // Restore enforcement on every path, including the throw above. Leaving it off
+      // would silently disable every cascade and FK check for the rest of the session.
+      if (foreignKeysOff) database.exec('PRAGMA foreign_keys = ON');
     }
     console.log(`[DB] Migration applied: ${name}`);
   }

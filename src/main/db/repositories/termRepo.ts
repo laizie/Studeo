@@ -38,8 +38,25 @@ export function updateTerm(id: string, input: UpdateTermInput): Term {
   return getTerm(id)!;
 }
 
+/**
+ * Delete a term, unfiling its courses first.
+ *
+ * Both writes in one transaction: courses.term_id has a plain REFERENCES with no
+ * ON DELETE rule, so the DELETE fails outright while any course still points at the
+ * term. Run as two independent statements, a failure on the second would leave every
+ * course silently unfiled from a term that still exists — the halfway state is worse
+ * than either end. Every other multi-write path in this layer is already wrapped;
+ * this one was the exception.
+ */
 export function deleteTerm(id: string): void {
-  // Nulls out term_id on any courses that referenced this term
-  getDb().prepare('UPDATE courses SET term_id = NULL WHERE term_id = ?').run(id);
-  getDb().prepare('DELETE FROM terms WHERE id = ?').run(id);
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    db.prepare('UPDATE courses SET term_id = NULL WHERE term_id = ?').run(id);
+    db.prepare('DELETE FROM terms WHERE id = ?').run(id);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
