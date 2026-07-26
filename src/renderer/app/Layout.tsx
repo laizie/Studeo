@@ -24,10 +24,19 @@ export default function Layout() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
+      // Don't open a second surface on top of an open one. Without this, ⌘N inside
+      // Quick Add re-triggered its own open (resetting the form the user was typing
+      // into), and ⌘K from a dialog stacked the palette over it with the dialog's focus
+      // trap still fighting for the keyboard. `[role="dialog"]` covers every modal in
+      // the app, since they all set it.
+      const modalOpen = !!document.querySelector('[role="dialog"]');
+
       if (mod && e.key === 'n') {
+        if (modalOpen) return;
         e.preventDefault();
         setQuickAddOpen(true);
       } else if (mod && e.key === 'k') {
+        if (modalOpen) return;
         e.preventDefault();
         setPaletteOpen(true);
       } else if (mod && e.key === 'z' && !e.shiftKey) {

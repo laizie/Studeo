@@ -8,6 +8,7 @@ import { parseSyllabus } from '../../../shared/syllabusParser';
 import { generateRepeats } from '../../../shared/repeat';
 import { cn } from '../../lib/utils';
 import { errorReason } from '../../lib/errors';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 // ── Row type ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,42 @@ interface Row {
 
 function makeRow(name = '', type: AssignmentType = 'Assignment', dueDate = ''): Row {
   return { id: crypto.randomUUID(), name, type, dueDate };
+}
+
+function rowHasContent(r: Row): boolean {
+  return r.name.trim() !== '' || r.dueDate !== '';
+}
+
+// ── Draft persistence ─────────────────────────────────────────────────────────
+// This screen exists to absorb a whole syllabus in one sitting (PRD §8.7 calls fast
+// entry a priority, not a nice-to-have), and it had no protection at all: clicking
+// Cancel, the back link, or any sidebar item discarded forty typed rows instantly.
+//
+// A draft beats a confirm dialog here. A confirm can only ask "are you sure?" at the
+// one exit it knows about, while an autosaved draft survives every exit including the
+// ones it can't intercept — and it turns "I lost my work" into "it's still here".
+//
+// localStorage is the right home for this specific thing: it's per-course, unbounded
+// in key count (so it doesn't belong in the main-process settings allowlist), and its
+// job is to survive navigation within a session, which localStorage does reliably.
+// (Whether it survives a full quit in a packaged build is the open question noted in
+// settings.ts — that would be a bonus here, not the point.)
+const draftKey = (courseId: string) => `studeo:batchDraft:${courseId}`;
+
+function readDraft(courseId: string): Row[] | null {
+  try {
+    const raw = localStorage.getItem(draftKey(courseId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    // Re-mint ids so a duplicated draft can never collide with a live row's key.
+    const rows: Row[] = parsed
+      .filter((r: unknown): r is Row => !!r && typeof (r as Row).name === 'string')
+      .map((r: Row) => makeRow(r.name, r.type ?? 'Assignment', r.dueDate ?? ''));
+    return rows.some(rowHasContent) ? rows : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Shared input style ────────────────────────────────────────────────────────
@@ -39,7 +76,13 @@ export default function BatchAddPage() {
   const { data: course } = useCourse(courseId ?? '');
   const createAssignments = useCreateAssignments();
 
-  const [rows, setRows]           = useState<Row[]>([makeRow()]);
+  // Restore a draft on mount, so coming back from an accidental navigation finds the
+  // work still here rather than an empty grid.
+  const [rows, setRows] = useState<Row[]>(
+    () => (courseId ? readDraft(courseId) : null) ?? [makeRow()],
+  );
+  const [restoredDraft] = useState(() => !!(courseId && readDraft(courseId)));
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [syllabusText, setSyllabusText] = useState('');
   const [importError, setImportError]   = useState('');
@@ -65,6 +108,23 @@ export default function BatchAddPage() {
       pendingFocusId.current = null;
     }
   }, [rows]);
+
+  // Autosave the grid. Cheap (a few dozen small objects) and it runs on the same
+  // change that renders, so the draft is never behind what's on screen.
+  const hasContent = rows.some(rowHasContent);
+  useEffect(() => {
+    if (!courseId) return;
+    try {
+      if (hasContent) localStorage.setItem(draftKey(courseId), JSON.stringify(rows));
+      else localStorage.removeItem(draftKey(courseId));
+    } catch { /* storage full or unavailable — the grid still works, it just won't persist */ }
+  }, [rows, courseId, hasContent]);
+
+  function discardDraft() {
+    if (courseId) {
+      try { localStorage.removeItem(draftKey(courseId)); } catch { /* nothing to clean up */ }
+    }
+  }
 
   // ── Row mutations ─────────────────────────────────────────────────────────
 
@@ -193,6 +253,7 @@ export default function BatchAddPage() {
           dueDate: row.dueDate,
         }))
       );
+      discardDraft(); // saved for real — the draft has done its job
       navigate(`/courses/${courseId}`);
     } catch (err) {
       const reason = errorReason(err) ?? 'Something went wrong';
@@ -222,6 +283,12 @@ export default function BatchAddPage() {
         <p className="mt-0.5 text-sm text-muted">
           {course ? `Adding to ${course.name}` : 'Loading…'}
         </p>
+        {/* Say it out loud — a safety net nobody can see is one they assume isn't there. */}
+        {restoredDraft && (
+          <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+            Picked up where you left off — these rows haven't been saved yet.
+          </p>
+        )}
       </div>
 
       {/* ── Import from syllabus (collapsible) ─────────────────────────── */}
@@ -469,16 +536,34 @@ export default function BatchAddPage() {
             ? 'Saving…'
             : `Save ${validRows.length} assignment${validRows.length !== 1 ? 's' : ''}`}
         </button>
-        <Link
-          to={courseId ? `/courses/${courseId}` : '/courses'}
+        {/* A button, not a Link: with rows filled in this has to ask first, since it's
+            the one exit that means "throw this away" rather than "I'll come back". */}
+        <button
+          type="button"
+          onClick={() => {
+            if (hasContent) setCancelConfirmOpen(true);
+            else navigate(courseId ? `/courses/${courseId}` : '/courses');
+          }}
           className="px-4 py-2 text-sm text-muted hover:text-ink-soft transition-colors"
         >
           Cancel
-        </Link>
+        </button>
         <span className="text-xs text-muted ml-2">
           Enter to jump rows · Tab to move between fields · ⌘↵ to save
         </span>
       </div>
+
+      <ConfirmDialog
+        isOpen={cancelConfirmOpen}
+        title="Discard these rows?"
+        message={`${rows.filter(rowHasContent).length} row(s) haven't been saved yet.`}
+        confirmLabel="Discard"
+        onConfirm={() => {
+          discardDraft();
+          navigate(courseId ? `/courses/${courseId}` : '/courses');
+        }}
+        onClose={() => setCancelConfirmOpen(false)}
+      />
     </div>
   );
 }

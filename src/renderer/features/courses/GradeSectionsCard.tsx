@@ -9,6 +9,7 @@ import {
 } from '../../../shared/grades';
 import { useUpdateCourse } from '../../lib/queries/useCourses';
 import { cn } from '../../lib/utils';
+import { showToast } from '../../store/useToastStore';
 
 interface Props {
   course: Course;
@@ -116,10 +117,12 @@ export default function GradeSectionsCard({ course }: Props) {
 
   function handleSave() {
     if (invalid) return;
-    updateCourse.mutate({
-      id: course.id,
-      input: { gradeSections: sections.length > 0 ? sections : null },
-    });
+    updateCourse.mutate(
+      { id: course.id, input: { gradeSections: sections.length > 0 ? sections : null } },
+      // The card stays open after saving, so without a word of acknowledgment the
+      // click has no visible effect at all — nothing moves, nothing closes.
+      { onSuccess: () => showToast('Grade breakdown saved') },
+    );
   }
 
   return (

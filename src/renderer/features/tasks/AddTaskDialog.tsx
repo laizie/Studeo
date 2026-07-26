@@ -6,6 +6,7 @@ import { generateRepeats } from '../../../shared/repeat';
 import { useCreateTask, useCreateTasks, useUpdateTask } from '../../lib/queries/useTasks';
 import { INPUT_CLASS } from '../../lib/inputClass';
 import { errorReason } from '../../lib/errors';
+import { showToast } from '../../store/useToastStore';
 
 interface Props {
   task?: Task;
@@ -65,14 +66,17 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
         ...followUps.map(o => ({ name: o.name, dueDate: o.dueDate })),
       ];
       await createTasks.mutateAsync(series);
+      showToast(`Added ${series.length} tasks`);
       onClose();
       return;
     }
 
     if (isEditing) {
       await updateTask.mutateAsync({ id: task.id, input: { name: name.trim(), dueDate } });
+      showToast(`Saved “${name.trim()}”`);
     } else {
       await createTask.mutateAsync({ name: name.trim(), dueDate });
+      showToast(`Added “${name.trim()}”`);
     }
     onClose();
   }

@@ -7,6 +7,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { SectionHeading, SettingsCard, SETTINGS_INPUT } from './components';
 import { cn } from '../../lib/utils';
 import { errorReason } from '../../lib/errors';
+import { showToast } from '../../store/useToastStore';
 
 // Semester ranges span months and often years — show "Aug 18, 2026", never raw ISO.
 function formatTermDate(dateStr: string): string {
@@ -40,6 +41,7 @@ export default function SemestersSection() {
     } catch {
       return; // keep the user's input; createTerm.isError renders the message
     }
+    showToast(`Added “${newTermName.trim()}”`);
     setNewTermName('');
     setNewTermStart('');
     setNewTermEnd('');

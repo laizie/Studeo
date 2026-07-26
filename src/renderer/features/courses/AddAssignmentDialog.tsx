@@ -11,6 +11,7 @@ import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import EntityNotesList from '../notes/EntityNotesList';
 import { INPUT_CLASS } from '../../lib/inputClass';
 import { errorReason } from '../../lib/errors';
+import { showToast } from '../../store/useToastStore';
 
 interface Props {
   courseId: string;
@@ -103,6 +104,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
         ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate, dueTime: dueTimeValue })),
       ];
       await createAssignments.mutateAsync(series);
+      showToast(`Added ${series.length} assignments`);
       onClose();
       return;
     }
@@ -117,6 +119,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
         id: assignment.id,
         input: { name: name.trim(), type, dueDate, dueTime: dueTimeValue, ...gradeFields },
       });
+      showToast(`Saved “${name.trim()}”`);
     } else {
       await createAssignment.mutateAsync({
         courseId,
@@ -126,6 +129,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
         dueTime: dueTimeValue,
         ...gradeFields,
       });
+      showToast(`Added “${name.trim()}”`);
     }
 
     onClose();

@@ -68,7 +68,12 @@ export default function CourseDetailPage() {
   const { data: assignments, isLoading: assignmentsLoading, isError: assignmentsError, refetch: refetchAssignments } = useAssignments(
     id ? { courseId: id } : {}
   );
-  const { data: meetings }    = useClassMeetings(id ? { courseId: id } : {});
+  const {
+    data: meetings,
+    isLoading: meetingsLoading,
+    isError: meetingsError,
+    refetch: refetchMeetings,
+  } = useClassMeetings(id ? { courseId: id } : {});
   const { data: terms = [] }  = useTerms();
   const deleteMeeting  = useDeleteClassMeeting();
   const createMeeting  = useCreateClassMeeting();
@@ -218,10 +223,25 @@ export default function CourseDetailPage() {
               <span className="text-xs text-muted">Semester:</span>
               <select
                 value={course.term_id ?? ''}
-                onChange={e => updateCourse.mutate({
-                  id: course.id,
-                  input: { termId: e.target.value || null },
-                })}
+                onChange={e => {
+                  // A mis-click here silently refiles the course into another semester,
+                  // where the term filter then hides it from the pages the student
+                  // actually uses. Say what happened, and offer the way back.
+                  const previous = course.term_id ?? null;
+                  const next = e.target.value || null;
+                  if (next === previous) return;
+                  const nameOf = (tid: string | null) =>
+                    tid ? terms.find(t => t.id === tid)?.name ?? 'a semester' : 'no semester';
+                  updateCourse.mutate(
+                    { id: course.id, input: { termId: next } },
+                    {
+                      onSuccess: () => showUndoToast(
+                        `Moved ${course.abbreviation} to ${nameOf(next)}`,
+                        () => updateCourse.mutate({ id: course.id, input: { termId: previous } }),
+                      ),
+                    },
+                  );
+                }}
                 className="text-xs px-2 py-1 rounded-md border border-line bg-transparent dark:bg-inset text-ink-soft focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-surface-hi cursor-pointer"
               >
                 <option value="">— None —</option>
@@ -326,7 +346,25 @@ export default function CourseDetailPage() {
           </div>
 
           <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
-          {(!meetings || meetings.length === 0) ? (
+          {/* A failed load must never render as "No class times yet" — that reads as
+              "my schedule is gone" rather than "this didn't load". Same rule the page's
+              main error branch follows. */}
+          {meetingsLoading ? (
+            <div className="space-y-2 p-4 animate-pulse">
+              <div className="h-5 rounded bg-inset" />
+              <div className="h-5 rounded bg-inset" />
+            </div>
+          ) : meetingsError ? (
+            <div className="px-4 py-5 text-center">
+              <p className="text-sm text-muted">Couldn't load the class schedule.</p>
+              <button
+                onClick={() => refetchMeetings()}
+                className="mt-2 text-sm text-muted underline hover:text-ink transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (!meetings || meetings.length === 0) ? (
             <p className="text-sm text-muted py-4 px-4">No class times yet.</p>
           ) : (
             <div className="divide-y divide-line">

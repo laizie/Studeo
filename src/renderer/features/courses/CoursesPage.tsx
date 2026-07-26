@@ -91,10 +91,12 @@ export default function CoursesPage() {
             onChange={e => setTermFilter(e.target.value || null)}
             className="px-3 py-1.5 text-sm rounded-lg border border-line bg-surface text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi cursor-pointer"
           >
+            {/* "All" leads: it's the widest option, and readers look for it first
+                rather than after the list it supersedes. */}
+            <option value="">All semesters</option>
             {terms.map(t => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
-            <option value="">All semesters</option>
           </select>
         </div>
       )}

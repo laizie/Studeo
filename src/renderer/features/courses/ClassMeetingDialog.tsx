@@ -4,6 +4,7 @@ import type { ClassMeeting } from '../../../shared/types';
 import { useCreateClassMeeting, useUpdateClassMeeting } from '../../lib/queries/useClassMeetings';
 import { INPUT_CLASS } from '../../lib/inputClass';
 import { errorReason } from '../../lib/errors';
+import { showToast } from '../../store/useToastStore';
 
 interface Props {
   courseId: string;
@@ -58,8 +59,10 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
         id: meeting.id,
         input: { dayOfWeek, startTime, endTime },
       });
+      showToast('Class time updated');
     } else {
       await createMeeting.mutateAsync({ courseId, dayOfWeek, startTime, endTime });
+      showToast('Class time added');
     }
     onClose();
   }
