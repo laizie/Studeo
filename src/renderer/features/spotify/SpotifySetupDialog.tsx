@@ -32,9 +32,19 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // main refuses up front when this system has no OS keychain to keep the token in —
+  // it resolves with { ok: false, error } rather than throwing, so this is a success
+  // callback that has to check. Without the check the dialog would close, the browser
+  // would open, and the "connection" would evaporate with nothing to explain it.
+  const [connectError, setConnectError] = useState('');
+
   const connectMutation = useMutation({
     mutationFn: (id: string) => window.api.spotify.connect(id),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (!result.ok) {
+        setConnectError(result.error ?? "Studeo couldn't start the Spotify connection.");
+        return;
+      }
       // The browser will open; once the user authorises, main sends
       // spotify:auth-callback which useSpotifyAuthListener picks up
       // and invalidates the status query. We just close this dialog.
@@ -46,6 +56,7 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
   function handleConnect() {
     const id = clientId.trim();
     if (!id) return;
+    setConnectError('');
     connectMutation.mutate(id);
   }
 
@@ -172,6 +183,10 @@ export default function SpotifySetupDialog({ isOpen, onClose }: Props) {
                   ← Back
                 </button>
               </div>
+
+              {connectError && (
+                <p className="mt-3 text-xs text-red-600 dark:text-red-400">{connectError}</p>
+              )}
 
               {connectMutation.isError && (
                 <p className="mt-3 text-xs text-red-600 dark:text-red-400">

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UpdateStudySessionInput } from '../../../shared/types';
+import type { UpdateStudySessionInput, StudySession } from '../../../shared/types';
 
 export const studySessionKeys = {
   all: ['studySessions'] as const,
@@ -21,5 +21,26 @@ export function useUpdateStudySession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: studySessionKeys.all });
     },
+  });
+}
+
+/**
+ * Remove a mis-logged session (a timer left running, a duplicate). Returns the row so
+ * the caller can offer Undo — deleting study history without a takeback would be a
+ * worse edge than the one this fixes.
+ */
+export function useDeleteStudySession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => window.api.studySessions.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: studySessionKeys.all }),
+  });
+}
+
+export function useRestoreStudySession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (session: StudySession) => window.api.studySessions.restore(session),
+    onSuccess: () => qc.invalidateQueries({ queryKey: studySessionKeys.all }),
   });
 }

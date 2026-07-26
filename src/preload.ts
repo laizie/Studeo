@@ -11,6 +11,8 @@ import { IPC } from './shared/types';
 import type {
   WindowApi,
   CourseSnapshot,
+  AssignmentSnapshot,
+  StudySession,
   CreateCourseInput,
   UpdateCourseInput,
   AssignmentStatus,
@@ -54,7 +56,8 @@ const api: WindowApi = {
     create:     (input: CreateAssignmentInput)      => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE, input),
     createMany: (inputs: CreateAssignmentInput[])   => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE_MANY, inputs),
     update:     (id, input: UpdateAssignmentInput)  => ipcRenderer.invoke(IPC.ASSIGNMENTS.UPDATE, id, input),
-    delete: (id)                                => ipcRenderer.invoke(IPC.ASSIGNMENTS.DELETE, id),
+    delete:  (id)                               => ipcRenderer.invoke(IPC.ASSIGNMENTS.DELETE, id),
+    restore: (snapshot: AssignmentSnapshot)     => ipcRenderer.invoke(IPC.ASSIGNMENTS.RESTORE, snapshot),
   },
 
   tasks: {
@@ -96,6 +99,8 @@ const api: WindowApi = {
     list:   ()                                       => ipcRenderer.invoke(IPC.STUDY_SESSIONS.LIST),
     create: (input: CreateStudySessionInput)         => ipcRenderer.invoke(IPC.STUDY_SESSIONS.CREATE, input),
     update: (id, input: UpdateStudySessionInput)     => ipcRenderer.invoke(IPC.STUDY_SESSIONS.UPDATE, id, input),
+    delete:  (id)                                    => ipcRenderer.invoke(IPC.STUDY_SESSIONS.DELETE, id),
+    restore: (session: StudySession)                 => ipcRenderer.invoke(IPC.STUDY_SESSIONS.RESTORE, session),
   },
 
   studyBlocks: {

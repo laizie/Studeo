@@ -6,7 +6,7 @@ import SubtaskChecklist from './SubtaskChecklist';
 import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../shared/deadlines';
-import { useUpdateAssignment, useDeleteAssignment, useCreateAssignment } from '../../lib/queries/useAssignments';
+import { useUpdateAssignment, useDeleteAssignment, useRestoreAssignment } from '../../lib/queries/useAssignments';
 import { useSubtasksFor } from '../../lib/queries/useSubtasks';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { showUndoToast } from '../../store/useToastStore';
@@ -32,8 +32,8 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
 
 export default function AssignmentRow({ assignment, onEdit, course }: Props) {
   const updateAssignment = useUpdateAssignment();
-  const deleteAssignment = useDeleteAssignment();
-  const createAssignment = useCreateAssignment();
+  const deleteAssignment  = useDeleteAssignment();
+  const restoreAssignment = useRestoreAssignment();
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === assignment.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -69,23 +69,17 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
     setConfirmOpen(true);
   }
 
-  // Undo for delete = recreate from the row we still hold. Steps (subtasks)
-  // aren't restored — the row itself and its grade are.
+  // Undo restores the snapshot the delete returned — same id, so the steps, planned
+  // study blocks and linked notes all come back attached. It used to re-create the row
+  // through the normal create path, which meant a NEW id and silently dropped every one
+  // of those, plus the original created_at and completed_at. A toast that says "Undo"
+  // has to actually mean it.
   function confirmDelete() {
     deleteAssignment.mutate(assignment.id, {
-      onSuccess: () =>
-        showUndoToast(`Deleted “${assignment.name}”`, () =>
-          createAssignment.mutate({
-            courseId: assignment.course_id,
-            name: assignment.name,
-            type: assignment.type,
-            status: assignment.status,
-            dueDate: assignment.due_date.slice(0, 10),
-            dueTime: assignment.due_time,
-            score: assignment.score,
-            pointsPossible: assignment.points_possible,
-          }),
-        ),
+      onSuccess: (snapshot) => {
+        if (!snapshot) return; // already gone — nothing to take back
+        showUndoToast(`Deleted “${assignment.name}”`, () => restoreAssignment.mutate(snapshot));
+      },
     });
   }
 

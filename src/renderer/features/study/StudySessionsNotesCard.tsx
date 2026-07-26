@@ -1,7 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Timer, X, NotebookPen } from 'lucide-react';
+import { Timer, X, NotebookPen, Trash2 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { useStudySessions } from '../../lib/queries/useStudySessions';
+import {
+  useStudySessions,
+  useDeleteStudySession,
+  useRestoreStudySession,
+} from '../../lib/queries/useStudySessions';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { showUndoToast } from '../../store/useToastStore';
 import {
   groupIntoSittings,
   sittingsByDay,
@@ -115,6 +121,28 @@ function SittingNotesDialog({ sitting, onClose }: { sitting: Sitting; onClose: (
 export default function StudySessionsNotesCard() {
   const { data: sessions } = useStudySessions();
   const [selected, setSelected] = useState<Sitting | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Sitting | null>(null);
+  const deleteSession  = useDeleteStudySession();
+  const restoreSession = useRestoreStudySession();
+
+  /**
+   * Remove a whole sitting, because the sitting is the unit on screen — deleting one
+   * of the five blocks behind an afternoon would leave a stretch that's silently
+   * wrong rather than gone. Undo restores every block with its original id, so the
+   * notes thread anchored to the first one resolves again.
+   */
+  function confirmDelete(sitting: Sitting) {
+    const blocks = sitting.blocks;
+    Promise.all(blocks.map(b => deleteSession.mutateAsync(b.id)))
+      .then((removed) => {
+        const restorable = removed.filter((s): s is NonNullable<typeof s> => s !== null);
+        showUndoToast(
+          `Deleted “${sittingTitle(sitting)}”`,
+          () => { restorable.forEach(s => restoreSession.mutate(s)); },
+        );
+      })
+      .catch(() => { /* the mutation cache's global onError already reported it */ });
+  }
 
   const days = useMemo(
     () => sittingsByDay(groupIntoSittings(sessions ?? [])).slice(0, MAX_DAYS),
@@ -148,12 +176,19 @@ export default function StudySessionsNotesCard() {
                 {day.sittings.map((sitting) => {
                   const reflection = lastReflection(sitting);
                   return (
-                    <button
+                    /* A row, not a button: the delete control has to be a sibling of the
+                       open-notes action rather than nested inside it. The notes button
+                       stretches over the row via ::after so the whole strip stays
+                       clickable, and delete sits above it with z-10. */
+                    <div
                       key={sitting.id}
-                      onClick={() => setSelected(sitting)}
-                      className="group flex w-full items-start gap-3 rounded-lg px-1 py-2.5 text-left hover:bg-surface-hi transition-colors"
+                      className="group relative flex items-start gap-3 rounded-lg px-1 py-2.5 hover:bg-surface-hi transition-colors"
                     >
-                      <div className="min-w-0 flex-1">
+                      <button
+                        onClick={() => setSelected(sitting)}
+                        aria-label={`Open notes for ${sittingTitle(sitting)}`}
+                        className="min-w-0 flex-1 text-left after:absolute after:inset-0 after:rounded-lg rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                      >
                         {/* The title carries the identity, so it gets primary ink; the
                             clock drops to meta beneath it. `first-letter:uppercase`
                             presents a typed-in intention as a title without editing
@@ -169,7 +204,7 @@ export default function StudySessionsNotesCard() {
                         {reflection && (
                           <p className="mt-0.5 truncate text-xs italic text-muted">“{reflection}”</p>
                         )}
-                      </div>
+                      </button>
                       <span className="shrink-0 text-xs text-muted tabular-nums">
                         {durationLabel(sitting.focusSeconds)}
                       </span>
@@ -178,7 +213,19 @@ export default function StudySessionsNotesCard() {
                         className="mt-0.5 shrink-0 text-muted opacity-0 group-hover:opacity-100 transition-opacity"
                         aria-hidden="true"
                       />
-                    </button>
+                      {/* Mis-logged time had no way out before — a timer left running,
+                          or a duplicate, was permanent and silently skewed the heatmap,
+                          "focused this week" and the Weekly Review. */}
+                      <button
+                        onClick={() => setPendingDelete(sitting)}
+                        disabled={deleteSession.isPending}
+                        aria-label={`Delete ${sittingTitle(sitting)}`}
+                        title="Delete this session"
+                        className="relative z-10 mt-0.5 shrink-0 rounded p-0.5 text-muted opacity-0 transition-colors hover:text-red-500 group-hover:opacity-100 group-focus-within:opacity-100 disabled:opacity-50 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -188,6 +235,18 @@ export default function StudySessionsNotesCard() {
       )}
 
       {selected && <SittingNotesDialog sitting={selected} onClose={() => setSelected(null)} />}
+
+      <ConfirmDialog
+        isOpen={pendingDelete !== null}
+        title={pendingDelete ? `Delete “${sittingTitle(pendingDelete)}”?` : ''}
+        message={
+          pendingDelete && pendingDelete.blocks.length > 1
+            ? `This removes all ${pendingDelete.blocks.length} focus blocks in the session.`
+            : undefined
+        }
+        onConfirm={() => { if (pendingDelete) confirmDelete(pendingDelete); }}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

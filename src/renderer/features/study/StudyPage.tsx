@@ -305,12 +305,6 @@ export default function StudyPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [isRunning, pause, start, reset, skip]);
 
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
   const color           = PHASE_COLORS[phase];
   const activeTechnique = TECHNIQUES.find(t => t.id === techniqueId) ?? TECHNIQUES[0];
   const { data: studySessions = [] } = useStudySessions();

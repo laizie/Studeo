@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
+  AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
   UpdateAssignmentInput,
@@ -44,10 +45,27 @@ export function useUpdateAssignment() {
   });
 }
 
+/**
+ * Deleting returns a snapshot of everything that went with it (steps, planned study
+ * blocks, note links) so Undo can restore it exactly — see useRestoreAssignment.
+ *
+ * Invalidates broadly rather than just the assignment lists: the delete also touches
+ * subtasks, study blocks and note links, and it's a rare enough action that one full
+ * refetch is simpler than chasing four keys and always correct.
+ */
 export function useDeleteAssignment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => window.api.assignments.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/** The Undo for a deleted assignment: puts the snapshot back under the same ids. */
+export function useRestoreAssignment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (snapshot: AssignmentSnapshot) => window.api.assignments.restore(snapshot),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }

@@ -230,6 +230,23 @@ export interface CourseSnapshot {
   noteLinks: NoteLink[];
 }
 
+/**
+ * Everything that dies with a single assignment, captured so Undo can put it back
+ * with the SAME ids — which is what makes notes linked to it resolve again.
+ *
+ * The old Undo re-created the assignment through the normal create path, so it came
+ * back with a fresh id and lost its steps, its planned study blocks, its note links,
+ * its original created_at and its completed_at. The toast said "Undo", which a user
+ * reasonably reads as "put it back". Mirrors CourseSnapshot, which already did this
+ * properly.
+ */
+export interface AssignmentSnapshot {
+  assignment: Assignment;
+  subtasks: Subtask[];
+  studyBlocks: StudyBlock[];
+  noteLinks: NoteLink[];
+}
+
 // ─── Input types ──────────────────────────────────────────────────────────────
 // Separate from the domain models so we never accidentally pass DB row shapes
 // as creation inputs (different fields, no id/created_at yet).
@@ -502,6 +519,7 @@ export const IPC = {
     CREATE_MANY: 'assignments:create-many',
     UPDATE:      'assignments:update',
     DELETE:      'assignments:delete',
+    RESTORE:     'assignments:restore',
   },
   SUBTASKS: {
     LIST:   'subtasks:list',
@@ -537,6 +555,8 @@ export const IPC = {
     LIST:   'study_sessions:list',
     CREATE: 'study_sessions:create',
     UPDATE: 'study_sessions:update',
+    DELETE: 'study_sessions:delete',
+    RESTORE: 'study_sessions:restore',
   },
   STUDY_BLOCKS: {
     LIST:        'study_blocks:list',
@@ -649,7 +669,9 @@ export interface WindowApi {
     /** Atomic batch insert — all rows save or none do (Day-One Setup). */
     createMany(inputs: CreateAssignmentInput[]): Promise<Assignment[]>;
     update(id: string, input: UpdateAssignmentInput): Promise<Assignment>;
-    delete(id: string): Promise<void>;
+    /** Returns everything it removed, so Undo can restore it exactly. Null if the id was already gone. */
+    delete(id: string): Promise<AssignmentSnapshot | null>;
+    restore(snapshot: AssignmentSnapshot): Promise<Assignment>;
   };
   subtasks: {
     list(filters?: { assignmentId?: string }): Promise<Subtask[]>;
@@ -688,6 +710,9 @@ export interface WindowApi {
     create(input: CreateStudySessionInput): Promise<StudySession>;
     /** Attach an intention/reflection to an already-logged session. */
     update(id: string, input: UpdateStudySessionInput): Promise<StudySession>;
+    /** Remove a mis-logged session. Returns the row so Undo can put it back. */
+    delete(id: string): Promise<StudySession | null>;
+    restore(session: StudySession): Promise<StudySession>;
   };
   studyBlocks: {
     list(): Promise<StudyBlock[]>;
@@ -789,7 +814,8 @@ export interface WindowApi {
   spotify: {
     status(): Promise<SpotifyConnectionStatus>;
     setClientId(clientId: string): Promise<{ ok: boolean }>;
-    connect(clientId: string): Promise<{ ok: boolean }>;
+    /** `ok:false` with a reason when this system has no secure store for the token. */
+    connect(clientId: string): Promise<{ ok: boolean; error?: string }>;
     disconnect(): Promise<{ ok: boolean }>;
     playback(): Promise<SpotifyPlaybackState | null>;
     play(contextUri?: string): Promise<{ ok: boolean; error?: string }>;

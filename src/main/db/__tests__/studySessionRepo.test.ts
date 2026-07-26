@@ -13,6 +13,8 @@ import {
   getStudySession,
   createStudySession,
   updateStudySession,
+  deleteStudySession,
+  restoreStudySession,
 } from '../repositories/studySessionRepo';
 import { createCourse } from '../repositories/courseRepo';
 
@@ -107,6 +109,43 @@ describe('studySessionRepo', () => {
       updateStudySession(s.id, { reflection: 'first pass' });
       const cleared = updateStudySession(s.id, { reflection: null });
       expect(cleared.reflection).toBeNull();
+    });
+  });
+
+  // ── delete / restore ────────────────────────────────────────────────────────
+  // Sessions could be created and annotated but never removed, so anything
+  // mis-logged was permanent and silently skewed every study statistic.
+
+  describe('deleteStudySession / restoreStudySession', () => {
+    const input = {
+      startedAt: '2026-03-01T10:00:00Z',
+      durationSeconds: 1500,
+      kind: 'focus' as const,
+      intention: 'read ch. 4',
+    };
+
+    it('returns null for an id that is already gone', () => {
+      expect(deleteStudySession('nope')).toBeNull();
+    });
+
+    it('removes the row and hands it back', () => {
+      const s = createStudySession(input);
+      const removed = deleteStudySession(s.id)!;
+
+      expect(removed.id).toBe(s.id);
+      expect(getStudySession(s.id)).toBeNull();
+      expect(listStudySessions()).toHaveLength(0);
+    });
+
+    it('restores it verbatim, same id, reflection included', () => {
+      const s = createStudySession(input);
+      updateStudySession(s.id, { reflection: 'went well' });
+      const before = getStudySession(s.id)!;
+
+      restoreStudySession(deleteStudySession(s.id)!);
+
+      // Same id keeps the sitting's notes thread (anchored to the first block) valid.
+      expect(getStudySession(s.id)).toEqual(before);
     });
   });
 });

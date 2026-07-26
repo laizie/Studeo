@@ -86,10 +86,24 @@ export function loadTokens(): SpotifyTokens | null {
   } catch { return null; }
 }
 
-export function saveTokens(tokens: SpotifyTokens): void {
-  if (!safeStorage.isEncryptionAvailable()) return;
+/**
+ * Can we store a refresh token safely on this machine?
+ *
+ * safeStorage leans on the OS keychain (Keychain on macOS, DPAPI on Windows,
+ * libsecret/kwallet on Linux). Without one — a Linux box with no keyring, or a locked
+ * or misconfigured keychain — there is nowhere to put a long-lived token that isn't
+ * plaintext on disk, and we won't do that for someone's account credential.
+ */
+export function isSecureStorageAvailable(): boolean {
+  return safeStorage.isEncryptionAvailable();
+}
+
+/** Returns false when there's no secure store — the caller must not report success. */
+export function saveTokens(tokens: SpotifyTokens): boolean {
+  if (!safeStorage.isEncryptionAvailable()) return false;
   const buf = safeStorage.encryptString(JSON.stringify(tokens));
   fs.writeFileSync(tokenFile(), buf);
+  return true;
 }
 
 export function clearTokens(): void {
@@ -236,11 +250,18 @@ async function exchangeCode(syntheticUrl: string): Promise<boolean> {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = await res.json() as any;
-    saveTokens({
+    // A token we can't persist is worse than no token: the UI would say "Connected!"
+    // and the very next status check would find nothing, looping the user forever with
+    // no explanation. Report the failure instead.
+    const stored = saveTokens({
       access_token:  data.access_token,
       refresh_token: data.refresh_token,
       expires_at:    Date.now() + (data.expires_in as number) * 1000,
     });
+    if (!stored) {
+      console.error('[Spotify] Authorized, but this system has no secure store for the token.');
+      return false;
+    }
 
     pendingVerifier = null;
     pendingState    = null;

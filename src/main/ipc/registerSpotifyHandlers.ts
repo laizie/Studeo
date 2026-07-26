@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { IPC } from '../../shared/types';
 import {
-  getClientId, setClientId, initiateAuth, clearTokens, loadTokens,
+  getClientId, setClientId, initiateAuth, clearTokens, loadTokens, isSecureStorageAvailable,
 } from '../spotify/spotifyAuth';
 import {
   getUserProfile, getUserPlaylists, searchPlaylists, getQueue,
@@ -45,6 +45,18 @@ export function registerSpotifyHandlers(): void {
 
   // Saves the client ID then opens the browser to Spotify's auth page.
   ipcMain.handle(IPC.SPOTIFY.CONNECT, (_e, clientId: string) => {
+    // Check BEFORE opening the browser. Without a secure store the OAuth round-trip
+    // would succeed and the token would then be dropped on the floor, so the user would
+    // see "Connected!" followed immediately by "not connected", with nothing to explain
+    // it. Failing up front costs them one dialog instead of a mystery.
+    if (!isSecureStorageAvailable()) {
+      return {
+        ok: false,
+        error:
+          "This system has no secure place to keep your Spotify login (no OS keychain " +
+          "available), so Studeo can't connect. Everything else works without it.",
+      };
+    }
     setClientId(clientId);
     initiateAuth(clientId);
     return { ok: true };

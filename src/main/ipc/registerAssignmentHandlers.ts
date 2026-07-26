@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES } from '../../shared/types';
 import type {
+  AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
   UpdateAssignmentInput,
@@ -12,8 +13,8 @@ import {
   createAssignments,
   updateAssignment,
   deleteAssignment,
+  restoreAssignment,
 } from '../db/repositories/assignmentRepo';
-import { deleteLinksForEntity } from '../db/repositories/noteLinkRepo';
 
 // score/pointsPossible: absent or null = "no grade recorded"; otherwise both
 // must be sane non-negative numbers and you can't earn points out of nothing.
@@ -85,9 +86,18 @@ export function registerAssignmentHandlers(): void {
     return updateAssignment(id, input);
   });
 
+  // Note links are captured and removed inside deleteAssignment's transaction now, so
+  // the snapshot it returns is a complete record of what went away.
   ipcMain.handle(IPC.ASSIGNMENTS.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Assignment id is required');
-    deleteAssignment(id);
-    deleteLinksForEntity('assignment', id);
+    return deleteAssignment(id);
+  });
+
+  ipcMain.handle(IPC.ASSIGNMENTS.RESTORE, (_event, snapshot: AssignmentSnapshot) => {
+    if (!snapshot?.assignment?.id) throw new Error('Nothing to restore');
+    for (const key of ['subtasks', 'studyBlocks', 'noteLinks'] as const) {
+      if (!Array.isArray(snapshot[key])) throw new Error('Nothing to restore');
+    }
+    return restoreAssignment(snapshot);
   });
 }

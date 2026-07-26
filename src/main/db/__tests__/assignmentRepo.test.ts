@@ -16,7 +16,12 @@ import {
   createAssignments,
   updateAssignment,
   deleteAssignment,
+  restoreAssignment,
 } from '../repositories/assignmentRepo';
+import { createSubtask, listSubtasks } from '../repositories/subtaskRepo';
+import { createStudyBlocks, listStudyBlocks } from '../repositories/studyBlockRepo';
+import { createNote, getNote } from '../repositories/noteRepo';
+import { createNoteLink, listLinksForNote } from '../repositories/noteLinkRepo';
 
 let courseId: string;
 
@@ -270,6 +275,72 @@ describe('assignmentRepo', () => {
         ])
       ).toThrow();
       expect(listAssignments({ courseId })).toHaveLength(0);
+    });
+  });
+
+  // ── delete → snapshot → restore (the Undo path) ─────────────────────────────
+
+  describe('deleteAssignment / restoreAssignment', () => {
+    function seed() {
+      const a = createAssignment({ courseId, name: 'Essay', type: 'Paper', dueDate: '2026-09-01' });
+      const s1 = createSubtask({ assignmentId: a.id, name: 'outline' });
+      const s2 = createSubtask({ assignmentId: a.id, name: 'draft' });
+      const [block] = createStudyBlocks([
+        { assignmentId: a.id, courseId, title: 'Review', scheduledDate: '2026-08-30', durationMinutes: 45 },
+      ]);
+      const note = createNote({ title: 'Essay notes' });
+      createNoteLink({ noteId: note.id, entityType: 'assignment', entityId: a.id });
+      return { a, s1, s2, block, note };
+    }
+
+    it('returns null for an id that is already gone', () => {
+      expect(deleteAssignment('nope')).toBeNull();
+    });
+
+    it('captures everything that dies with it', () => {
+      const { a, note } = seed();
+
+      const snap = deleteAssignment(a.id)!;
+
+      expect(snap.assignment.id).toBe(a.id);
+      expect(snap.subtasks).toHaveLength(2);
+      expect(snap.studyBlocks).toHaveLength(1);
+      expect(snap.noteLinks).toHaveLength(1);
+      // ...and it really is gone, cascades included.
+      expect(getAssignment(a.id)).toBeNull();
+      expect(listSubtasks({ assignmentId: a.id })).toHaveLength(0);
+      expect(listStudyBlocks()).toHaveLength(0);
+      expect(listLinksForNote(note.id)).toHaveLength(0);
+      // The note itself survives — notes outlive the work they describe.
+      expect(getNote(note.id)).not.toBeNull();
+    });
+
+    it('restores it whole, under the same ids', () => {
+      const { a, s1, s2, block, note } = seed();
+      // A completed item, so completed_at has a value worth preserving.
+      updateAssignment(a.id, { status: 'completed' });
+      const before = getAssignment(a.id)!;
+
+      restoreAssignment(deleteAssignment(a.id)!);
+
+      const after = getAssignment(a.id)!;
+      // Same id is the whole point: it's what makes linked notes resolve again.
+      expect(after.id).toBe(a.id);
+      // Byte-identical, including created_at and completed_at, which the old
+      // re-create-through-the-create-path Undo silently reset.
+      expect(after).toEqual(before);
+
+      const steps = listSubtasks({ assignmentId: a.id });
+      expect(steps.map(s => s.id).sort()).toEqual([s1.id, s2.id].sort());
+      expect(listStudyBlocks().map(b => b.id)).toEqual([block.id]);
+      expect(listLinksForNote(note.id)).toHaveLength(1);
+    });
+
+    it('restores an assignment that had nothing attached', () => {
+      const a = createAssignment({ courseId, name: 'Bare', dueDate: '2026-09-01' });
+      const snap = deleteAssignment(a.id)!;
+      expect(() => restoreAssignment(snap)).not.toThrow();
+      expect(getAssignment(a.id)).not.toBeNull();
     });
   });
 });

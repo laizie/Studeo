@@ -64,6 +64,23 @@ function playChime(): void {
   }
 }
 
+/**
+ * Ask for notification permission at the moment the user starts a timer.
+ *
+ * It used to be requested by an effect on the Study page only, so anyone who started a
+ * block from Focus Mode or via ⌘K was never asked — and sendNotification() below then
+ * bailed on the permission check, so phase-end alerts simply never arrived, with nothing
+ * to explain why. Asking here ties the prompt to the action that will actually use it,
+ * which is also when its purpose is obvious to the user.
+ *
+ * Safe to call repeatedly: the browser only prompts while permission is 'default'.
+ */
+function ensureNotificationPermission(): void {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'default') return;
+  void Notification.requestPermission().catch(() => { /* user dismissed — nothing to do */ });
+}
+
 function sendNotification(completed: Phase, next: Phase): void {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const isWork = completed === 'focus';
@@ -437,6 +454,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // Anchor a wall-clock end time so the countdown survives navigation and
   // self-corrects after the OS throttles background timers (no drift).
   start: () => {
+    ensureNotificationPermission();
     const { timeLeft, phase, focusCount, lastBlockEndedAt } = get();
     // Sitting down again after a long enough gap starts a new sitting, so the cycle
     // begins over: three dots left from this morning shouldn't hand you a long break
