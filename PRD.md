@@ -257,3 +257,53 @@ Owning real playback is heavier than it looks and depends on the user's subscrip
 1. **Stack:** proceeding with **Electron + React** unless near-term mobile makes Flutter preferable — confirm before scaffolding.
 2. **Music MVP:** embed-only for v1 (recommended) vs full OAuth playback now.
 3. **Semester/term:** keep the `Term` concept in v1, or add it later?
+
+---
+
+## 12. Beyond this document — what actually shipped  **[ADDED July 2026]**
+
+This PRD describes the v1 desktop MVP and stops there, but the app kept going. Rather
+than rewrite §8 (the original scope is worth keeping as a record of what was planned),
+this section indexes the surface area that exists now and is **not** specified above.
+`PRODUCT.md` and `DESIGN.md` carry the current thinking; this is the map.
+
+The three **Open** questions in §11 are all settled in practice: the stack is Electron +
+React, music went well past the embed-only MVP, and `Term` stayed in v1.
+
+**Notes** — a block-based editor (BlockNote) with sub-pages, full-text search over title
+and content, version history with restore, per-note and per-link pinning, image assets
+served over a custom `studeo-asset://` protocol, note↔entity links (course, assignment,
+lecture, session, term), per-class notebooks and a loose-notes bucket.
+
+**Music** — not the §9 "embed-only" MVP. Spotify uses PKCE OAuth for library/playlist
+reads plus AppleScript for playback control (so Premium isn't required); Apple Music is
+driven entirely through AppleScript; Windows gets now-playing via the SMTC monitor. A
+service-agnostic "Now Playing" card follows whichever is playing.
+
+**Focus Mode** — a full-screen room with a Pomodoro ring, per-block intentions and
+reflections, a distraction "parking lot" that flushes to a note on exit, generated
+ambience (synthesised and file-backed), draggable rails, and OS-fullscreen integration.
+
+**Reminders & tray** — class reminders with a configurable lead time, a daily due digest,
+deep links from a clicked notification into the right screen, and a menu-bar/tray "up
+next" item that reads straight from the database.
+
+**Import** — ICS/Canvas feed import with course mapping and de-duplication, plus syllabus
+PDF text extraction feeding the existing paste-to-parse flow. (§8.7 deferred this; the
+manual-first, review-gated principle held — parsing still only ever *proposes* rows.)
+
+**Study planning** — back-planning from an exam into dated study blocks on the calendar,
+a study heatmap, sitting-based session history, and a Weekly Review screen.
+
+**Other** — a four-step semester setup wizard, grade sections with target-grade
+computation, meeting exceptions (cancelled/moved lectures), three themes, backup and
+restore, and auto-update.
+
+### Data model additions since §7
+`Subtask`, `MeetingException`, `StudyBlock`, `Note`, `NoteLink`, `NoteVersion`, plus
+columns on existing tables: `assignments.score` / `points_possible` / `due_time` /
+`completed_at`, `tasks.completed_at`, `courses.grade_weights`,
+`study_sessions.intention` / `reflection`.
+
+> The schema lives only in `src/main/db/migrations/` (ordered, transactional, replayed
+> by the test helper). There is no `schema.sql`.
