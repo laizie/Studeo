@@ -73,8 +73,8 @@ function extractDate(line: string, fallbackYear: number): Extracted {
   let m = line.match(re1);
   if (m) {
     const month = MONTHS[m[1].toLowerCase()];
-    const day   = parseInt(m[2]);
-    const year  = m[3] ? parseInt(m[3]) : fallbackYear;
+    const day   = parseInt(m[2], 10);
+    const year  = m[3] ? parseInt(m[3], 10) : fallbackYear;
     if (month && day >= 1 && day <= 31) {
       return { dueDate: toISO(month, day, year), remaining: line.replace(m[0], '') };
     }
@@ -85,9 +85,9 @@ function extractDate(line: string, fallbackYear: number): Extracted {
   const re2 = /(?:due[:\s]+)?(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i;
   m = line.match(re2);
   if (m) {
-    const month = parseInt(m[1]);
-    const day   = parseInt(m[2]);
-    const rawYr = m[3] ? parseInt(m[3]) : fallbackYear;
+    const month = parseInt(m[1], 10);
+    const day   = parseInt(m[2], 10);
+    const rawYr = m[3] ? parseInt(m[3], 10) : fallbackYear;
     const year  = rawYr < 100 ? 2000 + rawYr : rawYr;
     if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
       return { dueDate: toISO(month, day, year), remaining: line.replace(m[0], '') };

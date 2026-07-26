@@ -1,13 +1,12 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type {
   ClassMeeting,
   CreateClassMeetingInput,
   UpdateClassMeetingInput,
 } from '../../../shared/types';
 
-function row(r: unknown): ClassMeeting {
-  return r as ClassMeeting;
-}
+const row = (r: unknown): ClassMeeting => asRow<ClassMeeting>(r);
 
 export function listClassMeetings(filters?: { courseId?: string }): ClassMeeting[] {
   if (filters?.courseId) {

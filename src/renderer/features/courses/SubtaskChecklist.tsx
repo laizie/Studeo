@@ -23,8 +23,15 @@ export default function SubtaskChecklist({ assignmentId, subtasks }: Props) {
     e.preventDefault();
     const name = newName.trim();
     if (!name) return;
-    setNewName('');
-    await createSubtask.mutateAsync({ assignmentId, name });
+    try {
+      setNewName('');
+      await createSubtask.mutateAsync({ assignmentId, name });
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
+    }
   }
 
   return (

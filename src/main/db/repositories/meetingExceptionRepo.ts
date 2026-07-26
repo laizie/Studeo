@@ -1,9 +1,8 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type { MeetingException, CreateMeetingExceptionInput } from '../../../shared/types';
 
-function row(r: unknown): MeetingException {
-  return r as MeetingException;
-}
+const row = (r: unknown): MeetingException => asRow<MeetingException>(r);
 
 export function listMeetingExceptions(filters: { meetingId?: string } = {}): MeetingException[] {
   let sql = 'SELECT * FROM meeting_exceptions';

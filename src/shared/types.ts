@@ -762,7 +762,8 @@ export interface WindowApi {
   reminders: {
     configure(config: ReminderConfig): Promise<void>;
     /** Fire a sample desktop notification so the user can verify permissions. */
-    test(): Promise<{ supported: boolean }>;
+    /** `shown` is false when the OS suppressed it — notifications off, or Focus on. */
+    test(): Promise<{ supported: boolean; shown: boolean }>;
     /** Subscribe to deep-link requests pushed from main when a reminder is
      *  clicked. Returns an unsubscribe function. */
     onNavigate(cb: (target: ReminderNavTarget) => void): () => void;

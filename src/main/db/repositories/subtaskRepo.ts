@@ -1,9 +1,8 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type { Subtask, CreateSubtaskInput, UpdateSubtaskInput } from '../../../shared/types';
 
-function row(r: unknown): Subtask {
-  return r as Subtask;
-}
+const row = (r: unknown): Subtask => asRow<Subtask>(r);
 
 export function listSubtasks(filters: { assignmentId?: string } = {}): Subtask[] {
   let sql = 'SELECT * FROM subtasks';

@@ -1,13 +1,12 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type {
   Task,
   CreateTaskInput,
   UpdateTaskInput,
 } from '../../../shared/types';
 
-function row(r: unknown): Task {
-  return r as Task;
-}
+const row = (r: unknown): Task => asRow<Task>(r);
 
 export function listTasks(): Task[] {
   return (getDb().prepare('SELECT * FROM tasks ORDER BY due_date ASC').all() as unknown[]).map(row);

@@ -58,27 +58,34 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
     e.preventDefault();
     if (!name.trim() || !dueDate) return;
 
-    if (repeating) {
-      // Expand into independent, numbered copies and insert them atomically —
-      // either the whole series saves or none of it does (createMany).
-      const series = [
-        { name: name.trim(), dueDate },
-        ...followUps.map(o => ({ name: o.name, dueDate: o.dueDate })),
-      ];
-      await createTasks.mutateAsync(series);
-      showToast(`Added ${series.length} tasks`);
-      onClose();
-      return;
-    }
+    try {
+      if (repeating) {
+        // Expand into independent, numbered copies and insert them atomically —
+        // either the whole series saves or none of it does (createMany).
+        const series = [
+          { name: name.trim(), dueDate },
+          ...followUps.map(o => ({ name: o.name, dueDate: o.dueDate })),
+        ];
+        await createTasks.mutateAsync(series);
+        showToast(`Added ${series.length} tasks`);
+        onClose();
+        return;
+      }
 
-    if (isEditing) {
-      await updateTask.mutateAsync({ id: task.id, input: { name: name.trim(), dueDate } });
-      showToast(`Saved “${name.trim()}”`);
-    } else {
-      await createTask.mutateAsync({ name: name.trim(), dueDate });
-      showToast(`Added “${name.trim()}”`);
+      if (isEditing) {
+        await updateTask.mutateAsync({ id: task.id, input: { name: name.trim(), dueDate } });
+        showToast(`Saved “${name.trim()}”`);
+      } else {
+        await createTask.mutateAsync({ name: name.trim(), dueDate });
+        showToast(`Added “${name.trim()}”`);
+      }
+      onClose();
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
     }
-    onClose();
   }
 
   const isPending = createTask.isPending || createTasks.isPending || updateTask.isPending;

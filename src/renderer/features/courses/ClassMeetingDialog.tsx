@@ -54,17 +54,24 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
     e.preventDefault();
     if (!startTime || !endTime) return;
 
-    if (isEditing) {
-      await updateMeeting.mutateAsync({
-        id: meeting.id,
-        input: { dayOfWeek, startTime, endTime },
-      });
-      showToast('Class time updated');
-    } else {
-      await createMeeting.mutateAsync({ courseId, dayOfWeek, startTime, endTime });
-      showToast('Class time added');
+    try {
+      if (isEditing) {
+        await updateMeeting.mutateAsync({
+          id: meeting.id,
+          input: { dayOfWeek, startTime, endTime },
+        });
+        showToast('Class time updated');
+      } else {
+        await createMeeting.mutateAsync({ courseId, dayOfWeek, startTime, endTime });
+        showToast('Class time added');
+      }
+      onClose();
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
     }
-    onClose();
   }
 
   const isPending = createMeeting.isPending || updateMeeting.isPending;

@@ -13,12 +13,12 @@ export default function NotificationsSection() {
     dueDigestTime, setDueDigestTime,
   } = useSettingsStore();
 
-  const [testState, setTestState] = useState<'idle' | 'sent' | 'unsupported'>('idle');
+  const [testState, setTestState] = useState<'idle' | 'sent' | 'suppressed' | 'unsupported'>('idle');
 
   async function handleTest() {
     try {
-      const { supported } = await window.api.reminders.test();
-      setTestState(supported ? 'sent' : 'unsupported');
+      const { supported, shown } = await window.api.reminders.test();
+      setTestState(!supported ? 'unsupported' : shown ? 'sent' : 'suppressed');
     } catch {
       setTestState('unsupported');
     }
@@ -78,10 +78,14 @@ export default function NotificationsSection() {
             {testState === 'sent'
               // In dev the app runs under the stock Electron binary, so macOS
               // lists it as "Electron" in notification settings, not "Studeo".
-              ? `Sent! Nothing appeared? Check System Settings → Notifications → ${import.meta.env.DEV ? 'Electron' : 'Studeo'}, and that Focus is off.`
-              : testState === 'unsupported'
-                ? "Desktop notifications aren't available on this system."
-                : 'Not sure notifications will show up?'}
+              ? 'Sent — you should have seen it just now.'
+              : testState === 'suppressed'
+                // The OS took it and never displayed it, which is a different problem
+                // from "this platform can't do notifications" and has a different fix.
+                ? `Sent, but your system didn't display it. Check System Settings → Notifications → ${import.meta.env.DEV ? 'Electron' : 'Studeo'}, and that Focus is off.`
+                : testState === 'unsupported'
+                  ? "Desktop notifications aren't available on this system."
+                  : 'Not sure notifications will show up?'}
           </p>
           <CardButton onClick={handleTest}>Send a test</CardButton>
         </div>

@@ -1,4 +1,5 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type {
   Assignment,
   AssignmentSnapshot,
@@ -10,9 +11,7 @@ import type {
   UpdateAssignmentInput,
 } from '../../../shared/types';
 
-function row(r: unknown): Assignment {
-  return r as Assignment;
-}
+const row = (r: unknown): Assignment => asRow<Assignment>(r);
 
 export interface AssignmentFilters {
   courseId?: string;

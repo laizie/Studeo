@@ -74,10 +74,10 @@ export async function getSpotifyPlaybackState(): Promise<SpotifyPlaybackState | 
       artists:   [artist   ?? ''],
       albumName: albumName ?? '',
       albumArt:  albumArt  || null,
-      durationMs: parseInt(durMs ?? '0') || 0,
+      durationMs: parseInt(durMs ?? '0', 10) || 0,
       uri:       '',
     },
-    progressMs:    (parseInt(posSecs ?? '0') || 0) * 1000,
+    progressMs:    (parseInt(posSecs ?? '0', 10) || 0) * 1000,
     volumePercent: 50,
     deviceName:    'Spotify',
   };

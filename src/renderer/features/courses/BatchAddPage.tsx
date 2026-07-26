@@ -93,6 +93,11 @@ export default function BatchAddPage() {
   const [saveError, setSaveError]   = useState('');
 
   // Repeat panel: which row it's open for, and its settings.
+  //
+  // The settings reset whenever the panel moves to a different row. They used to be
+  // plain page-level state, so opening Repeat on row 7 showed the "until" date left
+  // over from row 2 — which reads as a value that applies, and quietly generates the
+  // wrong series if the user just clicks the button.
   const [repeatFor, setRepeatFor]     = useState<string | null>(null);
   const [repeatUntil, setRepeatUntil] = useState('');
   const [repeatWeeks, setRepeatWeeks] = useState(1);
@@ -146,6 +151,9 @@ export default function BatchAddPage() {
 
   function removeRow(id: string) {
     if (repeatFor === id) setRepeatFor(null);
+    // Drop the ref too — without this the map keeps an entry (and a detached DOM node
+    // reference) for every row ever removed, for the life of the page.
+    delete nameRefs.current[id];
     setRows(prev => {
       if (prev.length === 1) {
         // Reset to one blank row rather than leaving an empty grid.
@@ -160,7 +168,13 @@ export default function BatchAddPage() {
   // ── Repeat ────────────────────────────────────────────────────────────────
 
   function toggleRepeat(id: string) {
-    setRepeatFor(prev => (prev === id ? null : id));
+    setRepeatFor(prev => {
+      const next = prev === id ? null : id;
+      // Moving to a different row starts from a clean slate rather than inheriting
+      // the previous row's schedule.
+      if (next !== prev) { setRepeatUntil(''); setRepeatWeeks(1); }
+      return next;
+    });
   }
 
   function handleGenerateRepeats(row: Row) {

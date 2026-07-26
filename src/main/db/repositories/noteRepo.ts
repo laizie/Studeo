@@ -1,11 +1,10 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import { blocksToPlainText } from '../../../shared/notes';
 import { snapshotNoteContent, getNoteVersion } from './noteVersionRepo';
 import type { Note, NoteWithCourse, CreateNoteInput, UpdateNoteInput } from '../../../shared/types';
 
-function row(r: unknown): Note {
-  return r as Note;
-}
+const row = (r: unknown): Note => asRow<Note>(r);
 
 export interface NoteFilters {
   archived?: boolean;

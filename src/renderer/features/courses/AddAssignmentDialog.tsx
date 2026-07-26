@@ -96,43 +96,49 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     // Empty string → all-day (null); the same time applies to every occurrence.
     const dueTimeValue = dueTime || null;
 
-    if (repeating) {
-      // Expand into independent, numbered copies and insert them atomically —
-      // either the whole series saves or none of it does (createMany).
-      const series = [
-        { courseId, name: name.trim(), type, dueDate, dueTime: dueTimeValue },
-        ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate, dueTime: dueTimeValue })),
-      ];
-      await createAssignments.mutateAsync(series);
-      showToast(`Added ${series.length} assignments`);
+    try {
+      if (repeating) {
+        // Expand into independent, numbered copies and insert them atomically —
+        // either the whole series saves or none of it does (createMany).
+        const series = [
+          { courseId, name: name.trim(), type, dueDate, dueTime: dueTimeValue },
+          ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate, dueTime: dueTimeValue })),
+        ];
+        await createAssignments.mutateAsync(series);
+        showToast(`Added ${series.length} assignments`);
+        onClose();
+        return;
+      }
+
+      const gradeFields = {
+        score:          gradeComplete ? Number(score) : null,
+        pointsPossible: gradeComplete ? Number(pointsPossible) : null,
+      };
+
+      if (isEditing) {
+        await updateAssignment.mutateAsync({
+          id: assignment.id,
+          input: { name: name.trim(), type, dueDate, dueTime: dueTimeValue, ...gradeFields },
+        });
+        showToast(`Saved “${name.trim()}”`);
+      } else {
+        await createAssignment.mutateAsync({
+          courseId,
+          name: name.trim(),
+          type,
+          dueDate,
+          dueTime: dueTimeValue,
+          ...gradeFields,
+        });
+        showToast(`Added “${name.trim()}”`);
+      }
+
       onClose();
-      return;
+    } catch {
+      // mutateAsync rethrows. Staying open with the user's input is what we want, but
+      // the rejection still has to be handled or it becomes an unhandled promise
+      // rejection. The inline isError message and the global toast already report it.
     }
-
-    const gradeFields = {
-      score:          gradeComplete ? Number(score) : null,
-      pointsPossible: gradeComplete ? Number(pointsPossible) : null,
-    };
-
-    if (isEditing) {
-      await updateAssignment.mutateAsync({
-        id: assignment.id,
-        input: { name: name.trim(), type, dueDate, dueTime: dueTimeValue, ...gradeFields },
-      });
-      showToast(`Saved “${name.trim()}”`);
-    } else {
-      await createAssignment.mutateAsync({
-        courseId,
-        name: name.trim(),
-        type,
-        dueDate,
-        dueTime: dueTimeValue,
-        ...gradeFields,
-      });
-      showToast(`Added “${name.trim()}”`);
-    }
-
-    onClose();
   }
 
   // Migrate an assignment's old plain-text notes into a real linked note (the "Open linked
@@ -140,13 +146,20 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   // clears the legacy field. The embed below refreshes to show the new note.
   async function importLegacyNote() {
     if (!assignment?.notes?.trim()) return;
-    const note = await createNote.mutateAsync({
-      title: `${assignment.name} — notes`,
-      contentJson: plainTextToBlocks(assignment.notes),
-    });
-    await linkNote.mutateAsync({ noteId: note.id, entityType: 'assignment', entityId: assignment.id });
-    await updateAssignment.mutateAsync({ id: assignment.id, input: { notes: null } });
-    setLegacyImported(true);
+    try {
+      const note = await createNote.mutateAsync({
+        title: `${assignment.name} — notes`,
+        contentJson: plainTextToBlocks(assignment.notes),
+      });
+      await linkNote.mutateAsync({ noteId: note.id, entityType: 'assignment', entityId: assignment.id });
+      // Only clear the legacy text once the note AND its link are safely saved — this
+      // ordering is what makes the migration non-destructive if a step fails.
+      await updateAssignment.mutateAsync({ id: assignment.id, input: { notes: null } });
+      setLegacyImported(true);
+    } catch {
+      // Leave the legacy notes in place and the button offered — a half-done migration
+      // that reports success would look like the text was lost.
+    }
   }
 
   const hasLegacyNote = isEditing && !legacyImported && !!assignment?.notes?.trim();

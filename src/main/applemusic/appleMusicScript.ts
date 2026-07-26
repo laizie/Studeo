@@ -140,14 +140,14 @@ export async function getPlaybackState(): Promise<{
 
   return {
     isPlaying,
-    progressMs: parseInt(posSecs) * 1000,
+    progressMs: parseInt(posSecs, 10) * 1000,
     track: {
       id:         trackId,
       name:       name ?? '',
       artistName: artistName ?? '',
       albumName:  albumName ?? '',
       artworkUrl,
-      durationMs: (parseInt(durSecs) || 0) * 1000,
+      durationMs: (parseInt(durSecs, 10) || 0) * 1000,
     },
   };
 }
@@ -254,9 +254,9 @@ export async function getUserPlaylists(): Promise<AppleMusicPlaylist[]> {
         name:        name ?? 'Untitled',
         description: null,
         artworkUrl,
-        trackCount:  parseInt(trackCount ?? '0') || 0,
+        trackCount:  parseInt(trackCount ?? '0', 10) || 0,
         isLibrary:   true,
-        _lastPlayed: parseInt(lastPlayed ?? '0') || 0,
+        _lastPlayed: parseInt(lastPlayed ?? '0', 10) || 0,
       };
     })
     .sort((a, b) => b._lastPlayed - a._lastPlayed)
@@ -266,7 +266,7 @@ export async function getUserPlaylists(): Promise<AppleMusicPlaylist[]> {
 export async function playPlaylist(id: string): Promise<void> {
   // AppleScript playlist IDs are integers
   await osascript(
-    `tell application "Music" to play (first user playlist whose id is ${parseInt(id)})`
+    `tell application "Music" to play (first user playlist whose id is ${parseInt(id, 10)})`
   );
 }
 
@@ -318,13 +318,13 @@ export async function searchLibrary(query: string): Promise<AppleMusicTrack[]> {
         artistName: artistName ?? '',
         albumName:  albumName  ?? '',
         artworkUrl: null,
-        durationMs: (parseInt(durSecs ?? '0') || 0) * 1000,
+        durationMs: (parseInt(durSecs ?? '0', 10) || 0) * 1000,
       };
     });
 }
 
 export async function playTrack(databaseId: string): Promise<void> {
   await osascript(
-    `tell application "Music" to play (first track of library playlist 1 whose database ID is ${parseInt(databaseId)})`
+    `tell application "Music" to play (first track of library playlist 1 whose database ID is ${parseInt(databaseId, 10)})`
   );
 }

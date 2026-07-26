@@ -8,6 +8,31 @@ import { IPC } from '../../shared/types';
 //     same place the Spotify/Apple Music calls already live.
 // We return only the raw .ics text; parsing happens in the pure shared parser.
 
+/**
+ * Reject addresses that point back at the user's own machine.
+ *
+ * main runs with no browser sandbox and no CORS, so it can reach things the renderer
+ * can't — including services bound to loopback and the link-local metadata range. The
+ * URL is typed by a human here, so this is not a live threat; it's a cheap guard on a
+ * function whose whole job is "fetch whatever string you're handed", and it costs a
+ * legitimate feed nothing.
+ *
+ * Deliberately narrow: LAN addresses (192.168.x, 10.x) stay allowed, because a student
+ * self-hosting a calendar on their own network is a real thing and blocking it would be
+ * paternalistic. Note this checks only the URL given — fetch follows redirects, and the
+ * hops aren't re-checked. Closing that would mean handling redirects manually, which is
+ * more machinery than a human-entered URL warrants.
+ */
+function isLoopbackOrLinkLocal(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, ''); // strip IPv6 brackets
+  if (h === 'localhost' || h.endsWith('.localhost')) return true;
+  if (h === '::1' || h === '0.0.0.0' || h === '::') return true;
+  if (/^127\./.test(h)) return true;          // loopback
+  if (/^169\.254\./.test(h)) return true;     // link-local, incl. the metadata address
+  if (/^fe80:/i.test(h)) return true;         // IPv6 link-local
+  return false;
+}
+
 const FIFTEEN_SECONDS = 15_000;
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB — a personal feed is a few KB; cap pathological inputs.
 
@@ -27,6 +52,9 @@ export function registerFeedHandlers(): void {
     }
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       throw new Error('The feed URL must start with https:// or http://');
+    }
+    if (isLoopbackOrLinkLocal(parsed.hostname)) {
+      throw new Error('That address points back at this machine, not at a calendar feed.');
     }
 
     let res: Response;

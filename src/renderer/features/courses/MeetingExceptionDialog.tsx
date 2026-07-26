@@ -56,18 +56,25 @@ export default function MeetingExceptionDialog({ meeting, isOpen, onClose }: Pro
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!meeting || !canSubmit) return;
-    await createException.mutateAsync({
-      meetingId: meeting.id,
-      date,
-      kind,
-      ...(kind === 'moved' && {
-        newStartTime: newStart,
-        newEndTime: newEnd,
-        newLocation: newLocation.trim() || undefined,
-      }),
-    });
-    setDate('');
-    setKind('cancelled');
+    try {
+      await createException.mutateAsync({
+        meetingId: meeting.id,
+        date,
+        kind,
+        ...(kind === 'moved' && {
+          newStartTime: newStart,
+          newEndTime: newEnd,
+          newLocation: newLocation.trim() || undefined,
+        }),
+      });
+      setDate('');
+      setKind('cancelled');
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
+    }
   }
 
   return (

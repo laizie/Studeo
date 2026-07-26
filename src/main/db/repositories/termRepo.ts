@@ -1,9 +1,8 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type { Term, CreateTermInput, UpdateTermInput } from '../../../shared/types';
 
-function row(r: unknown): Term {
-  return r as Term;
-}
+const row = (r: unknown): Term => asRow<Term>(r);
 
 export function listTerms(): Term[] {
   return (getDb().prepare('SELECT * FROM terms ORDER BY start_date DESC, name').all() as unknown[]).map(row);

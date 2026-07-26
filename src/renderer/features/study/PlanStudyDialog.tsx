@@ -57,19 +57,26 @@ export default function PlanStudyDialog({ assignment, course, onClose }: Props) 
 
   async function handleAdd() {
     if (preview.length === 0) return;
-    if (existing.length > 0) await clearExisting.mutateAsync(assignment.id);
-    await createBlocks.mutateAsync(
-      preview.map(b => ({
-        assignmentId: assignment.id,
-        courseId: assignment.course_id,
-        title: b.title,
-        scheduledDate: b.scheduledDate,
-        durationMinutes: b.durationMinutes,
-      })),
-    );
-    // Make sure the freshly-added plan is actually visible on the calendar.
-    setCalendarShowStudyBlocks(true);
-    onClose();
+    try {
+      if (existing.length > 0) await clearExisting.mutateAsync(assignment.id);
+      await createBlocks.mutateAsync(
+        preview.map(b => ({
+          assignmentId: assignment.id,
+          courseId: assignment.course_id,
+          title: b.title,
+          scheduledDate: b.scheduledDate,
+          durationMinutes: b.durationMinutes,
+        })),
+      );
+      // Make sure the freshly-added plan is actually visible on the calendar.
+      setCalendarShowStudyBlocks(true);
+      onClose();
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
+    }
   }
 
   const isPending = createBlocks.isPending || clearExisting.isPending;

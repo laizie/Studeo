@@ -1,9 +1,8 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type { NoteVersion } from '../../../shared/types';
 
-function row(r: unknown): NoteVersion {
-  return r as NoteVersion;
-}
+const row = (r: unknown): NoteVersion => asRow<NoteVersion>(r);
 
 // Snapshots are time-throttled so a typing burst (autosave fires ~every 600ms of pause)
 // collapses into one snapshot rather than dozens. We also keep only the most recent few

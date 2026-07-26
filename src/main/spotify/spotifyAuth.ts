@@ -159,7 +159,8 @@ function startCallbackServer(): void {
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
-    console.log('[Spotify callback]', { code: code ? '(present)' : null, state, error });
+    // No logging of `state` or the code here: `state` is the CSRF token for this
+    // exchange, and stdout is not the place for it. Failures are reported below.
 
     if (error || !code) {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -172,7 +173,7 @@ function startCallbackServer(): void {
     // Do the token exchange BEFORE responding so the browser shows the real outcome
     const syntheticUrl = `studeo://cb?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state ?? '')}`;
     const success = await exchangeCode(syntheticUrl);
-    console.log('[Spotify token exchange]', success ? 'succeeded' : 'failed');
+    if (!success) console.error('[Spotify] Token exchange failed.');
 
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(callbackPage(success));

@@ -1,12 +1,9 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type { EntityNote, NoteLink, NoteLinkEntity, CreateNoteLinkInput } from '../../../shared/types';
 
-function linkRow(r: unknown): NoteLink {
-  return r as NoteLink;
-}
-function entityNoteRow(r: unknown): EntityNote {
-  return r as EntityNote;
-}
+const linkRow = (r: unknown): NoteLink => asRow<NoteLink>(r);
+const entityNoteRow = (r: unknown): EntityNote => asRow<EntityNote>(r);
 
 // entity_type → the table its entity_id points at. The keys are the validated, fixed set
 // from shared/types, so using the mapped value as a table name in SQL is safe (no injection).

@@ -1,4 +1,5 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type {
   Course,
   CourseSnapshot,
@@ -12,11 +13,7 @@ import type {
   UpdateCourseInput,
 } from '../../../shared/types';
 
-// node:sqlite returns null-prototype row objects. We cast through `unknown`
-// then to our typed interfaces — safe because the columns exactly match.
-function row(r: unknown): Course {
-  return r as Course;
-}
+const row = (r: unknown): Course => asRow<Course>(r);
 
 export function listCourses(): Course[] {
   return (getDb().prepare('SELECT * FROM courses ORDER BY name').all() as unknown[]).map(row);

@@ -1,13 +1,12 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type {
   StudyBlock,
   CreateStudyBlockInput,
   UpdateStudyBlockInput,
 } from '../../../shared/types';
 
-function row(r: unknown): StudyBlock {
-  return r as StudyBlock;
-}
+const row = (r: unknown): StudyBlock => asRow<StudyBlock>(r);
 
 export function listStudyBlocks(): StudyBlock[] {
   return (

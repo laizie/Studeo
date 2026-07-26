@@ -46,12 +46,18 @@ export default function EntityNotesList({
   const pending = createNote.isPending || linkNote.isPending;
 
   async function handleNew(templateId: TemplateId) {
-    const note = await createNote.mutateAsync({
-      title: newNoteTitle ?? '',
-      contentJson: templateContent(templateId),
-    });
-    await linkNote.mutateAsync({ noteId: note.id, entityType, entityId, occurrenceDate });
-    navigate(`/notes/${note.id}`);
+    try {
+      const note = await createNote.mutateAsync({
+        title: newNoteTitle ?? '',
+        contentJson: templateContent(templateId),
+      });
+      await linkNote.mutateAsync({ noteId: note.id, entityType, entityId, occurrenceDate });
+      navigate(`/notes/${note.id}`);
+    } catch {
+      // mutateAsync rethrows. Not navigating is the behaviour we want — there'd be no
+      // note at that route — but the rejection still has to be handled or it surfaces
+      // as an unhandled promise rejection. The global onError has already toasted it.
+    }
   }
 
   const list = notes ?? [];

@@ -114,30 +114,37 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
     e.preventDefault();
     if (!name.trim()) return;
 
-    if (course) {
-      // Edit: send null (not undefined) for cleared optional fields so the
-      // update path actually clears them.
-      await updateCourse.mutateAsync({
-        id: course.id,
-        input: {
+    try {
+      if (course) {
+        // Edit: send null (not undefined) for cleared optional fields so the
+        // update path actually clears them.
+        await updateCourse.mutateAsync({
+          id: course.id,
+          input: {
+            name: name.trim(),
+            abbreviation: abbreviation.trim() || deriveAbbreviation(name),
+            color,
+            building: building.trim() || null,
+            termId: termId || null,
+          },
+        });
+      } else {
+        await createCourse.mutateAsync({
           name: name.trim(),
           abbreviation: abbreviation.trim() || deriveAbbreviation(name),
           color,
-          building: building.trim() || null,
-          termId: termId || null,
-        },
-      });
-    } else {
-      await createCourse.mutateAsync({
-        name: name.trim(),
-        abbreviation: abbreviation.trim() || deriveAbbreviation(name),
-        color,
-        building: building.trim() || undefined,
-        termId: termId || undefined,
-      });
-    }
+          building: building.trim() || undefined,
+          termId: termId || undefined,
+        });
+      }
 
-    onClose();
+      onClose();
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
+    }
   }
 
   return (

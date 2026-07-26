@@ -83,10 +83,17 @@ function CourseMeetingsEditor({ course }: { course: Course }) {
   async function handleAdd() {
     if (!canAdd) return;
     // One selection → one meeting per weekday (MWF 9–10 becomes three rows).
-    for (const input of expandWeekdayMeetings(course.id, days, start, end)) {
-      await createMeeting.mutateAsync(input);
+    try {
+      for (const input of expandWeekdayMeetings(course.id, days, start, end)) {
+        await createMeeting.mutateAsync(input);
+      }
+      setDays([]);
+    } catch {
+      // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
+      // the surface stays open holding what the user typed — but the rejection still
+      // has to be *handled* or it surfaces as an unhandled promise rejection. The
+      // mutation cache's global onError has already shown the user a toast.
     }
-    setDays([]);
   }
 
   return (

@@ -1,13 +1,12 @@
 import { getDb } from '../connection';
+import { asRow } from '../rows';
 import type {
   StudySession,
   CreateStudySessionInput,
   UpdateStudySessionInput,
 } from '../../../shared/types';
 
-function row(r: unknown): StudySession {
-  return r as StudySession;
-}
+const row = (r: unknown): StudySession => asRow<StudySession>(r);
 
 export function listStudySessions(): StudySession[] {
   return (

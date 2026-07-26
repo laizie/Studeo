@@ -94,7 +94,18 @@ export function registerAssetProtocol(): void {
     const body = readFileSync(filePath);
     return new Response(body, {
       status: 200,
-      headers: { 'Content-Type': MIME[ext] ?? 'application/octet-stream' },
+      headers: {
+        'Content-Type': MIME[ext] ?? 'application/octet-stream',
+        // SVG is in the allowlist, and an SVG is a document that can carry <script>.
+        // Rendered through <img> — which is the only way notes use it — that script
+        // never runs, so this isn't a live hole. But "only ever <img>" is a property of
+        // today's code, not of the format, and one <object> or a direct navigation would
+        // change it. A CSP on the asset response itself makes it inert whatever loads it,
+        // which keeps the format usable instead of dropping SVG support to be safe.
+        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+        // Never let the browser second-guess the type we just declared.
+        'X-Content-Type-Options': 'nosniff',
+      },
     });
   });
 }

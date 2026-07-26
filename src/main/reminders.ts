@@ -148,15 +148,37 @@ function checkDueDigest(now: Date, todayKey: string): void {
   notif.show();
 }
 
-/** Fire a sample notification on demand so the user can verify that the OS
- *  is actually showing Studeo's notifications before relying on them. */
-export function sendTestNotification(): { supported: boolean } {
-  if (!Notification.isSupported()) return { supported: false };
-  new Notification({
+/**
+ * Fire a sample notification so the user can confirm the OS actually shows them.
+ *
+ * `isSupported()` alone was never the useful answer: it reports whether the platform
+ * has a notification system, and returns true on a Mac that has notifications switched
+ * off for this app entirely — which is the common real failure, not an unsupported OS.
+ * So we also wait briefly for the `show` event, which fires when the notification is
+ * genuinely displayed and stays silent when the OS suppresses it (permission off, or
+ * Focus / Do Not Disturb). That distinguishes "your system can't" from "your system
+ * didn't", which are different problems with different fixes.
+ */
+export function sendTestNotification(): Promise<{ supported: boolean; shown: boolean }> {
+  if (!Notification.isSupported()) return Promise.resolve({ supported: false, shown: false });
+
+  const notif = new Notification({
     title: 'Reminders are working',
     body: 'This is how class and due-date reminders will look.',
-  }).show();
-  return { supported: true };
+  });
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (shown: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve({ supported: true, shown });
+    };
+    notif.once('show', () => finish(true));
+    // Long enough for the OS to display it, short enough that the button doesn't hang.
+    setTimeout(() => finish(false), 1_200);
+    notif.show();
+  });
 }
 
 export function startReminderScheduler(): void {
