@@ -1,4 +1,26 @@
+/* Cascade layer order, lowest priority first — declared up front (a bare `@layer`
+   statement is one of the few things allowed before @import) so it doesn't depend on
+   what any stylesheet happens to declare later. Four of these names are Tailwind's own;
+   `rbc` is slotted deliberately:
+     - AFTER `base`, so Tailwind's Preflight reset (which zeroes every element's border
+       and button padding) doesn't strip react-big-calendar's gridlines and toolbar,
+     - BEFORE `utilities`, so a Tailwind class always wins where the two ever meet.
+   Our own .rbc-* theme rules at the bottom of this file stay UNLAYERED, which beats
+   every layer regardless of source order — that's what makes the theme stick. */
+@layer theme, base, rbc, components, utilities;
+
 @import "tailwindcss";
+
+/* react-big-calendar's stock CSS, pulled in HERE rather than from CalendarPage.tsx.
+   Imported from the component it loaded *after* this file in the bundle, so every
+   token-based override at the bottom of this file silently lost the cascade tie:
+   "today" went back to rbc's cool #eaf6ff, off-range days to #e5e5e5, and every
+   gridline to #ddd — light-mode chrome punched through the dark and warm themes.
+   Assigning it the `rbc` layer makes the fix structural rather than order-dependent:
+   layered rules always lose to unlayered ones, so our overrides win no matter
+   where anything ends up in the bundle. */
+@import 'react-big-calendar/lib/css/react-big-calendar.css' layer(rbc);
+
 @import '@fontsource/dm-sans/400.css';
 @import '@fontsource/dm-sans/500.css';
 @import '@fontsource/dm-sans/600.css';
@@ -251,29 +273,61 @@ html[data-theme="warm"] {
 /* ── react-big-calendar theme overrides ─────────────────────────────────────────
    Token-based and UNSCOPED on purpose: the variables already flip per theme, so
    one block gives light its warm cream/amber calendar too (stock rbc light mode
-   was the one place the brand broke — cool blue "today", gray chrome). */
+   was the one place the brand broke — cool blue "today", gray chrome).
+
+   Being unlayered is what makes them win: the stock sheet is imported into the
+   `rbc` layer at the top of this file, and any unlayered rule beats any layered
+   one regardless of source order. The rule for maintaining this block: every
+   hard-coded color in the vendor stylesheet needs a token answer here, or it
+   shows up as light-mode chrome the moment the theme changes. */
 
 .rbc-calendar {
   background-color: var(--bg);
   color: var(--ink);
+  /* rbc's spacing is drawn for a ~14px base; at the app's 16px the time gutter
+     and weekday headers overflow their columns ("26 Sun" clipped to "26 Sur"). */
+  font-size: 0.875rem;
 }
 
-/* Toolbar */
+/* Toolbar — read as the app's own chrome: nav on the left, month in the middle,
+   view switcher on the right, instead of stock's three stacked centered rows. */
 .rbc-toolbar {
+  color: var(--ink);
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  /* Stated, not inherited: the vendor sheet declares its own 16px here, and a
+     direct declaration beats an inherited value no matter which layer it's in.
+     At 16px the three groups don't fit one row and the toolbar wraps into a
+     stack of centered rows. */
+  font-size: 0.875rem;
+}
+/* The month/week label is the toolbar's heading — Card Title on the ramp. */
+.rbc-toolbar .rbc-toolbar-label {
+  font-size: 1rem;
+  font-weight: 500;
   color: var(--ink);
 }
 .rbc-toolbar button {
   color: var(--muted);
   border-color: var(--line);
   background: transparent;
+  padding: 0.375rem 0.75rem;
 }
-.rbc-toolbar button:hover {
+.rbc-toolbar button:hover,
+.rbc-toolbar button:focus {
   background-color: var(--surface-hi);
   color: var(--ink);
   border-color: var(--line);
 }
+.rbc-toolbar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rbc-toolbar button:active,
 .rbc-toolbar button.rbc-active,
-.rbc-toolbar button.rbc-active:hover {
+.rbc-toolbar button.rbc-active:hover,
+.rbc-toolbar button.rbc-active:focus {
   /* Matches the app's segmented controls: raised surface + hairline. */
   background-color: var(--surface);
   color: var(--ink);
@@ -302,11 +356,15 @@ html[data-theme="warm"] {
 .rbc-off-range-bg {
   background-color: var(--inset);
 }
-.rbc-off-range .rbc-date-cell a,
-.rbc-off-range .rbc-button-link,
 .rbc-date-cell a,
 .rbc-date-cell .rbc-button-link {
-  color: var(--muted);
+  color: var(--ink-soft);
+}
+/* Days from the neighbouring month: present, but clearly not this month. */
+.rbc-off-range,
+.rbc-off-range .rbc-date-cell a,
+.rbc-off-range .rbc-button-link {
+  color: color-mix(in srgb, var(--muted) 65%, transparent);
 }
 .rbc-today {
   background-color: color-mix(in srgb, var(--accent) 14%, transparent);
@@ -314,34 +372,85 @@ html[data-theme="warm"] {
 .rbc-month-row + .rbc-month-row {
   border-color: var(--line);
 }
+.rbc-selected-cell {
+  background-color: color-mix(in srgb, var(--accent) 18%, transparent);
+}
 .rbc-show-more {
   color: var(--accent);
+  background-color: transparent;
+}
+.rbc-show-more:hover,
+.rbc-show-more:focus {
+  color: var(--accent-deep);
+}
+
+/* The "+N more" popup. Stock paints it #fff with a #e5e5e5 border — a white card
+   dropped onto a dark room. It's a floating surface, so it gets the app's. */
+.rbc-overlay {
+  background-color: var(--surface);
+  border-color: var(--line);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  color: var(--ink);
+}
+.rbc-overlay-header {
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+
+/* Event chips. Their fill comes from eventPropGetter (the course color); what's
+   left here is the chrome around it — the focus ring, which stock draws as a 5px
+   cool-blue outline that belongs to no theme. */
+.rbc-event:focus,
+.rbc-event:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.rbc-day-slot .rbc-event,
+.rbc-day-slot .rbc-background-event {
+  border-color: var(--line);
 }
 
 /* Week / day view */
 .rbc-time-view,
+.rbc-time-view .rbc-header,
+.rbc-time-header,
+.rbc-time-header.rbc-overflowing,
 .rbc-time-header-content,
 .rbc-time-header-cell .rbc-header,
-.rbc-timeslot-group {
+.rbc-time-header > .rbc-row:first-child,
+.rbc-time-header > .rbc-row.rbc-row-resource,
+.rbc-time-header-content > .rbc-row.rbc-row-resource,
+.rbc-timeslot-group,
+.rbc-time-content > * + * > *,
+.rbc-time-content > .rbc-time-column {
   border-color: var(--line);
 }
 .rbc-time-header {
   background-color: var(--surface);
-  border-color: var(--line);
 }
 .rbc-time-content {
   background-color: var(--bg);
   border-color: var(--line);
 }
-.rbc-time-content > .rbc-time-column {
-  border-color: var(--line);
-}
-.rbc-time-slot {
+.rbc-time-gutter,
+.rbc-time-gutter .rbc-timeslot-group,
+.rbc-label {
   color: var(--muted);
 }
+/* The half-hour rule inside a day column — a whisper, not a gridline. */
 .rbc-day-slot .rbc-time-slot {
-  border-color: var(--surface);
+  border-color: color-mix(in srgb, var(--line) 50%, transparent);
+}
+.rbc-time-view-resources .rbc-time-gutter,
+.rbc-time-view-resources .rbc-time-header-gutter {
+  background-color: var(--bg);
+  border-color: var(--line);
 }
 .rbc-current-time-indicator {
   background-color: var(--accent);
+}
+.rbc-slot-selection {
+  background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--ink);
 }

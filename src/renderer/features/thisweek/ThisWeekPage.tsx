@@ -93,8 +93,9 @@ export default function ThisWeekPage() {
   const setActiveWindow     = usePageFiltersStore(s => s.setThisWeekWindow);
   const showTasks           = usePageFiltersStore(s => s.thisWeekShowTasks);
   const setShowTasks        = usePageFiltersStore(s => s.setThisWeekShowTasks);
+  const showCompleted       = usePageFiltersStore(s => s.thisWeekShowCompleted);
+  const setShowCompleted    = usePageFiltersStore(s => s.setThisWeekShowCompleted);
 
-  const [showCompleted, setShowCompleted] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();

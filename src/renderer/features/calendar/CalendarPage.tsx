@@ -6,7 +6,9 @@ import { format, parse, startOfWeek, endOfWeek, getDay, startOfMonth, endOfMonth
 import { enUS } from 'date-fns/locale';
 import type { View } from 'react-big-calendar';
 import { usePageFiltersStore, type CalendarMode, type CalendarView } from '../../store/usePageFiltersStore';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+// react-big-calendar's stock stylesheet is imported from src/index.css into a
+// low-priority cascade layer, NOT here — importing it from this component put it
+// after index.css in the bundle, where it beat every theme override we'd written.
 import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useClassMeetings } from '../../lib/queries/useClassMeetings';
@@ -16,7 +18,7 @@ import { useTasks } from '../../lib/queries/useTasks';
 import { useStudyBlocks, useUpdateStudyBlock } from '../../lib/queries/useStudyBlocks';
 import { parseDateLocal, formatClock12 } from '../../../shared/deadlines';
 import type { Assignment, ClassMeeting, Course, Task, StudyBlock } from '../../../shared/types';
-import { contrastTextColor, TASK_COLOR } from '../../lib/colors';
+import { ACCENT_TOKEN, calendarChipStyle, DEFAULT_COURSE_COLOR, TASK_COLOR } from '../../lib/colors';
 import QueryErrorState from '../../components/QueryErrorState';
 import Switch from '../../components/Switch';
 import { showUndoToast } from '../../store/useToastStore';
@@ -34,6 +36,10 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales: { 'en-US': enUS },
 });
+
+// Where the week/day grid is scrolled on open. Only the time-of-day is read, so
+// the date part is arbitrary. 7am puts a normal first class near the top edge.
+const WEEK_VIEW_SCROLL_TO = new Date(1970, 0, 1, 7, 0, 0);
 
 // ── Event types ──────────────────────────────────────────────────────────────
 type AssignmentEvent = {
@@ -426,74 +432,64 @@ export default function CalendarPage() {
     [updateStudyBlock]
   );
 
+  // Every chip's fill comes from one recipe in lib/colors, so "which class?" is
+  // answered the same way here as it is by the pills on every other screen — and
+  // a completed item keeps its course hue instead of flattening to a gray that
+  // only ever looked right on the light theme.
   const eventPropGetter = useCallback((event: CalEvent) => {
     if (event.resource.type === 'studyBlock') {
-      // Study blocks read as the app's amber accent, in an outlined/soft style so
-      // they're visibly "planned time" rather than a hard deadline. Done/skipped dim.
+      // Study blocks aren't a course deadline, they're planned time — so they read
+      // as the app's amber accent in the same tinted style, never a solid fill.
+      // Composited against theme tokens so the tint follows light/dark/warm.
       const block = event.resource.block;
       const settled = block.status !== 'planned';
-      // Soft amber tint + a full 1px amber border reads as "planned time"
-      // without the side-stripe accent the design system bans.
       return {
         style: {
-          backgroundColor: settled ? '#d6d3d1' : 'color-mix(in srgb, #e2a53b 22%, white)',
-          borderColor: settled ? '#a8a29e' : '#e2a53b',
-          color: 'var(--accent-ink)', // the system's "text on amber" ink
-          borderRadius: '4px',
-          opacity: settled ? 0.6 : 1,
-          textDecoration: block.status === 'done' ? 'line-through' : undefined,
-          fontSize: '0.75rem',
+          ...calendarChipStyle(ACCENT_TOKEN, { done: true }),
+          ...(settled && {
+            backgroundColor: 'color-mix(in srgb, var(--muted) 15%, var(--inset))',
+            borderColor:     'color-mix(in srgb, var(--muted) 35%, transparent)',
+            color:           'var(--muted)',
+          }),
+          textDecoration: block.status === 'done' ? 'line-through' : 'none',
         },
       };
     }
+
     if (event.resource.type === 'task') {
-      const done = event.resource.task.status === 'completed';
-      const bg = done ? '#d6d3d1' : TASK_COLOR;
       return {
-        style: {
-          backgroundColor: bg,
-          borderColor:     done ? '#a8a29e' : '#6b59b0',
-          // Text color follows the chip background — pastel course colors and
-          // the completed gray are unreadable with hard-coded white.
-          color: contrastTextColor(bg),
-          borderRadius: '4px',
-          opacity: done ? 0.65 : 1,
-          fontSize: '0.75rem',
-        },
+        style: calendarChipStyle(TASK_COLOR, {
+          done: event.resource.task.status === 'completed',
+        }),
       };
     }
-    const color = event.resource.course?.color ?? '#6393e1';
-    const isCompleted =
-      event.resource.type === 'assignment' &&
-      event.resource.assignment.status === 'completed';
-    const bg = isCompleted ? '#d6d3d1' : color;
+
     return {
-      style: {
-        backgroundColor: bg,
-        borderColor:     isCompleted ? '#a8a29e' : color,
-        color: contrastTextColor(bg),
-        borderRadius: '4px',
-        opacity: isCompleted ? 0.65 : 1,
-        fontSize: '0.75rem',
-      },
+      style: calendarChipStyle(event.resource.course?.color ?? DEFAULT_COURSE_COLOR, {
+        done:
+          event.resource.type === 'assignment' &&
+          event.resource.assignment.status === 'completed',
+      }),
     };
   }, []);
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="p-8 flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5 shrink-0">
+      {/* Header — wraps rather than overflowing: at the app's narrower window
+          widths the four controls used to run off the right edge, clipping the
+          mode switcher entirely. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-5 shrink-0">
         <h1 className="text-2xl font-semibold text-ink">Calendar</h1>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Tasks toggle — only meaningful in Assignments mode */}
           {mode === 'assignments' && (
             <button
               role="switch"
               aria-checked={calendarShowTasks}
               onClick={() => setCalendarShowTasks(!calendarShowTasks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
               <Switch checked={calendarShowTasks} size="sm" tone="task" />
               Tasks
@@ -506,7 +502,7 @@ export default function CalendarPage() {
               role="switch"
               aria-checked={calendarShowStudyBlocks}
               onClick={() => setCalendarShowStudyBlocks(!calendarShowStudyBlocks)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 text-sm rounded-lg border border-line bg-inset text-muted hover:bg-surface-hi transition-colors"
             >
               <Switch checked={calendarShowStudyBlocks} size="sm" tone="accent" />
               Study plan
@@ -570,6 +566,9 @@ export default function CalendarPage() {
           onRangeChange={handleRangeChange}
           onSelectEvent={handleSelectEvent}
           eventPropGetter={eventPropGetter}
+          // Week/day open at the school day rather than at 12:00 AM — the stock
+          // scroll position put eight empty overnight hours on screen first.
+          scrollToTime={WEEK_VIEW_SCROLL_TO}
           style={{ height: '100%' }}
           popup
           showMultiDayTimes

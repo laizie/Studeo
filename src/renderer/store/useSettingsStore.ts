@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { readPref, writePref } from '../lib/prefs';
 
 export type Theme = 'light' | 'dark' | 'warm';
 /** A real, playable music service. */
@@ -55,23 +56,10 @@ function applyTheme(theme: Theme) {
   }
 }
 
-// All preferences are persisted by the main process (a file it owns), because the renderer
-// loads from file:// in packaged builds where localStorage isn't reliably kept across a
-// relaunch. `initialSettings` was read synchronously at preload time.
-const initial = window.api?.app?.initialSettings ?? {};
-
-// Read a preference: prefer the main-process value; otherwise fall back to the value still
-// in the old localStorage and push it forward into main so it persists from now on.
-function readSetting(key: string, legacyLsKey: string): string | null {
-  if (initial[key] !== undefined) return initial[key];
-  const legacy = localStorage.getItem(legacyLsKey);
-  if (legacy !== null) window.api?.app?.setSetting(key, legacy);
-  return legacy;
-}
-
-function saveSetting(key: string, value: string): void {
-  window.api?.app?.setSetting(key, value);
-}
+// All preferences are persisted by the main process (a file it owns) via lib/prefs —
+// see that module for why localStorage isn't good enough in packaged builds.
+const readSetting = readPref;
+const saveSetting = writePref;
 
 const storedTheme = readSetting('theme', 'studeo:theme') as Theme | null;
 // Back-compat: migrate the even older darkMode flag to a theme.

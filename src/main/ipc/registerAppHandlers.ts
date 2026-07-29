@@ -2,31 +2,14 @@ import { ipcMain, shell, dialog, BrowserWindow, app } from 'electron';
 import { rmSync, existsSync, readdirSync, cpSync } from 'node:fs';
 import path from 'node:path';
 import { IPC } from '../../shared/types';
+import { SETTING_KEYS } from '../../shared/settingsKeys';
 import { getDb, getDbPath, closeDb, snapshotInto, validateBackupFile } from '../db/connection';
 import { getAssetsRoot } from '../media';
 import { getAllSettings, setSetting } from '../settings';
 
-// Allowlist of preference keys the renderer may persist — IPC input is untrusted, so we
-// never write an arbitrary key. Keep in sync with the settings store in the renderer.
-const SETTING_KEYS = new Set([
-  'theme',
-  'musicMode',
-  'defaultMusicService',
-  'classRemindersEnabled',
-  'reminderLeadMinutes',
-  'dueDigestEnabled',
-  'dueDigestTime',
-  'timerSound',
-  'reflectionPrompt',
-  'ambienceVolume',
-  // Pomodoro timer configuration.
-  'focusMins',
-  'breakMins',
-  'longBreakMins',
-  'customTechnique',
-  // Last .ics feed URL used on the Import page, so a re-import is one click.
-  'canvasFeedUrl',
-]);
+// The allowlist itself lives in shared/settingsKeys.ts so main and the renderer read the
+// same list instead of two hand-synced copies. A Set for the O(1) membership check here.
+const ALLOWED_SETTING_KEYS = new Set<string>(SETTING_KEYS);
 
 // App-level utilities for a local-first app: let the user see exactly where
 // their data lives, and take a backup copy of it on demand.
@@ -48,7 +31,7 @@ export function registerAppHandlers(): void {
     // an invisible product bug — 'canvasFeedUrl' was written by the Import page and
     // discarded here for however long, so the feed URL was simply never remembered and
     // nothing anywhere said so. Refusing is still right; refusing quietly is not.
-    if (!SETTING_KEYS.has(key)) {
+    if (!ALLOWED_SETTING_KEYS.has(key)) {
       console.warn(`[settings] Ignoring unknown key "${key}" — add it to SETTING_KEYS if it's real.`);
       return;
     }

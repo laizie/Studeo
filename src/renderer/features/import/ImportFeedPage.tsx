@@ -6,11 +6,12 @@ import { useAssignments, useCreateAssignments } from '../../lib/queries/useAssig
 import { parseIcs, type ParsedIcsEvent } from '../../../shared/icsParser';
 import { ASSIGNMENT_TYPES, type AssignmentType, type Course } from '../../../shared/types';
 import { cn } from '../../lib/utils';
+import { readPref, writePref } from '../../lib/prefs';
 
 // We persist the last-used feed URL under this settings key (owned by main) so a
 // re-import is one click. It's a one-off preference, so we read/write it directly
 // rather than threading it through the global settings store.
-const FEED_URL_KEY = 'canvasFeedUrl';
+const FEED_URL_KEY = 'canvasFeedUrl' as const;
 
 // Grouping key used for events that carry no "[Course]" label in their summary.
 const NO_COURSE = '__none__';
@@ -88,7 +89,7 @@ export default function ImportFeedPage() {
   const [step, setStep] = useState<'url' | 'map' | 'preview'>('url');
 
   // Step 1 — URL
-  const [url, setUrl] = useState(() => window.api?.app?.initialSettings?.[FEED_URL_KEY] ?? '');
+  const [url, setUrl] = useState(() => readPref(FEED_URL_KEY) ?? '');
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState('');
 
@@ -161,7 +162,7 @@ export default function ImportFeedPage() {
         setFetchError('We fetched the feed, but it had no events to import.');
         return;
       }
-      window.api.app.setSetting(FEED_URL_KEY, trimmed); // remember for next time
+      writePref(FEED_URL_KEY, trimmed); // remember for next time
       setEvents(parsed);
       setStep('map');
     } catch (err) {

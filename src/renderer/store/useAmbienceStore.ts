@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AmbienceId } from '../../shared/ambience';
+import { readPref, writePref } from '../lib/prefs';
 
 // Focus Mode ambient-sound state. Kept engine-free (pure state): FocusMode wires the
 // selection/volume to the Web Audio engine via effects. The *volume* is a real
@@ -7,10 +8,8 @@ import type { AmbienceId } from '../../shared/ambience';
 // The *selection* is runtime-only and starts null every time, so opening the room is
 // silent until you pick a sound — no startling autoplay.
 
-const appSettings = window.api?.app?.initialSettings ?? {};
-
 function readVolume(): number {
-  const raw = appSettings['ambienceVolume'];
+  const raw = readPref('ambienceVolume');
   const n = raw != null ? parseFloat(raw) : NaN;
   return isNaN(n) ? 0.6 : Math.min(1, Math.max(0, n));
 }
@@ -35,7 +34,7 @@ export const useAmbienceStore = create<AmbienceState>()((set) => ({
 
   setVolume: (v) => {
     const vol = Math.min(1, Math.max(0, v));
-    window.api?.app?.setSetting('ambienceVolume', String(vol));
+    writePref('ambienceVolume', String(vol));
     set({ volume: vol });
   },
 

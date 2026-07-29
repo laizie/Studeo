@@ -3,6 +3,8 @@ import { useSettingsStore } from './useSettingsStore';
 import { useFocusStore } from './useFocusStore';
 import { queryClient } from '../lib/queryClient';
 import { studySessionKeys } from '../lib/queries/useStudySessions';
+import { readBoolPref, readPref, writePref } from '../lib/prefs';
+import type { SettingKey } from '../../shared/settingsKeys';
 import { SITTING_GAP_MS } from '../../shared/studySittings';
 
 export type Phase = 'focus' | 'short_break' | 'long_break';
@@ -123,25 +125,14 @@ function logFocusSession(durationSeconds: number, intention: string, armReflecti
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Timer *configuration* (durations, custom flag) persists in the main process — the
-// renderer's localStorage isn't reliable across a relaunch in packaged (file://) builds.
-// The live countdown snapshot below stays in localStorage: it changes every tick and is
-// transient resume state, not a setting. `initialSettings` was read at preload time.
-const appSettings = window.api?.app?.initialSettings ?? {};
+// Timer *configuration* (durations, auto-advance, custom flag) persists in the main
+// process via lib/prefs — the renderer's localStorage isn't reliable across a relaunch
+// in packaged (file://) builds. The live countdown snapshot below stays in localStorage:
+// it changes every tick and is transient resume state, not a setting.
+const readSetting = readPref;
+const saveSetting = writePref;
 
-function readSetting(key: string, legacyLsKey: string): string | null {
-  if (appSettings[key] !== undefined) return appSettings[key];
-  // Migrate a value still only in old localStorage forward into main.
-  const legacy = localStorage.getItem(legacyLsKey);
-  if (legacy !== null) window.api?.app?.setSetting(key, legacy);
-  return legacy;
-}
-
-function saveSetting(key: string, value: string): void {
-  window.api?.app?.setSetting(key, value);
-}
-
-function readMins(key: string, legacyLsKey: string, fallback: number): number {
+function readMins(key: SettingKey, legacyLsKey: string, fallback: number): number {
   const stored = parseInt(readSetting(key, legacyLsKey) ?? '', 10);
   return isNaN(stored) ? fallback : stored;
 }
@@ -416,7 +407,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   phase:       restored.phase,
   isRunning:   restored.isRunning,
   timeLeft:    restored.timeLeft,
-  autoAdvance: false,
+  // Persisted like the durations beside it: whether the timer rolls straight into
+  // the next phase is how you work, not a per-session decision.
+  autoAdvance: readBoolPref('autoAdvance', false),
   focusSecs:     initFocusSecs,
   breakSecs:     initBreakSecs,
   longBreakSecs: initLongBreakSecs,
@@ -508,7 +501,11 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     });
   },
 
-  toggleAutoAdvance: () => set(s => ({ autoAdvance: !s.autoAdvance })),
+  toggleAutoAdvance: () => set(s => {
+    const autoAdvance = !s.autoAdvance;
+    saveSetting('autoAdvance', String(autoAdvance));
+    return { autoAdvance };
+  }),
 
   // Driven once a second from the app shell. Remaining time is derived from
   // endsAt rather than decremented, so a missed tick can't accumulate drift.

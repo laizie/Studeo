@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import logoUrl from '../assets/logo.png';
 import {
@@ -12,6 +11,7 @@ import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
 import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
 import AutoNowPlaying from '../features/music/AutoNowPlaying';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { usePageFiltersStore } from '../store/usePageFiltersStore';
 import { useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock } from '../store/useTimerStore';
 
 // Three small clusters instead of one long list: planning views, the things
@@ -52,7 +52,10 @@ const subLinkClass = ({ isActive }: { isActive: boolean }) =>
 /** "Notes" nav as a class-first group: a notebook per course + a Loose-notes bucket. */
 function NotesNavSection() {
   const { data: courses } = useCourses();
-  const [open, setOpen] = useState(true);
+  // Persisted: whether the notebook list is expanded is a standing preference,
+  // not per-visit state — collapsing it should still be collapsed tomorrow.
+  const open    = usePageFiltersStore(s => s.notesNavOpen);
+  const setOpen = usePageFiltersStore(s => s.setNotesNavOpen);
   const list = courses ?? [];
 
   return (
@@ -63,7 +66,7 @@ function NotesNavSection() {
           Notes
         </NavLink>
         <button
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpen(!open)}
           aria-label={open ? 'Collapse notebooks' : 'Expand notebooks'}
           className="ml-1 rounded-md p-1 text-sidebar-muted hover:bg-sidebar-line hover:text-sidebar-ink transition-colors"
         >

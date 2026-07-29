@@ -1,3 +1,5 @@
+import type React from 'react';
+
 // Fixed color palette for course accents.
 // Used as left-bar stripes and abbreviation pills — never as full backgrounds.
 // Add new colors here only; never hardcode hex values elsewhere.
@@ -41,6 +43,11 @@ export const DEFAULT_COURSE_COLOR: CourseColorValue = '#6393e1';
  *  (calendar event chips). One value, two consumers. */
 export const TASK_COLOR = '#7c6abf';
 
+/** The amber accent as a value for JS style objects. A `var()` reference rather
+ *  than a hex so it still follows the theme — the chip helpers below composite
+ *  whatever they're given against theme tokens, which works the same either way. */
+export const ACCENT_TOKEN = 'var(--accent)';
+
 // ── The course pill recipe ────────────────────────────────────────────────────
 // The abbreviation pill is the app's most common "which class?" cue, and it was
 // unreadable: text was the raw course color on a 25%-alpha tint of *itself*
@@ -68,6 +75,49 @@ export function courseInk(color: string): string {
 /** The pill's tinted background — the course hue laid into the theme's well. */
 export function coursePillBg(color: string): string {
   return `color-mix(in srgb, ${color} ${PILL_TINT}, var(--inset))`;
+}
+
+// ── The calendar chip recipe ──────────────────────────────────────────────────
+// A calendar chip answers "which class?" before it answers anything else, so a
+// finished item KEEPS its course hue — it just goes quiet. It used to flip to a
+// flat `#d6d3d1` stone, which meant a month of completed work rendered as an
+// undifferentiated gray wall with no course identity left in it (and that stone
+// was a hard-coded light-mode value, so on the dark and warm themes it was a
+// row of pale slabs). Done chips now reuse the same tinted-pill treatment as the
+// rest of the app — hue laid into the theme's well, hue-tinted ink — plus a
+// strike-through. Live chips stay solid so today's work still reads first.
+export function calendarChipStyle(
+  color: string,
+  opts: { done?: boolean } = {},
+): React.CSSProperties {
+  const base: React.CSSProperties = {
+    borderRadius: '4px',
+    // Stock rbc sets `border: none` on events, so a borderColor alone paints
+    // nothing — the width and style have to be stated for the outline to exist.
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    fontSize: '0.75rem',
+  };
+
+  if (opts.done) {
+    return {
+      ...base,
+      backgroundColor: coursePillBg(color),
+      // The border carries most of the hue signal here: the 25% fill is
+      // deliberately quiet (and AA-locked against the ink by colors.test.ts), so
+      // for the paler half of the palette it's the edge that says "this class".
+      borderColor: `color-mix(in srgb, ${color} 70%, transparent)`,
+      color: courseInk(color),
+      textDecoration: 'line-through',
+    };
+  }
+
+  return {
+    ...base,
+    backgroundColor: color,
+    borderColor: color,
+    color: contrastTextColor(color),
+  };
 }
 
 /**
