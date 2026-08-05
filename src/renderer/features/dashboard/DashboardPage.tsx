@@ -23,6 +23,7 @@ import CourseDialog from '../courses/CourseDialog';
 import AddAssignmentDialog from '../courses/AddAssignmentDialog';
 import AddTaskDialog from '../tasks/AddTaskDialog';
 import SemesterTimelineStrip from './SemesterTimelineStrip';
+import UpcomingExamsCard from './UpcomingExamsCard';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -708,8 +709,18 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* Right: today's classes + courses */}
+            {/* Right: exams + today's classes + courses */}
             <div className="space-y-8">
+
+              {/* Exams lead the column and never go away: every other list here is
+                  windowed to this week, which is exactly how a midterm three weeks
+                  out stays invisible until it isn't. */}
+              <UpcomingExamsCard
+                assignments={allAssignments}
+                courses={allCourses}
+                today={todayMidnight}
+                onEdit={openEditAssignment}
+              />
 
               <div>
                 <SectionLabel title="Today's classes" />
