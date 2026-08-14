@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Info, FolderOpen, HardDriveDownload, HardDriveUpload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Info, FolderOpen, HardDriveDownload, HardDriveUpload, History } from 'lucide-react';
 import { version as appVersion } from '../../../../package.json';
 import { SectionHeading, SettingsCard, SettingsRow, CardButton } from './components';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -8,9 +8,21 @@ export default function AboutSection() {
   const [backupState, setBackupState] = useState<'idle' | 'saving' | 'done' | 'failed'>('idle');
   const [backupDetail, setBackupDetail] = useState('');
 
+  const [autoBackups, setAutoBackups] = useState<{ count: number; newestDay: string | null } | null>(null);
+
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [restoreState, setRestoreState] = useState<'idle' | 'restoring' | 'done' | 'failed'>('idle');
   const [restoreDetail, setRestoreDetail] = useState('');
+
+  // Read once on mount. These snapshots are written by main at launch, so the count
+  // can't change while Settings is open — no need to poll or invalidate.
+  useEffect(() => {
+    let active = true;
+    window.api.app.listBackups()
+      .then(status => { if (active) setAutoBackups(status); })
+      .catch(() => { /* leave it unknown rather than claiming zero */ });
+    return () => { active = false; };
+  }, []);
 
   async function handleBackup() {
     setBackupState('saving');
@@ -57,6 +69,18 @@ export default function AboutSection() {
     : backupState === 'failed' ? `Backup failed${backupDetail ? ` — ${backupDetail}` : ''}. Please try again.`
     : 'Save a snapshot of your database (note images are copied alongside it) — a safe copy before big changes';
 
+  // Local YYYY-MM-DD, to compare against the day main filed the newest snapshot under.
+  const todayKey = (() => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  })();
+
+  const autoBackupDescription =
+    autoBackups === null || autoBackups.count === 0
+      ? 'Saved on its own once a day, and again before every app update'
+      : `${autoBackups.count} kept — newest ${autoBackups.newestDay === todayKey ? 'today' : autoBackups.newestDay}`;
+
   const restoreDescription =
     restoreState === 'restoring' ? 'Restoring… the app will restart in a moment.'
     : restoreState === 'done'     ? 'Restored — restarting…'
@@ -88,6 +112,15 @@ export default function AboutSection() {
         >
           <CardButton onClick={handleBackup} disabled={backupState === 'saving'}>
             {backupState === 'saving' ? 'Saving…' : 'Back up now…'}
+          </CardButton>
+        </SettingsRow>
+        <SettingsRow
+          icon={<History size={17} />}
+          label="Automatic backups"
+          description={autoBackupDescription}
+        >
+          <CardButton onClick={() => window.api.app.revealBackups()}>
+            Show backups
           </CardButton>
         </SettingsRow>
         <SettingsRow

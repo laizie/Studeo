@@ -598,6 +598,8 @@ export const IPC = {
     REVEAL_DATA:    'app:reveal-data',
     BACKUP_DATA:    'app:backup-data',
     RESTORE_DATA:   'app:restore-data',
+    LIST_BACKUPS:   'app:list-backups',
+    REVEAL_BACKUPS: 'app:reveal-backups',
     GET_SETTINGS:   'app:get-settings',
     SET_SETTING:    'app:set-setting',
     SET_FULLSCREEN: 'app:set-fullscreen',
@@ -777,6 +779,11 @@ export interface WindowApi {
      *  database with a chosen backup, then relaunch. On success the app restarts, so the
      *  promise only resolves with restored=false (canceled or error). */
     restoreData(): Promise<{ restored: boolean; canceled?: boolean; error?: string }>;
+    /** How many automatic snapshots are on disk, and the local day (YYYY-MM-DD) of the
+     *  newest — so Settings can show that the rolling backups are actually running. */
+    listBackups(): Promise<{ count: number; newestDay: string | null }>;
+    /** Open the automatic-backups folder in Finder / Explorer. */
+    revealBackups(): Promise<void>;
     /** All saved UI preferences, read synchronously at preload time so they can be applied
      *  before first paint (e.g. theme, with no flash). Keys absent until first set. */
     initialSettings: Record<string, string>;

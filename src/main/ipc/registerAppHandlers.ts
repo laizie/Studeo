@@ -1,8 +1,10 @@
 import { ipcMain, shell, dialog, BrowserWindow, app } from 'electron';
-import { rmSync, existsSync, readdirSync, cpSync } from 'node:fs';
+import { rmSync, existsSync, readdirSync, cpSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { IPC } from '../../shared/types';
 import { SETTING_KEYS } from '../../shared/settingsKeys';
+import { parseBackupFileName } from '../../shared/backupRotation';
+import { backupsDir } from '../db/backups';
 import { getDb, getDbPath, closeDb, snapshotInto, validateBackupFile } from '../db/connection';
 import { getAssetsRoot } from '../media';
 import { getAllSettings, setSetting } from '../settings';
@@ -88,6 +90,32 @@ export function registerAppHandlers(): void {
     } catch (err) {
       return { saved: false, error: err instanceof Error ? err.message : 'Backup failed' };
     }
+  });
+
+  // Automatic backups run on their own in the main process (see db/backups.ts).
+  // These two exist so Settings can show they're working and put the folder one
+  // click away — a safety net you can't see is one you won't trust in a crisis.
+  ipcMain.handle(IPC.APP.LIST_BACKUPS, () => {
+    const dir = backupsDir();
+    const names = existsSync(dir) ? readdirSync(dir) : [];
+
+    let count = 0;
+    let newestDay: string | null = null;
+    for (const name of names) {
+      const parsed = parseBackupFileName(name);
+      if (!parsed) continue; // ignore anything we didn't write
+      count += 1;
+      if (newestDay === null || parsed.day > newestDay) newestDay = parsed.day;
+    }
+    return { count, newestDay };
+  });
+
+  ipcMain.handle(IPC.APP.REVEAL_BACKUPS, async () => {
+    // Created on demand: on a fresh install nothing has been backed up yet, and
+    // opening a folder that doesn't exist just fails silently.
+    const dir = backupsDir();
+    mkdirSync(dir, { recursive: true });
+    await shell.openPath(dir);
   });
 
   // Restore is the inverse of backup, and the one action that overwrites all

@@ -1,6 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
+import { runDailyBackup, runPreUpgradeBackup } from './backups';
 
 // Vite inlines these .sql files as strings at build time (?raw suffix).
 // This means the SQL always travels with the bundle — no separate file copying needed.
@@ -40,12 +42,36 @@ export function initDb(): void {
   //   Windows: %APPDATA%\Studeo
   dbPath = path.join(app.getPath('userData'), 'studeo.db');
 
+  // Checked before we open, because opening creates the file. A first run has no
+  // data to protect, so it skips both snapshots below — there is nothing in an
+  // empty database worth a copy, and a brand-new install would otherwise spend
+  // its first launch backing up zero rows.
+  const isFirstRun = !existsSync(dbPath);
+
   db = new DatabaseSync(dbPath, { enableForeignKeyConstraints: true });
 
   // WAL (Write-Ahead Log) mode is faster for apps that read and write frequently.
   db.exec('PRAGMA journal_mode = WAL');
 
+  // Snapshot before a schema change touches existing data. Each migration is
+  // already transactional, so one that *fails* rolls back and needs no backup.
+  // This covers the case a transaction can't: a migration that succeeds while
+  // transforming data incorrectly. SQLite sees no error, commits, and the old
+  // shape of the data is gone — unless a copy was taken first. New versions
+  // arrive by auto-update, so this runs unattended; that's exactly when you want
+  // the copy to already exist.
+  if (!isFirstRun && pendingMigrations(db).length > 0) {
+    runPreUpgradeBackup(snapshotInto);
+  }
+
   runMigrations(db);
+
+  // The everyday rolling snapshot, once per calendar day. After migrations, so
+  // the file on disk always matches a schema this version can open.
+  if (!isFirstRun) {
+    runDailyBackup(snapshotInto);
+  }
+
   console.log('[DB] Ready at', dbPath);
 }
 
@@ -136,6 +162,32 @@ const MIGRATIONS: Migration[] = [
 ];
 
 /**
+ * Which migrations haven't run yet, in order.
+ *
+ * Split out from the runner because startup asks the same question one step
+ * earlier — "is this launch about to change the schema?" — to decide whether to
+ * take a pre-upgrade backup. Creating the bookkeeping table is part of the
+ * answer: on a database from before the table existed, "nothing has run" is only
+ * true once there's somewhere for that to be recorded.
+ */
+function pendingMigrations(database: DatabaseSync): Migration[] {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      id     INTEGER PRIMARY KEY AUTOINCREMENT,
+      name   TEXT    NOT NULL UNIQUE,
+      run_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  const ran = new Set<string>(
+    (database.prepare('SELECT name FROM _migrations').all() as { name: string }[])
+      .map(r => r.name)
+  );
+
+  return MIGRATIONS.filter(migration => !ran.has(migration.name));
+}
+
+/**
  * Apply every pending migration, each inside its own transaction.
  *
  * Why the transaction is load-bearing: `exec()` runs a multi-statement file one
@@ -155,22 +207,7 @@ const MIGRATIONS: Migration[] = [
  * is not true of every database — MySQL, for instance, commits DDL implicitly.)
  */
 function runMigrations(database: DatabaseSync): void {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS _migrations (
-      id     INTEGER PRIMARY KEY AUTOINCREMENT,
-      name   TEXT    NOT NULL UNIQUE,
-      run_at TEXT    NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  const ran = new Set<string>(
-    (database.prepare('SELECT name FROM _migrations').all() as { name: string }[])
-      .map(r => r.name)
-  );
-
-  for (const { name, sql, foreignKeysOff } of MIGRATIONS) {
-    if (ran.has(name)) continue;
-
+  for (const { name, sql, foreignKeysOff } of pendingMigrations(database)) {
     // Must be toggled outside the transaction — see Migration.foreignKeysOff.
     if (foreignKeysOff) database.exec('PRAGMA foreign_keys = OFF');
 
