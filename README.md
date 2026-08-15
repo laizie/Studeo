@@ -57,7 +57,10 @@ weights, and ask "what do I need on the final?" — Studeo computes the answer.
 
 **Nudges, not nagging.** Optional reminders before class and a daily digest of what's due — these
 run while Studeo is open, so **Settings → Notifications** can start it at login and keep them alive
-across restarts. A
+across restarts. On macOS the same screen can mirror upcoming assignments into a **Studeo** list in
+Apple Reminders: iCloud carries that list to your phone, which then alerts you with the laptop shut
+and lets you open the item to see what it actually is. Studeo owns that one list and touches no
+other; ticking something off in Studeo ticks it off there too. A
 **Weekly Review** on Sunday shows what you finished, how your focus time compared to last week, and
 what rolls over.
 

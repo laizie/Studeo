@@ -1,0 +1,21 @@
+import { ipcMain } from 'electron';
+import { IPC } from '../../shared/types';
+import {
+  getAppleRemindersStatus,
+  setAppleRemindersEnabled,
+  syncAppleReminders,
+} from '../applereminders';
+
+// The Apple Reminders mirror. Every handler returns the whole status object so the
+// renderer never has to guess what changed — one shape, one source of truth.
+
+export function registerAppleRemindersHandlers(): void {
+  ipcMain.handle(IPC.APPLE_REMINDERS.STATUS, () => getAppleRemindersStatus());
+
+  ipcMain.handle(IPC.APPLE_REMINDERS.SET_ENABLED, (_event, enabled: unknown) => {
+    // IPC input is untrusted: coerce to a real boolean before it reaches settings.
+    return setAppleRemindersEnabled(enabled === true);
+  });
+
+  ipcMain.handle(IPC.APPLE_REMINDERS.SYNC_NOW, () => syncAppleReminders());
+}

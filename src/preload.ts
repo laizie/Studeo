@@ -180,6 +180,12 @@ const api: WindowApi = {
     extractPdf: () => ipcRenderer.invoke(IPC.SYLLABUS.EXTRACT_PDF),
   },
 
+  appleReminders: {
+    status:     ()                  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.STATUS),
+    setEnabled: (enabled: boolean)  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SET_ENABLED, enabled),
+    syncNow:    ()                  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SYNC_NOW),
+  },
+
   appleMusic: {
     status:        ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.STATUS),
     playback:      ()                    => ipcRenderer.invoke(IPC.APPLE_MUSIC.PLAYBACK),

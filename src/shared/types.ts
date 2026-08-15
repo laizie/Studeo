@@ -251,6 +251,23 @@ export interface AssignmentSnapshot {
 // Separate from the domain models so we never accidentally pass DB row shapes
 // as creation inputs (different fields, no id/created_at yet).
 
+/** State of the Apple Reminders mirror, for the Settings row that drives it. */
+export interface AppleRemindersStatus {
+  /** macOS only — Reminders is scripted through AppleScript. */
+  supported: boolean;
+  enabled: boolean;
+  syncing: boolean;
+  /** ISO/UTC timestamp of the last completed pass, or null if it hasn't run. */
+  lastSyncAt: string | null;
+  /** Human-readable reason the last pass didn't fully succeed, or null. */
+  lastError: string | null;
+  /** How many assignments currently have a reminder mirroring them. */
+  mirrored: number;
+  /** The Reminders list Studeo owns. Fixed, so the sync can never manage a list
+   *  the user filled with their own items. */
+  listName: string;
+}
+
 export interface ReminderConfig {
   enabled: boolean;
   /** Minutes before a class meeting's start time to fire the notification. */
@@ -607,6 +624,11 @@ export const IPC = {
     SET_FULLSCREEN: 'app:set-fullscreen',
     GET_FULLSCREEN: 'app:get-fullscreen',
   },
+  APPLE_REMINDERS: {
+    STATUS:      'apple_reminders:status',
+    SET_ENABLED: 'apple_reminders:set-enabled',
+    SYNC_NOW:    'apple_reminders:sync-now',
+  },
   FEEDS: {
     FETCH_ICS: 'feeds:fetch-ics',
   },
@@ -813,6 +835,14 @@ export interface WindowApi {
     /** Open-dialog + extract the text from a chosen syllabus PDF (done in main).
      *  Rejects on a read/extract failure or a scanned PDF with no selectable text. */
     extractPdf(): Promise<ExtractPdfResult>;
+  };
+  /** Mirrors upcoming assignments into an Apple Reminders list, which iCloud carries
+   *  to the phone — the only path that alerts you with the laptop shut. */
+  appleReminders: {
+    status():                        Promise<AppleRemindersStatus>;
+    setEnabled(enabled: boolean):    Promise<AppleRemindersStatus>;
+    /** Force a pass now instead of waiting for the interval. */
+    syncNow():                       Promise<AppleRemindersStatus>;
   };
   appleMusic: {
     status():                        Promise<AppleMusicStatus>;

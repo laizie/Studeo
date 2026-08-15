@@ -26,6 +26,8 @@ import { IPC } from './shared/types';
 import type { ReminderNavTarget } from './shared/types';
 import { registerSpotifyHandlers, notifyAuthCallback } from './main/ipc/registerSpotifyHandlers';
 import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandlers';
+import { registerAppleRemindersHandlers } from './main/ipc/registerAppleRemindersHandlers';
+import { startAppleRemindersSync, stopAppleRemindersSync } from './main/applereminders';
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
 import { initAutoUpdater } from './main/updater';
 import { initTray, destroyTray } from './main/tray';
@@ -63,6 +65,7 @@ function registerIpcHandlers(): void {
   registerSyllabusHandlers();
   registerSpotifyHandlers();
   registerAppleMusicHandlers();
+  registerAppleRemindersHandlers();
 }
 
 /**
@@ -199,6 +202,7 @@ app.on('ready', () => {
   registerAssetProtocol(); // serves studeo-asset:// note images from the data folder
   registerIpcHandlers();
   startReminderScheduler(); // after initDb — the scheduler reads class meetings
+  startAppleRemindersSync(); // no-op unless enabled; reads assignments, so after initDb
   setReminderNavigationHandler(navigateFromReminder); // clicked reminders → route the renderer
   // A login start (Windows) comes up with no window: the point is to get the
   // reminder scheduler and the tray running, not to interrupt you at boot. The
@@ -221,6 +225,7 @@ app.on('window-all-closed', () => {
 // Tear the tray down cleanly on quit (stops the poll, removes the menu-bar item).
 app.on('before-quit', () => {
   destroyTray();
+  stopAppleRemindersSync();
 });
 
 app.on('activate', () => {
