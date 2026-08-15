@@ -82,13 +82,18 @@ export function PillGroup<T extends number>({
 }
 
 /** A Settings-row switch: the shared Switch at row density, in a button. */
-export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ checked, onChange, disabled }: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+      className="rounded-full disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
     >
       <Switch checked={checked} size="md" />
     </button>

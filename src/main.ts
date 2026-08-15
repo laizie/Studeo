@@ -29,6 +29,7 @@ import { registerAppleMusicHandlers } from './main/ipc/registerAppleMusicHandler
 import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
 import { initAutoUpdater } from './main/updater';
 import { initTray, destroyTray } from './main/tray';
+import { launchedInBackground } from './main/loginItem';
 
 if (started) {
   app.quit();
@@ -199,7 +200,14 @@ app.on('ready', () => {
   registerIpcHandlers();
   startReminderScheduler(); // after initDb — the scheduler reads class meetings
   setReminderNavigationHandler(navigateFromReminder); // clicked reminders → route the renderer
-  createWindow();
+  // A login start (Windows) comes up with no window: the point is to get the
+  // reminder scheduler and the tray running, not to interrupt you at boot. The
+  // tray's "Open Studeo" recreates the window on demand. Every other launch —
+  // including every launch on macOS, where the OS no longer tells us — opens
+  // normally. See loginItem.ts.
+  if (!launchedInBackground()) {
+    createWindow();
+  }
   initTray(showMainWindow); // menu-bar "Up next" item — reads class meetings, so after initDb
   initAutoUpdater(); // checks GitHub for newer published releases (packaged builds only)
 });

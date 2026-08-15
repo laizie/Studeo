@@ -157,6 +157,8 @@ const api: WindowApi = {
     restoreData: () => ipcRenderer.invoke(IPC.APP.RESTORE_DATA),
     listBackups: () => ipcRenderer.invoke(IPC.APP.LIST_BACKUPS),
     revealBackups: () => ipcRenderer.invoke(IPC.APP.REVEAL_BACKUPS),
+    getLoginItem: () => ipcRenderer.invoke(IPC.APP.GET_LOGIN_ITEM),
+    setLoginItem: (enabled: boolean) => ipcRenderer.invoke(IPC.APP.SET_LOGIN_ITEM, enabled),
     // Read once, synchronously, at preload time. The settings store's init reads this to
     // apply saved prefs (e.g. theme) before the first paint — no flash of the defaults.
     initialSettings: ipcRenderer.sendSync(IPC.APP.GET_SETTINGS) as Record<string, string>,

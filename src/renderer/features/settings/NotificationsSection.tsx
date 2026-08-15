@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bell, Hourglass, CalendarCheck, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, Hourglass, CalendarCheck, Clock, Power } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { SectionHeading, SettingsCard, SettingsRow, PillGroup, Toggle, CardButton, SETTINGS_INPUT } from './components';
 
@@ -14,6 +14,29 @@ export default function NotificationsSection() {
   } = useSettingsStore();
 
   const [testState, setTestState] = useState<'idle' | 'sent' | 'suppressed' | 'unsupported'>('idle');
+
+  // Start-at-login lives in the OS, not in our settings — read it from there on mount
+  // and after every change, so this switch shows what's actually true even if it was
+  // turned off in System Settings.
+  const [loginItem, setLoginItem] = useState<{ supported: boolean; openAtLogin: boolean }>({
+    supported: false, openAtLogin: false,
+  });
+
+  useEffect(() => {
+    let active = true;
+    window.api.app.getLoginItem()
+      .then(state => { if (active) setLoginItem(state); })
+      .catch(() => { /* leave it off and disabled rather than guess */ });
+    return () => { active = false; };
+  }, []);
+
+  async function handleLoginItemChange(enabled: boolean) {
+    try {
+      setLoginItem(await window.api.app.setLoginItem(enabled));
+    } catch {
+      setLoginItem(await window.api.app.getLoginItem().catch(() => loginItem));
+    }
+  }
 
   async function handleTest() {
     try {
@@ -71,6 +94,25 @@ export default function NotificationsSection() {
             />
           </SettingsRow>
         )}
+        {/* Reminders and the menu-bar "Up next" item only run while Studeo is open,
+            so this is the switch that decides whether they survive a restart. */}
+        <SettingsRow
+          icon={<Power size={17} />}
+          label="Start Studeo when I log in"
+          description={
+            loginItem.supported
+              ? 'Reminders only run while Studeo is open — this keeps them working after a restart'
+              : import.meta.env.DEV
+                ? 'Unavailable while running in development — works in the installed app'
+                : 'Not available on this system'
+          }
+        >
+          <Toggle
+            checked={loginItem.openAtLogin}
+            onChange={handleLoginItemChange}
+            disabled={!loginItem.supported}
+          />
+        </SettingsRow>
         {/* Test row — reminders are silent failures by nature; let the user
             prove notifications actually reach their screen before relying on them. */}
         <div className="flex items-center justify-between gap-4 px-5 py-3">

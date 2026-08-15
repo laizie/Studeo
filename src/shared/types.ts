@@ -600,6 +600,8 @@ export const IPC = {
     RESTORE_DATA:   'app:restore-data',
     LIST_BACKUPS:   'app:list-backups',
     REVEAL_BACKUPS: 'app:reveal-backups',
+    GET_LOGIN_ITEM: 'app:get-login-item',
+    SET_LOGIN_ITEM: 'app:set-login-item',
     GET_SETTINGS:   'app:get-settings',
     SET_SETTING:    'app:set-setting',
     SET_FULLSCREEN: 'app:set-fullscreen',
@@ -784,6 +786,11 @@ export interface WindowApi {
     listBackups(): Promise<{ count: number; newestDay: string | null }>;
     /** Open the automatic-backups folder in Finder / Explorer. */
     revealBackups(): Promise<void>;
+    /** Whether Studeo starts at login, read from the OS (which can change it behind our
+     *  back). `supported` is false in dev and on Linux, where we can't register it. */
+    getLoginItem(): Promise<{ supported: boolean; openAtLogin: boolean }>;
+    /** Turn the login item on/off; resolves with the state the OS actually ended up in. */
+    setLoginItem(enabled: boolean): Promise<{ supported: boolean; openAtLogin: boolean }>;
     /** All saved UI preferences, read synchronously at preload time so they can be applied
      *  before first paint (e.g. theme, with no flash). Keys absent until first set. */
     initialSettings: Record<string, string>;

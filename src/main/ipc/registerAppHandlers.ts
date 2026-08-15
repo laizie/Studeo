@@ -5,6 +5,7 @@ import { IPC } from '../../shared/types';
 import { SETTING_KEYS } from '../../shared/settingsKeys';
 import { parseBackupFileName } from '../../shared/backupRotation';
 import { backupsDir } from '../db/backups';
+import { getLoginItemState, setOpenAtLogin } from '../loginItem';
 import { getDb, getDbPath, closeDb, snapshotInto, validateBackupFile } from '../db/connection';
 import { getAssetsRoot } from '../media';
 import { getAllSettings, setSetting } from '../settings';
@@ -116,6 +117,15 @@ export function registerAppHandlers(): void {
     const dir = backupsDir();
     mkdirSync(dir, { recursive: true });
     await shell.openPath(dir);
+  });
+
+  // "Start at login". Not stored in settings.json on purpose — the OS owns this
+  // value and the user can change it outside the app, so we always ask it.
+  ipcMain.handle(IPC.APP.GET_LOGIN_ITEM, () => getLoginItemState());
+
+  ipcMain.handle(IPC.APP.SET_LOGIN_ITEM, (_event, enabled: unknown) => {
+    // IPC input is untrusted; coerce rather than hand anything to the OS API.
+    return setOpenAtLogin(enabled === true);
   });
 
   // Restore is the inverse of backup, and the one action that overwrites all
