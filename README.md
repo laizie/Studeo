@@ -55,7 +55,9 @@ with a notebook per course, notes linked to lectures and assignments, and versio
 **Know where you stand.** Record scores as they come back, define your own grade sections and
 weights, and ask "what do I need on the final?" — Studeo computes the answer.
 
-**Nudges, not nagging.** Optional reminders before class and a daily digest of what's due. A
+**Nudges, not nagging.** Optional reminders before class and a daily digest of what's due — these
+run while Studeo is open, so **Settings → Notifications** can start it at login and keep them alive
+across restarts. A
 **Weekly Review** on Sunday shows what you finished, how your focus time compared to last week, and
 what rolls over.
 
@@ -72,9 +74,15 @@ computer:
 - **macOS:** `~/Library/Application Support/Studeo/studeo.db`
 - **Windows:** `%APPDATA%\Studeo\studeo.db`
 
-That file survives app updates. **Settings → Data** will back it up (notes and images included) or
-restore it from a previous backup. Nothing leaves your machine unless you connect Spotify, which
-talks only to Spotify.
+That file survives app updates. Nothing leaves your machine unless you connect Spotify, which talks
+only to Spotify.
+
+Studeo keeps its own rolling backups in `backups/` beside that file — one a day, plus one taken
+immediately before any app update changes the database. A week of daily snapshots and the last three
+pre-update ones are kept; **Settings → About → Automatic backups** shows them and opens the folder.
+Those are database-only, which covers the ways a database goes wrong but not the loss of the disk
+itself. For that, **Back up now…** in the same place saves a copy with your note images alongside it
+— put that one somewhere else. **Restore from backup** takes either kind.
 
 ---
 
