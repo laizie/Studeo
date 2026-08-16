@@ -90,83 +90,93 @@ export async function syncAppleReminders(): Promise<AppleRemindersStatus> {
 
   syncing = true;
   try {
-    const plan = planReminderSync(listAssignments(), listCourses(), listReminderLinks(), new Date());
-    const empty =
-      plan.create.length === 0 && plan.update.length === 0 &&
-      plan.complete.length === 0 && plan.remove.length === 0;
-
-    // Nothing to do: return without touching AppleScript at all. This is what
-    // keeps a five-minute interval from launching Reminders.app all day.
-    if (empty && listVerified) {
-      lastSyncAt = new Date().toISOString();
-      lastError = null;
-      return getAppleRemindersStatus();
-    }
-
-    const listReady = await ensureList(LIST_NAME);
-    if (!listReady.ok) {
-      // Almost always Automation permission. Stop here rather than fail once per
-      // item — one clear message beats twenty identical ones.
-      lastError = describeFailure(listReady.value);
-      return getAppleRemindersStatus();
-    }
-    listVerified = true;
-
-    let firstFailure: string | null = null;
-    const noteFailure = (reason: string) => {
-      if (!firstFailure) firstFailure = describeFailure(reason);
-    };
-
-    for (const { assignmentId, reminderId } of plan.remove) {
-      const result = await deleteReminder(LIST_NAME, reminderId);
-      // Gone from Reminders already is the outcome we wanted, so drop the link
-      // either way — leaving it would retry this delete forever.
-      deleteReminderLink(assignmentId);
-      if (!result.ok) noteFailure(result.value);
-    }
-
-    for (const { assignmentId, reminderId } of plan.complete) {
-      const result = await completeReminder(LIST_NAME, reminderId);
-      if (result.ok) {
-        // Keep the link: the assignment still exists, and if it's un-completed
-        // later the next sync updates this same reminder instead of adding one.
-        continue;
-      }
-      // Couldn't tick it off — most likely deleted on the phone. Forget it.
-      deleteReminderLink(assignmentId);
-      noteFailure(result.value);
-    }
-
-    for (const { reminderId, reminder } of plan.update) {
-      const result = await updateReminder(LIST_NAME, reminderId, reminder);
-      if (result.ok) {
-        saveReminderLink(reminder.assignmentId, reminderId, reminder.signature);
-      } else {
-        // The reminder we recorded is unreachable. Dropping the link makes the
-        // next pass recreate it, which is how a delete-on-phone self-heals.
-        deleteReminderLink(reminder.assignmentId);
-        noteFailure(result.value);
-      }
-    }
-
-    for (const reminder of plan.create) {
-      const result = await createReminder(LIST_NAME, reminder);
-      if (result.ok && result.value) {
-        saveReminderLink(reminder.assignmentId, result.value, reminder.signature);
-      } else {
-        noteFailure(result.value || 'Reminders did not return an id');
-      }
-    }
-
-    lastSyncAt = new Date().toISOString();
-    lastError = firstFailure;
-    return getAppleRemindersStatus();
+    await runSyncPass();
   } catch (err) {
     lastError = describeFailure(err instanceof Error ? err.message : String(err));
-    return getAppleRemindersStatus();
   } finally {
     syncing = false;
   }
+  // Built after the flag is cleared, so a finished sync doesn't report itself as
+  // still running — the Settings row reads this to decide between "Syncing…" and
+  // the real result, and would otherwise sit on the pending copy forever.
+  return getAppleRemindersStatus();
+}
+
+/**
+ * One pass. Records its outcome in lastSyncAt / lastError and returns nothing —
+ * the caller owns the in-flight flag and builds the status once, after clearing it.
+ */
+async function runSyncPass(): Promise<void> {
+  const plan = planReminderSync(listAssignments(), listCourses(), listReminderLinks(), new Date());
+  const empty =
+    plan.create.length === 0 && plan.update.length === 0 &&
+    plan.complete.length === 0 && plan.remove.length === 0;
+
+  // Nothing to do: return without touching AppleScript at all. This is what
+  // keeps a five-minute interval from launching Reminders.app all day.
+  if (empty && listVerified) {
+    lastSyncAt = new Date().toISOString();
+    lastError = null;
+    return;
+  }
+
+  const listReady = await ensureList(LIST_NAME);
+  if (!listReady.ok) {
+    // Almost always Automation permission. Stop here rather than fail once per
+    // item — one clear message beats twenty identical ones.
+    lastError = describeFailure(listReady.value);
+    return;
+  }
+  listVerified = true;
+
+  let firstFailure: string | null = null;
+  const noteFailure = (reason: string) => {
+    if (!firstFailure) firstFailure = describeFailure(reason);
+  };
+
+  for (const { assignmentId, reminderId } of plan.remove) {
+    const result = await deleteReminder(LIST_NAME, reminderId);
+    // Gone from Reminders already is the outcome we wanted, so drop the link
+    // either way — leaving it would retry this delete forever.
+    deleteReminderLink(assignmentId);
+    if (!result.ok) noteFailure(result.value);
+  }
+
+  for (const { assignmentId, reminderId } of plan.complete) {
+    const result = await completeReminder(LIST_NAME, reminderId);
+    if (result.ok) {
+      // Keep the link: the assignment still exists, and if it's un-completed
+      // later the next sync updates this same reminder instead of adding one.
+      continue;
+    }
+    // Couldn't tick it off — most likely deleted on the phone. Forget it.
+    deleteReminderLink(assignmentId);
+    noteFailure(result.value);
+  }
+
+  for (const { reminderId, reminder } of plan.update) {
+    const result = await updateReminder(LIST_NAME, reminderId, reminder);
+    if (result.ok) {
+      saveReminderLink(reminder.assignmentId, reminderId, reminder.signature);
+    } else {
+      // The reminder we recorded is unreachable. Dropping the link makes the
+      // next pass recreate it, which is how a delete-on-phone self-heals.
+      deleteReminderLink(reminder.assignmentId);
+      noteFailure(result.value);
+    }
+  }
+
+  for (const reminder of plan.create) {
+    const result = await createReminder(LIST_NAME, reminder);
+    if (result.ok && result.value) {
+      saveReminderLink(reminder.assignmentId, result.value, reminder.signature);
+    } else {
+      noteFailure(result.value || 'Reminders did not return an id');
+    }
+  }
+
+  lastSyncAt = new Date().toISOString();
+  lastError = firstFailure;
 }
 
 /**
@@ -195,7 +205,11 @@ export async function setAppleRemindersEnabled(enabled: boolean): Promise<AppleR
   lastError = null;
 
   if (enabled) {
-    startAppleRemindersSync();
+    // Arm the interval WITHOUT its own kick-off pass, then await ours. Doing both
+    // meant the fire-and-forget pass claimed the in-flight guard and this call
+    // returned an untouched status — leaving the Settings row reading "Syncing…"
+    // with nothing ever arriving to correct it.
+    armInterval();
     return syncAppleReminders();
   }
 
@@ -207,13 +221,19 @@ export async function setAppleRemindersEnabled(enabled: boolean): Promise<AppleR
   return getAppleRemindersStatus();
 }
 
-export function startAppleRemindersSync(): void {
-  if (!supported() || !isEnabled() || interval) return;
-
-  // Kick one off now so a launch picks up whatever changed while the app was
-  // closed, then settle into the interval.
-  void syncAppleReminders();
+/** Start the recurring pass. Separate from the kick-off so a caller that intends to
+ *  await its own sync doesn't race a fire-and-forget one for the in-flight guard. */
+function armInterval(): void {
+  if (interval) return;
   interval = setInterval(() => { void syncAppleReminders(); }, SYNC_INTERVAL_MS);
+}
+
+/** Called at app launch: catch up on whatever changed while Studeo was closed,
+ *  then settle into the interval. Nothing awaits this, so it stays fire-and-forget. */
+export function startAppleRemindersSync(): void {
+  if (!supported() || !isEnabled()) return;
+  armInterval();
+  void syncAppleReminders();
 }
 
 export function stopAppleRemindersSync(): void {
