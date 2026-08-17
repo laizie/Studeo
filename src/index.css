@@ -40,12 +40,12 @@
 
 /* ── Theme tokens ─────────────────────────────────────────────────────────────
    One name per role; the value switches with the theme. Components write a
-   single class (bg-surface) instead of a light/dark/warm/blush quartet. Add new
+   single class (bg-surface) instead of one hex per theme. Add new
    colors HERE, not as inline hexes in components.
 
    Themes come in two families, and which family a theme joins is the first
    decision when adding one:
-     - LIGHT-based (light, blush): dark ink on pale surfaces. Only overrides the
+     - LIGHT-based (light, blush, linen): dark ink on pale surfaces. Only overrides the
        tokens below; `applyTheme` adds no class, so every `dark:` utility in the
        app correctly stays off.
      - DARK-based (dark, warm): pale ink on deep surfaces. `applyTheme` adds
@@ -103,10 +103,16 @@
    live outside the theme-switching block above. Consumed as bg-sidebar,
    text-sidebar-muted, bg-task, … instead of inline hexes.
 
-   A theme only overrides these if its accent leaves the amber family entirely —
-   blush does, and a brown sidebar next to pink reads as a mistake rather than a
-   choice. Its overrides sit in the blush block below; `html[data-theme=...]`
-   outranks this plain `:root`, so they win wherever they appear in the file. */
+   A theme only overrides these if its accent leaves the amber family entirely.
+   Blush and linen both do — an espresso sidebar next to pink or sage reads as a
+   mistake rather than a choice — so each restates the whole set in its own block
+   below. `html[data-theme=...]` outranks this plain `:root`, so those win
+   wherever they appear in the file.
+
+   Note that --sidebar-ink and --sidebar-muted are ROLES ("the sidebar's text"),
+   not literal creams: blush inverts the sidebar to pale pink and makes both of
+   them dark. Anything drawing on the sidebar must use these tokens rather than
+   assume light-on-dark — see NowPlayingCard.tsx for the one place that didn't. */
 :root {
   --sidebar:       #2c1f14;  /* sidebar background */
   --sidebar-line:  #3d2b1f;  /* sidebar dividers + hover fill */
@@ -167,55 +173,101 @@ html[data-theme="warm"] {
   --paper:      #6a4b2f;  /* note sheet = the mid-brown surface, lifted off --bg */
 }
 
-/* Blush = "a lamplit desk at golden hour, in rose". A LIGHT-family theme (no
-   `.dark` class — see the family note at the top), built on the five pinks
-   #ffe5ec · #ffc2d1 · #ffb3c6 · #ff8fab · #fb6f92, which run light→deep in that
-   order and so map cleanly onto the page → well → hairline → hover-edge → accent
-   ladder the tokens already describe.
+/* Blush = "the desk by a bright window". A LIGHT-family theme (no `.dark` class —
+   see the family note at the top), built on the five pinks #ffe5ec · #ffc2d1 ·
+   #ffb3c6 · #ff8fab · #fb6f92, which run light→deep in that order and so map
+   cleanly onto the page → hairline → hover-edge → accent ladder.
 
-   Two roles had to be branched off-palette, because five values that are all
-   pale and all pink cannot carry them:
+   The brief was to keep the palette's BRIGHTNESS, so unlike every other theme
+   this one has no dark mass anywhere: the sidebar is pale pink too. That is the
+   one structural difference from light/dark/warm, and it's why the music
+   mini-player's progress groove had to stop being `bg-white/10` (see
+   NowPlayingCard.tsx) — white on pale pink is nothing at all.
+
+   Two roles are still branched off-palette, because five pale pinks can't carry
+   them:
      - INK. Every palette color is far too light to read as text; the darkest,
-       #fb6f92, is only 2.3:1 on the page. So the ink ramp is a deep plum drawn
-       from the same hue (#2b0c17 → #4a1c2a → #7c3f53) — the palette's own color
-       taken down past where text becomes text, rather than a neutral gray that
-       would leave the theme reading as "pink background, default app".
-     - SURFACES. Cards sit on a near-white (#fffbfc) rather than one of the
+       #fb6f92, is only 2.3:1 on the page. So the ink ramp is a plum drawn from
+       the same hue (#331620 → #542936 → #8a5566). Note that dark ink does NOT
+       make the theme look dark — ink is letterforms, the surfaces are what the
+       eye reads as brightness, and every surface here is a pale pink or white.
+     - SURFACES. Cards sit on a near-white (#fffdfd) rather than one of the
        pinks, so the pink page reads as the room and the cards as paper in it.
-       Reversing that (pink cards on a pale page) flattens the two into one
-       field: the whole point of --bg vs --surface is that a card looks lifted.
 
-   The palette is warm-neutral enough that the amber-era chrome had to move too —
-   the espresso sidebar is overridden here with a deep wine that belongs to the
-   same hue family as the accent. */
+   #ffc2d1 lands on --line: with a pale sidebar the hairlines are doing more
+   structural work than they were, so the palette's own midpoint earns the role. */
 html[data-theme="blush"] {
   --bg:         #ffe5ec;  /* palette 1 — the page */
-  --surface:    #fffbfc;  /* branched: near-white paper, clearly lifted off --bg */
-  --surface-hi: #ffeaf0;  /* hovered rows — a pink breath on the near-white card */
-  --inset:      #ffd0dd;  /* tab tracks + input wells — a step DOWN from the page */
-  --line:       #ffb3c6;  /* palette 3 — hairline, visible on card AND page */
+  --surface:    #fffdfd;  /* branched: near-white paper, lifted off --bg */
+  --surface-hi: #fff0f4;  /* hovered rows */
+  --inset:      #ffdbe5;  /* tab tracks + input wells — a step down from the page */
+  --line:       #ffc2d1;  /* palette 2 — hairline, visible on card AND page */
   --line-strong:#ff8fab;  /* palette 4 — the hover border on interactive cards */
-  --ink:        #2b0c17;  /* branched: plum taken to near-black, 17:1 on a card */
-  --ink-soft:   #4a1c2a;  /* branched */
-  --muted:      #7c3f53;  /* branched — still ≥5:1 on the deepest well (--inset) */
+  --ink:        #331620;  /* branched: plum, 16:1 on a card */
+  --ink-soft:   #542936;  /* branched */
+  --muted:      #8a5566;  /* branched — still ≥4.5:1 on the deepest well */
   --accent:     #fb6f92;  /* palette 5 — actions & selection */
-  --accent-deep:#f24a76;  /* branched: one clear step deeper for hover/pressed */
-  --accent-ink: #350a17;  /* text ON accent — 6.5:1; white would be 2.6:1 */
+  --accent-deep:#f5537d;  /* branched: one step deeper for hover/pressed */
+  --accent-ink: #3d0d1c;  /* text ON accent — 6:1; white would be 2.6:1 */
   --paper:      #ffffff;  /* the note sheet: the one pure white in the theme */
 
-  /* Chrome overrides (see the note above the default :root chrome block). */
-  --sidebar:       #4a1f2e;  /* deep wine — the espresso room, repainted in rose */
-  --sidebar-line:  #5e2c3d;
-  --sidebar-hover: #74394c;
-  --sidebar-muted: #e0a8ba;  /* inactive nav labels — 6.9:1 on the sidebar */
-  --sidebar-ink:   #ffe5ec;  /* wordmark = palette 1, the page color echoed back */
+  /* The pale sidebar. Every other theme leaves the default espresso chrome
+     alone; this one inverts it, so --sidebar-ink/-muted have to become DARK to
+     stay legible — they are roles ("the sidebar's text"), not literal creams. */
+  --sidebar:       #ffd3de;
+  --sidebar-line:  #ffbdcd;  /* dividers, hover fills, the music progress groove */
+  --sidebar-hover: #ffaec2;
+  --sidebar-muted: #8a4a5e;  /* inactive nav labels — 4.9:1 on the sidebar */
+  --sidebar-ink:   #3d1622;  /* wordmark + hovered nav text — 10:1 */
 }
 
-/* palette 2 (#ffc2d1) is deliberately unassigned: between --line and --inset it
-   would have duplicated one of them rather than earning its own role, and a
-   token that is nearly a copy of its neighbour is exactly the "awkwardly
-   similar" case the token ladder exists to prevent. It survives as the midpoint
-   the swatch strip in ThemePicker shows. */
+/* Linen = "a cream page with a garden in it". The second requested palette:
+   #fcfaf6 · #faf0e6 · #c1e0d8 · #fed2df · #ee99b0. Also LIGHT-family.
+
+   This one splits cleanly by role without much branching, because the palette
+   supplies both a neutral pair and two chromatic accents:
+     - #faf0e6 linen is the page, #fcfaf6 off-white the cards — the two neutrals
+       in the order the palette gives them.
+     - #ee99b0 rose is the accent (actions and selection).
+     - #c1e0d8 mint is the SECOND voice — the sidebar's cool counterweight, and
+       the reason the sidebar can be sage without the theme feeling cold.
+     - #fed2df pink is the accent's soft tint, used where a filled rose would be
+       too loud (it's what --accent at low opacity resolves toward).
+   Only the ink ramp and the hairlines are branched, both warm neutrals pulled
+   from the linen rather than invented: five values can't cover text as well.
+
+   The sidebar is deep sage — the one dark mass in this theme, kept because the
+   palette's own mint asked for it and cream + sage is the pairing the palette
+   is really about. */
+html[data-theme="linen"] {
+  --bg:         #faf0e6;  /* palette 2 — linen page */
+  --surface:    #fcfaf6;  /* palette 1 — off-white cards */
+  --surface-hi: #f5ece0;  /* branched: hovered rows, one step under the page */
+  --inset:      #f3e9dc;  /* branched: wells and tab tracks */
+  --line:       #e4d5c2;  /* branched: warm hairline */
+  --line-strong:#cbb69e;  /* branched: card hover edge */
+  --ink:        #2c251d;  /* branched: warm near-black */
+  --ink-soft:   #473d31;  /* branched */
+  --muted:      #6f6355;  /* branched — ≥4.5:1 on every fill above */
+  --accent:     #ee99b0;  /* palette 5 — actions & selection */
+  --accent-deep:#e07f99;  /* branched: pressed/hover step */
+  --accent-ink: #3a1220;  /* text ON accent — 5.7:1 */
+  --paper:      #fffdf9;  /* the note sheet, lifted off the linen page */
+
+  /* Deep sage chrome, with the palette's mint as the sidebar's muted voice. */
+  --sidebar:       #4a5a54;
+  --sidebar-line:  #5c6d66;
+  --sidebar-hover: #6e807a;
+  --sidebar-muted: #c1e0d8;  /* palette 3 — mint, 6.5:1 on the sage */
+  --sidebar-ink:   #f0f7f4;
+}
+
+/* #fed2df (palette 4) has no token of its own for the same reason #ffc2d1 had
+   none in the first cut of blush: between --surface-hi and --inset it would
+   have duplicated a neighbour, and a token that is nearly a copy of the one
+   next to it is the "awkwardly similar" case the ladder exists to prevent. It
+   is present as the color --accent resolves toward when tinted, and as the
+   swatch strip in ThemePicker. */
 
 /* Expose the tokens as Tailwind utilities (bg-surface, text-ink, border-line,
    divide-line, ring-accent, …). `inline` keeps them var()-based so they follow

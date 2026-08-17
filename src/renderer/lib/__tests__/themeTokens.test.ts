@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 //                           silently broken UI, not a subtle one.
 //
 // The values are parsed out of src/index.css rather than copied here, so this is
-// a guardrail on the real stylesheet: retuning a token or adding a fifth theme
+// a guardrail on the real stylesheet: retuning a token or adding another theme
 // is checked automatically, and there is no second copy to drift.
 
 const CSS = readFileSync(
@@ -47,12 +47,14 @@ const CHROME = block(':root', 2);   // sidebar/task defaults every theme inherit
 
 // Each theme is the cascade it actually gets in the browser: the :root baseline,
 // then every block that applies to it. `warm` inherits the creams from `.dark`
-// because applyTheme puts BOTH on <html>; `blush` is light-family, so it doesn't.
+// because applyTheme puts BOTH on <html>; blush and linen are light-family, so
+// they get the attribute only.
 const THEMES: { name: string; tokens: Tokens }[] = [
   { name: 'light', tokens: { ...CHROME, ...LIGHT } },
   { name: 'dark',  tokens: { ...CHROME, ...LIGHT, ...block('.dark') } },
   { name: 'warm',  tokens: { ...CHROME, ...LIGHT, ...block('.dark'), ...block('html[data-theme="warm"]') } },
   { name: 'blush', tokens: { ...CHROME, ...LIGHT, ...block('html[data-theme="blush"]') } },
+  { name: 'linen', tokens: { ...CHROME, ...LIGHT, ...block('html[data-theme="linen"]') } },
 ];
 
 type RGB = [number, number, number];
@@ -120,8 +122,8 @@ describe('theme tokens', () => {
   it('keeps text readable on every surface it can land on', () => {
     // WCAG AA: 4.5:1 for body text, on every fill the text can actually land on.
     // (The bar is AA rather than AAA because warm's mid-brown surfaces are a
-    // committed design choice that tops out around 4.8:1 for --ink; light, dark
-    // and blush all clear AAA on their cards with room to spare.)
+    // committed design choice that tops out around 4.8:1 for --ink; every other
+    // theme clears AAA on its cards with room to spare.)
     const PAIRS: [fg: string, bg: string, min: number][] = [
       ['--ink',       '--bg',       4.5],
       ['--ink',       '--surface',  4.5],

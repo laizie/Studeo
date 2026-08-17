@@ -15,7 +15,7 @@ interface Props {
 function ProgressBar({ progressMs, durationMs }: { progressMs: number; durationMs: number }) {
   const pct = durationMs > 0 ? Math.min(100, (progressMs / durationMs) * 100) : 0;
   return (
-    <div className="h-0.5 bg-white/20 rounded-full overflow-hidden mt-2">
+    <div className="h-0.5 bg-sidebar-line rounded-full overflow-hidden mt-2">
       <div
         className="h-full bg-gradient-to-r from-[#fc3c44] to-[#ff6b6b] rounded-full transition-all duration-1000 ease-linear"
         style={{ width: `${pct}%` }}
@@ -54,7 +54,7 @@ function ActivePlayer() {
           <button
             onClick={() => previous.mutate()}
             disabled={previous.isPending}
-            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-sidebar-line transition-colors disabled:opacity-40"
           >
             <SkipBack size={11} />
           </button>
@@ -71,7 +71,7 @@ function ActivePlayer() {
           <button
             onClick={() => next.mutate()}
             disabled={next.isPending}
-            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="p-1 rounded text-sidebar-muted hover:text-sidebar-ink hover:bg-sidebar-line transition-colors disabled:opacity-40"
           >
             <SkipForward size={11} />
           </button>

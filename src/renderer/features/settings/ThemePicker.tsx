@@ -25,9 +25,16 @@ const OPTIONS: { id: Theme; label: string; desc: string; swatches: string[] }[] 
   {
     id:       'blush',
     label:    'Blush',
-    desc:     'Soft rose daylight',
-    // page · the palette midpoint that no token claims · hairline · accent.
-    swatches: ['#ffe5ec', '#ffc2d1', '#ffb3c6', '#fb6f92'],
+    desc:     'Bright rose, no dark corners',
+    // page · sidebar · hairline · accent.
+    swatches: ['#ffe5ec', '#ffd3de', '#ffc2d1', '#fb6f92'],
+  },
+  {
+    id:       'linen',
+    label:    'Linen',
+    desc:     'Cream, sage and rose',
+    // page · card · the sage sidebar's mint voice · accent.
+    swatches: ['#faf0e6', '#fcfaf6', '#c1e0d8', '#ee99b0'],
   },
 ];
 
@@ -35,9 +42,9 @@ export default function ThemePicker() {
   const { theme, setTheme } = useSettingsStore();
 
   return (
-    // Two-up rather than one row: at four themes a single row inside the
+    // Two-up rather than one row: past three themes a single row inside the
     // max-w-2xl settings card squeezes each card narrower than its own swatch
-    // strip. A 2×2 grid keeps every card readable and has room for a fifth.
+    // strip. A two-column grid keeps every card readable and just adds rows.
     <div className="grid grid-cols-2 gap-3">
       {OPTIONS.map(opt => (
         <button

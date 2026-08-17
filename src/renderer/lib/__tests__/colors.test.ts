@@ -15,7 +15,8 @@ const THEMES = [
   { name: 'light', ink: '#292524', inset: '#f1ebe1' },
   { name: 'dark',  ink: '#f0e0cc', inset: '#1a1410' },
   { name: 'warm',  ink: '#f0e0cc', inset: '#452f1c' },
-  { name: 'blush', ink: '#2b0c17', inset: '#ffd0dd' },
+  { name: 'blush', ink: '#331620', inset: '#ffdbe5' },
+  { name: 'linen', ink: '#2c251d', inset: '#f3e9dc' },
 ];
 
 type RGB = [number, number, number];

@@ -4,8 +4,11 @@
 // (and for the auto "Now Playing" mode). AutoNowPlaying feeds it.
 //
 // Two knobs decide how it looks:
-//  - `tone`  — 'dark' for the always-dark sidebar / Focus room (light text, default), or
-//              'surface' for a theme surface like the Study page card (theme text).
+//  - `tone`  — 'dark' for the sidebar / Focus room (default), or 'surface' for a theme
+//              surface like the Study page card. The name is historical: the sidebar was
+//              espresso in every theme until `blush` made it pale pink. What the tone
+//              actually selects is WHICH TOKEN FAMILY to draw from — the sidebar-* set
+//              or the page set — not whether the result is light or dark.
 //  - `size`  — 'mini' is the compact horizontal row for the sidebar/rail (default);
 //              'panel' is a big centred layout (large art) that fills the Study card.
 // The accent color (Spotify green / Apple red / lamp amber) drives the dot, the progress
@@ -36,8 +39,13 @@ export interface NowPlayingView {
   onPrev: () => void;
 }
 
-// Per-tone class sets. `dark` uses the fixed light-on-dark sidebar tokens; `surface` uses
-// theme tokens that flip with light/dark mode.
+// Per-tone class sets. Both tones are fully tokenized, and the two are structurally
+// parallel: whatever `surface` takes from the page tokens, `dark` takes from the
+// sidebar's. The progress groove used to be the exception — a raw `bg-white/10`, which
+// silently assumed the sidebar is dark. That held while every theme painted it espresso,
+// and broke the moment `blush` gave the sidebar a pale pink: white-on-near-white is
+// nothing at all. `bg-sidebar-line` is the sidebar's own well/divider token, so it
+// follows whatever the theme makes the sidebar — the same job `bg-inset` does below.
 const TONES: Record<NowPlayingTone, {
   label: string; title: string; sub: string; track: string; control: string;
 }> = {
@@ -45,7 +53,7 @@ const TONES: Record<NowPlayingTone, {
     label:   'text-sidebar-muted',
     title:   'text-sidebar-ink',
     sub:     'text-sidebar-muted',
-    track:   'bg-white/10',
+    track:   'bg-sidebar-line',
     control: 'text-sidebar-muted hover:text-sidebar-ink',
   },
   surface: {

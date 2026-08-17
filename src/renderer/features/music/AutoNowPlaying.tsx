@@ -71,7 +71,7 @@ export default function AutoNowPlaying({ service, tone = 'dark', size = 'mini' }
       service === 'spotify'      ? 'Connect Spotify in Settings'
       : service === 'apple_music' ? 'Open the Music app to connect'
       : 'Play something in Apple Music or Spotify';
-    const chip = tone === 'surface' ? 'bg-inset' : 'bg-white/10';
+    const chip = tone === 'surface' ? 'bg-inset' : 'bg-sidebar-line';
     const text = tone === 'surface' ? 'text-muted' : 'text-sidebar-muted';
 
     // Panel: a centred placeholder that fills the Study card. Mini: a quiet inline row.
