@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   useCreateBlockNote,
   SuggestionMenuController,
+  SideMenuController,
+  SideMenu,
   getDefaultReactSlashMenuItems,
 } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
@@ -17,6 +19,7 @@ import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
 import NotePickerDialog from './NotePickerDialog';
 import VersionHistoryDialog from './VersionHistoryDialog';
 import { studeoSlashItems } from './noteSlashItems';
+import { TurnIntoDragHandleMenu } from './TurnIntoMenu';
 import { useCaretAutoScroll } from './useCaretAutoScroll';
 import { useUpdateNote, useRestoreNoteVersion } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
@@ -394,7 +397,13 @@ export default function NoteEditor({ note }: { note: Note }) {
           theme={theme === 'light' ? 'light' : 'dark'}
           onChange={handleChange}
           slashMenu={false}
+          sideMenu={false}
         >
+          {/* Replaces the stock ⠿ menu (colours + delete) with one that can also change
+              what a line is — see TurnIntoMenu.tsx. */}
+          <SideMenuController
+            sideMenu={(props) => <SideMenu {...props} dragHandleMenu={TurnIntoDragHandleMenu} />}
+          />
           <SuggestionMenuController
             triggerCharacter="/"
             getItems={async (query) =>

@@ -141,6 +141,59 @@
   border-radius: 8px;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
+
+/* ── Resizing an image ──────────────────────────────────────────────────────────
+   The drag handles were invisible and all but unhittable, and the cause is the
+   same one that bit the code block: `.bn-resize-handle` is styled only in
+   @blocknote/core's stylesheet, which we don't import (we use the mantine
+   variant). Unstyled, they're transparent, position-static divs — the target
+   existed but nothing told you where, and it collapsed to almost no width.
+
+   So they're rebuilt here, and deliberately bigger than the stock 8×30px: a
+   drag target you have to aim at is the thing that makes resizing feel fiddly.
+   Each handle is a wide invisible hit area with a small visible pill drawn in
+   the middle of it, so the grab zone is ~18px while the thing you see stays
+   discreet. They fade in with the image rather than sitting on it always —
+   resizing is an occasional act, and a note is for reading. */
+.studeo-bn .bn-visual-media-wrapper {
+  position: relative;
+}
+.studeo-bn .bn-resize-handle {
+  position: absolute;
+  z-index: 1;
+  width: 18px;             /* the hit area … */
+  height: 44px;
+  cursor: ew-resize;
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+  /* … and the visible pill, painted inside it. */
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-size: 6px 40px;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+/* Show them whenever the image is hovered or the block is selected, and keep a
+   handle visible while it's being dragged even if the pointer leaves the image. */
+.studeo-bn .bn-visual-media-wrapper:hover .bn-resize-handle,
+.studeo-bn .bn-block-content[data-content-type='image']:hover .bn-resize-handle,
+.studeo-bn .bn-resize-handle:active {
+  opacity: 0.55;
+}
+.studeo-bn .bn-resize-handle:hover,
+.studeo-bn .bn-resize-handle:active {
+  opacity: 0.9;
+}
+/* A ring around the image while the pointer is over it, so it reads as one
+   resizable object rather than a picture with two dots near it. */
+.studeo-bn .bn-visual-media-wrapper:hover .bn-visual-media {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
 .studeo-bn .bn-block-content[data-content-type='image'] figcaption {
   color: var(--muted);
   text-align: center;
@@ -204,6 +257,44 @@
 .studeo-math__source::placeholder {
   color: var(--muted);
 }
+/* The symbol palette: a keyboard, so it reads as one — small tinted keys in tight
+   groups with a gap between groups, sitting between the source line and the preview.
+   Wraps rather than scrolls, because a key you have to scroll to find is slower than
+   just typing the word. */
+.studeo-math__palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.75rem;
+  margin-top: 0.6rem;
+}
+.studeo-math__palette-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+}
+.studeo-math__key {
+  min-width: 1.85rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-serif); /* the glyphs are maths, not UI chrome */
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.studeo-math__key:hover {
+  background-color: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.studeo-math__key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .studeo-math__preview {
   margin-top: 0.6rem;
   padding-top: 0.6rem;
