@@ -6,6 +6,7 @@ import {
   ChevronRight, ChevronDown,
 } from 'lucide-react';
 import { useCourses } from '../lib/queries/useCourses';
+import { useTermFilter, matchesTermFilter } from '../lib/useTermFilter';
 import { cn } from '../lib/utils';
 import SpotifyMiniPlayer from '../features/spotify/SpotifyMiniPlayer';
 import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
@@ -56,7 +57,13 @@ function NotesNavSection() {
   // not per-visit state — collapsing it should still be collapsed tomorrow.
   const open    = usePageFiltersStore(s => s.notesNavOpen);
   const setOpen = usePageFiltersStore(s => s.setNotesNavOpen);
-  const list = courses ?? [];
+
+  // Same semester filter as the Notes page, Courses and the Dashboard — the
+  // sidebar is the one place that shows *every* notebook at once, so leaving it
+  // unfiltered would quietly undo the filtering everywhere else and grow this
+  // list by a semester's worth of dead classes every term.
+  const { termFilter } = useTermFilter();
+  const list = (courses ?? []).filter(c => matchesTermFilter(c, termFilter));
 
   return (
     <div>
