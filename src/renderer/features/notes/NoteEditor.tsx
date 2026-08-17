@@ -286,7 +286,7 @@ export default function NoteEditor({ note }: { note: Note }) {
   }));
 
   return (
-    <div className="mx-auto max-w-[800px] px-4 py-10">
+    <div className="mx-auto max-w-[1100px] px-4 py-10">
       {/* The note as a warm "sheet" floating on the app background. */}
       <div className="rounded-2xl border border-line bg-paper px-10 py-12 shadow-sm">
       <div className="mb-2 flex items-center justify-end gap-1">
