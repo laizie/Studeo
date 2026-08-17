@@ -17,6 +17,7 @@ import LinkPickerDialog, { type PickItem } from './LinkPickerDialog';
 import NotePickerDialog from './NotePickerDialog';
 import VersionHistoryDialog from './VersionHistoryDialog';
 import { studeoSlashItems } from './noteSlashItems';
+import { useCaretAutoScroll } from './useCaretAutoScroll';
 import { useUpdateNote, useRestoreNoteVersion } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import { useCourses } from '../../lib/queries/useCourses';
@@ -233,12 +234,28 @@ export default function NoteEditor({ note }: { note: Note }) {
     showFlash('Added to Tasks (due today)');
   }
 
+  // Drop an empty equation in and let it focus its own source box (mathBlock.tsx).
+  // The slash command runs on a block that already holds the leftover "/" text, so
+  // an empty paragraph is replaced rather than left behind above the equation —
+  // the same swap every built-in block command does.
+  function insertMath() {
+    const current = editor.getTextCursorPosition().block;
+    const isEmptyParagraph =
+      current.type === 'paragraph' && blockPlainText(current.content) === '';
+    if (isEmptyParagraph) {
+      editor.replaceBlocks([current], [{ type: 'math' }]);
+    } else {
+      editor.insertBlocks([{ type: 'math' }], current, 'after');
+    }
+  }
+
   const slashActions = {
     onLinkCourse: () => setPicker('course'),
     onLinkAssignment: () => setPicker('assignment'),
     onInsertDue: () => setDueOpen(true),
     onChecklistToTask: checklistToTask,
     onLinkNotes: () => setNotePickerOpen(true),
+    onInsertMath: insertMath,
   };
 
   // Insert a bullet list of links to other notes (study guide / exam review). Links use the
@@ -278,6 +295,11 @@ export default function NoteEditor({ note }: { note: Note }) {
     }
   }
 
+  // Typing past the bottom of the window used to leave the caret off-screen —
+  // this keeps it in view without hijacking ordinary clicks or scrolling.
+  const editorHostRef = useRef<HTMLDivElement>(null);
+  useCaretAutoScroll(editorHostRef);
+
   const courseItems: PickItem[] = (courses ?? []).map((c) => ({
     id: c.id, label: c.name, sublabel: c.abbreviation,
   }));
@@ -287,8 +309,15 @@ export default function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-10">
-      {/* The note as a warm "sheet" floating on the app background. */}
-      <div className="rounded-2xl border border-line bg-paper px-10 py-12 shadow-sm">
+      {/* The note as a warm "sheet" floating on the app background. The editor
+          supplies its own 54px inline padding (blocknote-theme.css) so the block
+          handles have a gutter to live in, so the sheet only adds the small
+          remainder — the text column lands where it always did. The title and
+          meta line sit outside the editor, so they re-add it themselves. */}
+      <div className="rounded-2xl border border-line bg-paper px-4 py-12 shadow-sm">
+      {/* Re-adds the editor's own inline padding so the title, links and meta line
+          sit on the same left edge as the body text below them. */}
+      <div className="px-[54px]">
       <div className="mb-2 flex items-center justify-end gap-1">
         <button
           onClick={() => setDateOpen(true)}
@@ -333,8 +362,17 @@ export default function NoteEditor({ note }: { note: Note }) {
         className="w-full bg-transparent font-serif text-4xl font-semibold tracking-tight text-ink placeholder:text-muted focus:outline-none"
       />
       <p className="mb-4 mt-1.5 text-xs text-muted">Edited {formatEditedAt(note.updated_at)}</p>
+      </div>
       <div
+        ref={editorHostRef}
         className="studeo-bn"
+        // Electron's spellchecker underlined half of every lecture note in red —
+        // course codes, surnames, notation, any term the class is actually about —
+        // and the app has no context menu, so there was no way to accept a
+        // correction or add a word. All cost, no affordance. Off for note prose
+        // only; the rest of the app's inputs keep it. (`spellcheck` is inherited,
+        // so this covers the contenteditable BlockNote renders inside.)
+        spellCheck={false}
         onClick={(e) => {
           // Follow in-app note links (study guides) without leaving the window.
           const anchor = (e.target as HTMLElement).closest('a');

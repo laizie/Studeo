@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardList, CalendarClock, ListTodo, Link2 } from 'lucide-react';
+import { BookOpen, ClipboardList, CalendarClock, ListTodo, Link2, Sigma } from 'lucide-react';
 import type { DefaultReactSuggestionItem } from '@blocknote/react';
 
 export interface SlashActions {
@@ -7,11 +7,22 @@ export interface SlashActions {
   onInsertDue: () => void;
   onChecklistToTask: () => void;
   onLinkNotes: () => void;
+  onInsertMath: () => void;
 }
 
 /** Studeo-specific slash menu commands, grouped under "Studeo" below the default blocks. */
 export function studeoSlashItems(actions: SlashActions): DefaultReactSuggestionItem[] {
   return [
+    {
+      // First in the group: in a maths-heavy class this is the one you reach for
+      // every few lines, where the link commands are once-per-note.
+      title: 'Equation',
+      group: 'Studeo',
+      subtext: 'Write LaTeX, see it rendered',
+      aliases: ['math', 'latex', 'equation', 'formula', 'tex', 'katex'],
+      icon: <Sigma size={18} />,
+      onItemClick: actions.onInsertMath,
+    },
     {
       title: 'Link course',
       group: 'Studeo',

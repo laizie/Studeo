@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Pin, Clock, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { contrastTextColor } from '../../lib/colors';
 import { useCourses } from '../../lib/queries/useCourses';
 import { useNotesWithCourse } from '../../lib/queries/useNotes';
+import { useTermFilter, matchesTermFilter } from '../../lib/useTermFilter';
 import type { Course, NoteWithCourse } from '../../../shared/types';
 
 function snippet(note: NoteWithCourse): string {
@@ -62,12 +63,27 @@ function NoteCard({ note, course }: { note: NoteWithCourse; course?: Course }) {
 export default function NotebooksLandingPage() {
   const { data: courses } = useCourses();
   const { data: notes } = useNotesWithCourse();
-  const list = courses ?? [];
+  // Notes follows the same semester filter as Courses and the Dashboard (shared
+  // store, so switching it on one screen switches it everywhere). Last term's
+  // classes are the bulk of the shelf by mid-degree, and none of them are what
+  // you reach for during the term you're in.
+  const { terms, termFilter, setTermFilter } = useTermFilter();
+
+  const list = useMemo(
+    () => (courses ?? []).filter((c) => matchesTermFilter(c, termFilter)),
+    [courses, termFilter],
+  );
 
   // Look up a note's course by id so each card can show its color/abbreviation.
-  const courseById = new Map(list.map((c) => [c.id, c]));
+  const courseById = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
 
-  const all = notes ?? [];
+  // Pinned/Recent follow the same filter, or the page would contradict itself —
+  // an out-of-term class whose notebook isn't on the shelf shouldn't have its
+  // notes on the same page. A loose note belongs to no class, so it always stays.
+  const all = useMemo(
+    () => (notes ?? []).filter((n) => !n.course_id || courseById.has(n.course_id)),
+    [notes, courseById],
+  );
   const pinned = all.filter((n) => n.is_pinned === 1);
   // "Recently edited" is the freshest handful, minus anything already shown under Pinned
   // so the two sections don't repeat the same note. notes.list() is sorted newest-first.
@@ -76,7 +92,24 @@ export default function NotebooksLandingPage() {
   return (
     <div className="p-8">
       <h1 className="mb-1 text-2xl font-semibold text-ink">Notes</h1>
-      <p className="mb-8 text-sm text-muted">A notebook for each class. Press ⌘K to search notes — and everything else.</p>
+      <p className="mb-6 text-sm text-muted">A notebook for each class. Press ⌘K to search notes — and everything else.</p>
+
+      {/* Semester filter — same control and wording as Courses, only shown when terms exist */}
+      {terms.length > 0 && (
+        <div className="mb-8">
+          <select
+            value={termFilter ?? ''}
+            onChange={(e) => setTermFilter(e.target.value || null)}
+            aria-label="Semester"
+            className="cursor-pointer rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink-soft focus:outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-surface-hi"
+          >
+            <option value="">All semesters</option>
+            {terms.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <section className="mb-10">
         <div className="mb-4 flex items-center gap-2">
@@ -118,9 +151,14 @@ export default function NotebooksLandingPage() {
           </Link>
         </div>
 
+        {/* "No notebooks" has two very different causes now — no courses at all, or
+            none in the semester you're looking at. Saying "add a course" to someone
+            who has twelve of them filed under last term is just wrong advice. */}
         {list.length === 0 && (
           <p className="mt-3 text-sm text-muted">
-            Add a course to start a class notebook — or keep quick notes in Loose notes above.
+            {(courses ?? []).length > 0
+              ? 'No classes in this semester. Switch semesters above to find their notebooks.'
+              : 'Add a course to start a class notebook — or keep quick notes in Loose notes above.'}
           </p>
         )}
       </section>
