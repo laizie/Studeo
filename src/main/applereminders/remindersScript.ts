@@ -48,9 +48,54 @@ async function osascript(script: string, args: string[]): Promise<ScriptResult> 
     // The message matters here, unlike the Apple Music module which can silently
     // return "nothing playing": a refused Automation permission is the single
     // most likely failure, and the user can only fix what they're told about.
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, value: message.split('\n').slice(0, 2).join(' ').trim() };
+    return { ok: false, value: failureReason(err) };
   }
+}
+
+/** osascript prefixes stderr with a source position: "104:161: execution error:". */
+const POSITION_PREFIX = /^\d+:\d+:\s*/;
+
+/**
+ * Pull the actual reason out of an execFile rejection.
+ *
+ * It has to come from STDERR. execFile builds `err.message` by echoing the
+ * command it ran, and the command here is the entire multi-line AppleScript —
+ * so the front of that message is script source, not a diagnosis. Reading it
+ * reported
+ *
+ *   "Command failed: /usr/bin/osascript -e on run argv set listName to item 1 of argv"
+ *
+ * for every single failure: it named neither the problem nor the fix, and it
+ * threw away the "(-1743)" that describeFailure() keys the Automation-permission
+ * message off, so the one error users actually hit could never be explained.
+ * osascript puts the real thing on stderr:
+ *
+ *   "104:161: execution error: Reminders got an error: … (-1743)"
+ */
+export function failureReason(err: unknown): string {
+  // A timeout kill leaves stderr empty, so it has to be recognised first —
+  // otherwise it falls through to the bare command echo. The word "timed out"
+  // is what describeFailure() matches on.
+  if (typeof err === 'object' && err !== null && 'killed' in err && err.killed === true) {
+    return `Reminders timed out after ${SCRIPT_TIMEOUT_MS / 1000}s`;
+  }
+
+  // `stderr` is attached by execFile but isn't on the Error type, so it's
+  // narrowed by hand rather than cast away.
+  const stderr =
+    typeof err === 'object' && err !== null && 'stderr' in err && typeof err.stderr === 'string'
+      ? err.stderr.trim()
+      : '';
+  if (stderr) {
+    // First line only: osascript repeats the script on the lines below it.
+    return stderr.split('\n')[0].replace(POSITION_PREFIX, '').trim();
+  }
+
+  // Nothing on stderr means it failed before the script ran (osascript missing,
+  // spawn refused). The command echo is still noise — keep the shape, drop the
+  // pasted-in script.
+  const message = err instanceof Error ? err.message : String(err);
+  return message.split('\n')[0].replace(/^Command failed: \S+.*$/, 'Could not run osascript').trim();
 }
 
 /**
