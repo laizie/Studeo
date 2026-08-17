@@ -212,6 +212,8 @@ function AssignmentItem({ assignment, course, onEdit, selectable, selected, onTo
       <button
         type="button"
         onClick={() => onEdit(assignment)}
+        // A truncated name has to be readable somehow without opening the editor.
+        title={assignment.name}
         className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
       >
         {assignment.name}
@@ -259,6 +261,7 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
       <button
         type="button"
         onClick={() => onEdit(task)}
+        title={task.name}
         className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
       >
         {task.name}
@@ -614,11 +617,21 @@ export default function DashboardPage() {
               The old banner stacked a third treatment on the same fact —
               "color reinforces the word," it doesn't repeat it. */}
 
-          {/* ── Content grid ──────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-x-8 gap-y-8">
+          {/* ── Content grid ────────────────────────────────────────────────
+               `min-w-0` on the columns is load-bearing, not tidying. A `1fr`
+               track is `minmax(auto, 1fr)`, and that `auto` minimum is the
+               column's min-content width — which, for a row whose title is set
+               `white-space: nowrap` to truncate it, is the *full untruncated
+               title*. So one long assignment name widened the whole left column,
+               pushed the grid past the page, and ran the cards off the right
+               edge — past the "This semester" strip above, which has no such
+               track and stays put. Letting the tracks shrink below their content
+               is what puts the ellipsis back in charge and lines the cards up
+               with the strip again. */}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_240px] gap-x-8 gap-y-8">
 
             {/* Left: overdue + due this week */}
-            <div className="space-y-8">
+            <div className="min-w-0 space-y-8">
 
               {overdue.length > 0 && (
                 <div>
@@ -708,8 +721,9 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* Right: today's classes + courses */}
-            <div className="space-y-8">
+            {/* Right: today's classes + courses. A long course name here would
+                blow the fixed 240px track out the same way — same guard. */}
+            <div className="min-w-0 space-y-8">
 
               <div>
                 <SectionLabel title="Today's classes" />
