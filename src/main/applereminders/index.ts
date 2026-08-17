@@ -42,6 +42,11 @@ const LIST_NAME = 'Studeo';
 
 const SETTING_KEY = 'appleRemindersEnabled';
 
+/** Opt-in: delete a mirrored reminder when its assignment is completed instead of
+ *  ticking it off. Off by default — completing is the reversible behaviour, and a
+ *  setting that deletes things should be chosen, not inherited. */
+const REMOVE_COMPLETED_KEY = 'appleRemindersRemoveCompleted';
+
 /** Assignments change at human speed; five minutes is well inside "before I
  *  notice". A sync with nothing to do costs zero AppleScript calls (see below),
  *  so the idle case is just a SQLite read. */
@@ -62,6 +67,10 @@ function isEnabled(): boolean {
   return getSetting(SETTING_KEY) === 'true';
 }
 
+function removesCompleted(): boolean {
+  return getSetting(REMOVE_COMPLETED_KEY) === 'true';
+}
+
 export function getAppleRemindersStatus(): AppleRemindersStatus {
   return {
     supported: supported(),
@@ -71,6 +80,7 @@ export function getAppleRemindersStatus(): AppleRemindersStatus {
     lastError,
     mirrored: supported() ? listReminderLinks().length : 0,
     listName: LIST_NAME,
+    removeCompleted: removesCompleted(),
   };
 }
 
@@ -107,7 +117,10 @@ export async function syncAppleReminders(): Promise<AppleRemindersStatus> {
  * the caller owns the in-flight flag and builds the status once, after clearing it.
  */
 async function runSyncPass(): Promise<void> {
-  const plan = planReminderSync(listAssignments(), listCourses(), listReminderLinks(), new Date());
+  const plan = planReminderSync(
+    listAssignments(), listCourses(), listReminderLinks(), new Date(),
+    { completedAction: removesCompleted() ? 'remove' : 'complete' },
+  );
   const empty =
     plan.create.length === 0 && plan.update.length === 0 &&
     plan.complete.length === 0 && plan.remove.length === 0;
@@ -219,6 +232,21 @@ export async function setAppleRemindersEnabled(enabled: boolean): Promise<AppleR
   // keeping the mapping means switching back on updates them instead of creating
   // a second copy of everything.
   return getAppleRemindersStatus();
+}
+
+/**
+ * Choose what completing an assignment does to its reminder, then act on it now.
+ *
+ * The immediate sync is the point of the setting, not a nicety: switching it on
+ * is a statement about the reminders already sitting ticked-off in the list, and
+ * waiting up to five minutes to clear them reads as the toggle not having worked.
+ * Assignments completed while it was on keep no link, so switching it back off
+ * changes nothing retroactively — there is no deleted reminder to restore.
+ */
+export async function setAppleRemindersRemoveCompleted(remove: boolean): Promise<AppleRemindersStatus> {
+  setSetting(REMOVE_COMPLETED_KEY, remove ? 'true' : 'false');
+  if (!supported() || !isEnabled()) return getAppleRemindersStatus();
+  return syncAppleReminders();
 }
 
 /** Start the recurring pass. Separate from the kick-off so a caller that intends to

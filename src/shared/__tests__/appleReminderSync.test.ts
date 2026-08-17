@@ -137,6 +137,62 @@ describe('finishing and removing', () => {
   });
 });
 
+describe("completedAction: 'remove'", () => {
+  // The opt-in behaviour: finishing an assignment clears it out of the Reminders
+  // list entirely, instead of leaving it ticked off under Completed.
+  const REMOVE = { completedAction: 'remove' } as const;
+
+  it('deletes the mirror instead of ticking it off', () => {
+    const assignment = assign('a', '2026-08-20');
+    const done = assign('a', '2026-08-20', { status: 'completed' });
+    const plan = planReminderSync([done], COURSES, [link('a', signatureFor(assignment))], NOW, REMOVE);
+
+    expect(plan.remove).toEqual([{ assignmentId: 'a', reminderId: 'rem-a' }]);
+    expect(plan.complete).toEqual([]);
+  });
+
+  it('still creates and updates unfinished work as normal', () => {
+    const fresh = assign('new', '2026-08-20');
+    const moved = assign('m', '2026-08-25');
+    const plan = planReminderSync(
+      [fresh, moved], COURSES, [link('m', 'a-stale-signature')], NOW, REMOVE,
+    );
+
+    expect(plan.create.map(r => r.assignmentId)).toEqual(['new']);
+    expect(plan.update).toHaveLength(1);
+    expect(plan.remove).toEqual([]);
+  });
+
+  it('does not resurrect a completed assignment whose link is already gone', () => {
+    // This is the state the previous pass leaves behind: the reminder was deleted
+    // and its link dropped with it. Without the existing "already done → skip"
+    // guard, every later sync would recreate the reminder and delete it again.
+    const done = assign('a', '2026-08-20', { status: 'completed' });
+    const plan = planReminderSync([done], COURSES, [], NOW, REMOVE);
+
+    expect(plan.create).toEqual([]);
+    expect(plan.remove).toEqual([]);
+  });
+
+  it('recreates the reminder if the assignment is un-completed later', () => {
+    // Un-ticking it in Studeo leaves an unfinished, in-window assignment with no
+    // link — which is exactly the "create" case, so the reminder comes back.
+    const reopened = assign('a', '2026-08-20');
+    const plan = planReminderSync([reopened], COURSES, [], NOW, REMOVE);
+
+    expect(plan.create.map(r => r.assignmentId)).toEqual(['a']);
+  });
+
+  it('defaults to ticking off when no action is given', () => {
+    const assignment = assign('a', '2026-08-20');
+    const done = assign('a', '2026-08-20', { status: 'completed' });
+    const plan = planReminderSync([done], COURSES, [link('a', signatureFor(assignment))], NOW);
+
+    expect(plan.complete).toHaveLength(1);
+    expect(plan.remove).toEqual([]);
+  });
+});
+
 describe('dates are local, not UTC', () => {
   it('keeps the due day the user typed', () => {
     // new Date('2026-08-20') parses as UTC and renders as the 19th anywhere west

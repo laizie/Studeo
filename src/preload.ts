@@ -181,9 +181,10 @@ const api: WindowApi = {
   },
 
   appleReminders: {
-    status:     ()                  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.STATUS),
-    setEnabled: (enabled: boolean)  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SET_ENABLED, enabled),
-    syncNow:    ()                  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SYNC_NOW),
+    status:             ()                 => ipcRenderer.invoke(IPC.APPLE_REMINDERS.STATUS),
+    setEnabled:         (enabled: boolean) => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SET_ENABLED, enabled),
+    setRemoveCompleted: (remove: boolean)  => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SET_REMOVE_COMPLETED, remove),
+    syncNow:            ()                 => ipcRenderer.invoke(IPC.APPLE_REMINDERS.SYNC_NOW),
   },
 
   appleMusic: {

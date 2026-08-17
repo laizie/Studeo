@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, Hourglass, CalendarCheck, Clock, Power, Smartphone } from 'lucide-react';
+import { Bell, Hourglass, CalendarCheck, Clock, Power, Smartphone, CheckCheck } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import type { AppleRemindersStatus } from '../../../shared/types';
 import { SectionHeading, SettingsCard, SettingsRow, PillGroup, Toggle, CardButton, SETTINGS_INPUT } from './components';
@@ -72,6 +72,17 @@ export default function NotificationsSection() {
     setPhone(current => (current ? { ...current, enabled, syncing: enabled } : current));
     try {
       setPhone(await window.api.appleReminders.setEnabled(enabled));
+    } catch {
+      setPhone(await window.api.appleReminders.status().catch(() => phone));
+    }
+  }
+
+  async function handleRemoveCompleted(remove: boolean) {
+    // Main re-syncs on this change, so show the pending state for the same reason
+    // the enable toggle does — the first pass can take a few seconds.
+    setPhone(current => (current ? { ...current, removeCompleted: remove, syncing: true } : current));
+    try {
+      setPhone(await window.api.appleReminders.setRemoveCompleted(remove));
     } catch {
       setPhone(await window.api.appleReminders.status().catch(() => phone));
     }
@@ -166,6 +177,26 @@ export default function NotificationsSection() {
               )}
               <Toggle checked={phone.enabled} onChange={handlePhoneToggle} disabled={phone.syncing} />
             </div>
+          </SettingsRow>
+        )}
+        {/* Nested under the row above and only shown while the mirror is on — it's a
+            detail of how the mirror behaves, meaningless on its own, and follows the
+            same reveal-when-relevant pattern as lead time and digest time. */}
+        {phone?.supported && phone.enabled && (
+          <SettingsRow
+            icon={<CheckCheck size={17} />}
+            label="Clear finished work from the list"
+            description={
+              phone.removeCompleted
+                ? `Completing an assignment deletes it from "${phone.listName}"`
+                : `Completing an assignment ticks it off, leaving it under Completed in "${phone.listName}"`
+            }
+          >
+            <Toggle
+              checked={phone.removeCompleted}
+              onChange={handleRemoveCompleted}
+              disabled={phone.syncing}
+            />
           </SettingsRow>
         )}
         {/* Reminders and the menu-bar "Up next" item only run while Studeo is open,

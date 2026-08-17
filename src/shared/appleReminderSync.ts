@@ -62,10 +62,27 @@ export interface ReminderSyncPlan {
   remove: { assignmentId: string; reminderId: string }[];
 }
 
+/**
+ * What finishing an assignment in Studeo does to its mirrored reminder.
+ *
+ * `complete` (the default) ticks it off, leaving it in the list under Reminders'
+ * "Completed" section — the honest mirror, and reversible: un-completing in
+ * Studeo re-opens the same reminder rather than making a second one.
+ *
+ * `remove` deletes it outright. Worth having because the two apps disagree about
+ * what a finished item is for: Studeo keeps completed work because it's the
+ * record your grade comes from, whereas a Reminders list is a worklist you want
+ * to end the week empty. Un-completing after a removal simply recreates the
+ * reminder on the next pass — the link is dropped with it, so nothing is left
+ * pointing at something that no longer exists.
+ */
+export type CompletedAction = 'complete' | 'remove';
+
 export interface PlanOptions {
   horizonDays?: number;
   overdueGraceDays?: number;
   defaultDueHour?: number;
+  completedAction?: CompletedAction;
 }
 
 /**
@@ -162,6 +179,7 @@ export function planReminderSync(
     horizonDays = HORIZON_DAYS,
     overdueGraceDays = OVERDUE_GRACE_DAYS,
     defaultDueHour = DEFAULT_DUE_HOUR,
+    completedAction = 'complete',
   } = options;
 
   const courseById = new Map(courses.map(course => [course.id, course]));
@@ -193,7 +211,11 @@ export function planReminderSync(
     }
 
     if (isDone) {
-      plan.complete.push({ assignmentId: assignment.id, reminderId: link.reminder_id });
+      // `remove` puts it in the same bucket as an aged-out or deleted assignment,
+      // which is exactly right: the executor already drops the link when it
+      // removes, so un-completing later recreates the reminder from scratch.
+      const bucket = completedAction === 'remove' ? plan.remove : plan.complete;
+      bucket.push({ assignmentId: assignment.id, reminderId: link.reminder_id });
       continue;
     }
 

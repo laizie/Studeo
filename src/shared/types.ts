@@ -263,6 +263,10 @@ export interface AppleRemindersStatus {
   lastError: string | null;
   /** How many assignments currently have a reminder mirroring them. */
   mirrored: number;
+  /** Opt-in: delete a mirrored reminder when its assignment is completed, rather
+   *  than ticking it off and leaving it in the list. See CompletedAction in
+   *  shared/appleReminderSync.ts for why both behaviours are reasonable. */
+  removeCompleted: boolean;
   /** The Reminders list Studeo owns. Fixed, so the sync can never manage a list
    *  the user filled with their own items. */
   listName: string;
@@ -625,9 +629,10 @@ export const IPC = {
     GET_FULLSCREEN: 'app:get-fullscreen',
   },
   APPLE_REMINDERS: {
-    STATUS:      'apple_reminders:status',
-    SET_ENABLED: 'apple_reminders:set-enabled',
-    SYNC_NOW:    'apple_reminders:sync-now',
+    STATUS:               'apple_reminders:status',
+    SET_ENABLED:          'apple_reminders:set-enabled',
+    SET_REMOVE_COMPLETED: 'apple_reminders:set-remove-completed',
+    SYNC_NOW:             'apple_reminders:sync-now',
   },
   FEEDS: {
     FETCH_ICS: 'feeds:fetch-ics',
@@ -841,6 +846,8 @@ export interface WindowApi {
   appleReminders: {
     status():                        Promise<AppleRemindersStatus>;
     setEnabled(enabled: boolean):    Promise<AppleRemindersStatus>;
+    /** Delete the mirrored reminder on completion instead of ticking it off. */
+    setRemoveCompleted(remove: boolean): Promise<AppleRemindersStatus>;
     /** Force a pass now instead of waiting for the interval. */
     syncNow():                       Promise<AppleRemindersStatus>;
   };
