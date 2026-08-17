@@ -77,6 +77,30 @@ export function coursePillBg(color: string): string {
   return `color-mix(in srgb, ${color} ${PILL_TINT}, var(--inset))`;
 }
 
+// ── The course outline recipe ─────────────────────────────────────────────────
+// A course card used to carry its color as a 2px strip along the top edge. That
+// reads as one thin line in a grid of otherwise identical white cards, so at a
+// glance the grid is colorless — you have to look *for* the stripe to find it.
+// Tracing the whole card border instead makes the hue the card's silhouette, so
+// which-course is legible from across the page.
+//
+// This is not the banned decorative side-stripe: the border stays a 1px hairline
+// on all four sides, structural rather than a slab of color, and it's built the
+// same way the pill is — the hue laid into the theme's own `--line` token, so
+// one recipe covers light/dark/warm and no card ever gets a colored flood.
+const OUTLINE_MIX       = '55%';
+const OUTLINE_MIX_HOVER = '85%';
+
+/** The card's resting outline — the course hue mixed into the hairline. */
+export function courseOutline(color: string): string {
+  return `color-mix(in srgb, ${color} ${OUTLINE_MIX}, var(--line))`;
+}
+
+/** The hover outline — the same hue, turned up, replacing `border-line-strong`. */
+export function courseOutlineStrong(color: string): string {
+  return `color-mix(in srgb, ${color} ${OUTLINE_MIX_HOVER}, var(--line))`;
+}
+
 // ── The calendar chip recipe ──────────────────────────────────────────────────
 // A calendar chip answers "which class?" before it answers anything else, so a
 // finished item KEEPS its course hue — it just goes quiet. It used to flip to a

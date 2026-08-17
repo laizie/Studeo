@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Pencil, Trash2, Rows3, CalendarOff } from 'lucide-react';
 import { useCourse, useUpdateCourse } from '../../lib/queries/useCourses';
@@ -15,7 +15,8 @@ import CourseDialog from './CourseDialog';
 import GradeSectionsCard from './GradeSectionsCard';
 import EntityNotesList from '../notes/EntityNotesList';
 import { parseGradeSections, computeSectionStanding, formatPercent } from '../../../shared/grades';
-import { parseDateLocal } from '../../../shared/deadlines';
+import { parseDateLocal, dueSortValue, groupByDueDay } from '../../../shared/deadlines';
+import { useToday } from '../../lib/useToday';
 import ClassMeetingDialog from './ClassMeetingDialog';
 import MeetingExceptionDialog from './MeetingExceptionDialog';
 import QueryErrorState from '../../components/QueryErrorState';
@@ -101,6 +102,23 @@ export default function CourseDetailPage() {
   const isLoading  = courseLoading || assignmentsLoading;
   const allAssignments = assignments ?? [];
   const filtered   = applyDueFilter(allAssignments, dueFilter);
+
+  // Local midnight, refreshed at the day boundary — the Overdue/Today/Tomorrow
+  // headings below are relative to it, so a window left open overnight relabels
+  // itself instead of insisting yesterday is still today.
+  const today = useToday();
+
+  // Same shape as This Week: one card per due day rather than a single flat list,
+  // so a due date reads as a heading you scan instead of a value repeated on
+  // every row. Sorted by date-then-time first (the repo's order already agrees;
+  // this keeps the grouping correct even if a caller hands us another order).
+  const grouped = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) =>
+      dueSortValue(a.due_date, a.due_time).localeCompare(dueSortValue(b.due_date, b.due_time)),
+    );
+    return groupByDueDay(sorted, a => a.due_date, today);
+  }, [filtered, today]);
+
   // Derived, never stored: the course grade comes from the custom grade sections.
   const sections = parseGradeSections(course?.grade_weights ?? null);
   const standing = computeSectionStanding(sections);
@@ -305,31 +323,41 @@ export default function CourseDetailPage() {
             ))}
           </div>
 
-          <div className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
-            {filtered.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-muted text-sm">
-                  {allAssignments.length === 0
-                    ? 'No assignments yet.'
-                    : 'No assignments in this window.'}
-                </p>
-                {allAssignments.length === 0 && (
-                  <button
-                    onClick={openAdd}
-                    className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
-                  >
-                    Add first assignment
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="divide-y divide-line">
-                {filtered.map(a => (
-                  <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
-                ))}
-              </div>
-            )}
-          </div>
+          {filtered.length === 0 ? (
+            <div className="bg-surface border border-line rounded-xl shadow-sm py-12 text-center">
+              <p className="text-muted text-sm">
+                {allAssignments.length === 0
+                  ? 'No assignments yet.'
+                  : 'No assignments in this window.'}
+              </p>
+              {allAssignments.length === 0 && (
+                <button
+                  onClick={openAdd}
+                  className="mt-3 text-sm text-muted underline hover:text-ink transition-colors"
+                >
+                  Add first assignment
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {grouped.map(({ label, items }) => (
+                <div key={label} className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
+                  <div className={cn(
+                    'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-inset',
+                    label === 'Overdue' ? 'text-red-700 dark:text-red-400' : 'text-muted'
+                  )}>
+                    {label}
+                  </div>
+                  <div className="divide-y divide-line">
+                    {items.map(a => (
+                      <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Class Schedule ───────────────────────────────────────────────── */}

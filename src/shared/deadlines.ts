@@ -59,6 +59,47 @@ export function formatClock12(hhmm: string): string {
   return `${hr}:${String(m).padStart(2, '0')} ${period}`;
 }
 
+// ── Day grouping ──────────────────────────────────────────────────────────────
+// This Week reads well because it isn't one long list — it's a stack of day
+// cards ("Overdue", "Today", "Tomorrow", "Fri Aug 21"), so a due date is a
+// heading you scan rather than a value you read on every row. The course page
+// wanted the same shape, so the logic lives here instead of in either screen.
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** The heading a due date falls under. `today` is a local midnight (see useToday). */
+export function dueDayLabel(date: Date, today: Date): string {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diff = Math.round((d.getTime() - todayMid.getTime()) / 86_400_000);
+  if (diff < 0) return 'Overdue';
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  return `${DAY_LABELS[date.getDay()]} ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+}
+
+/**
+ * Bucket already-sorted items under their day headings, preserving order. Every
+ * overdue item collapses into a single "Overdue" group, which is the point —
+ * three weeks of missed work should be one block you can act on, not three
+ * weeks of near-empty day cards you scroll past.
+ */
+export function groupByDueDay<T>(
+  items: T[],
+  dueDateOf: (item: T) => string,
+  today: Date,
+): { label: string; items: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const label = dueDayLabel(parseDateLocal(dueDateOf(item)), today);
+    const bucket = groups.get(label);
+    if (bucket) bucket.push(item);
+    else groups.set(label, [item]);
+  }
+  return Array.from(groups, ([label, groupItems]) => ({ label, items: groupItems }));
+}
+
 // A sortable key that orders items by due date, then within a day puts all-day
 // items (no time) before timed ones, which then run in chronological order.
 // Mirrors the SQL `ORDER BY due_date, (due_time IS NULL) DESC, due_time` so the

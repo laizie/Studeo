@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
 import type { Course } from '../../../shared/types';
 import { formatPercent } from '../../../shared/grades';
-import { courseInk, coursePillBg } from '../../lib/colors';
+import { courseInk, coursePillBg, courseOutline, courseOutlineStrong } from '../../lib/colors';
 import CourseDialog from './CourseDialog';
 
 interface Props {
@@ -19,10 +19,16 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="relative bg-surface border border-line rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-line-strong transition-all group">
-      {/* Color accent strip — 2px, per DESIGN.md's sanctioned top strip */}
-      <div className="h-0.5 shrink-0 w-full" style={{ backgroundColor: course.color }} />
-
+    <div
+      // The course color traces the whole card, not a 2px top edge — see the
+      // outline recipe in lib/colors.ts. Held in CSS variables so the hover
+      // state can be a plain Tailwind class instead of a JS mouse-enter handler.
+      className="relative bg-surface border border-[var(--course-outline)] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:border-[var(--course-outline-strong)] transition-all group"
+      style={{
+        '--course-outline': courseOutline(course.color),
+        '--course-outline-strong': courseOutlineStrong(course.color),
+      } as CSSProperties}
+    >
       {/* Card body */}
       <div className="flex-1 p-5 min-w-0">
         {/* Name + abbreviation. Stretched link: the whole card navigates, but the

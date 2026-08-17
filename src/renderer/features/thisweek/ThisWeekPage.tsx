@@ -5,7 +5,7 @@ import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useTasks } from '../../lib/queries/useTasks';
 import type { Assignment, Task } from '../../../shared/types';
-import { parseDateLocal, dueSortValue } from '../../../shared/deadlines';
+import { parseDateLocal, dueSortValue, groupByDueDay } from '../../../shared/deadlines';
 import { cn } from '../../lib/utils';
 import AssignmentRow from '../courses/AssignmentRow';
 import TaskRow from '../tasks/TaskRow';
@@ -56,18 +56,6 @@ function getWindowConfig(win: Window, today: Date): WindowConfig {
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const sub = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   return { title: 'This Month', subtitle: sub, start: null, end: endOfMonth };
-}
-
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function dayLabel(date: Date, todayMid: Date): string {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diff = Math.round((d.getTime() - todayMid.getTime()) / 86_400_000);
-  if (diff < 0) return 'Overdue';
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tomorrow';
-  return `${DAY_LABELS[date.getDay()]} ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
 }
 
 const WINDOW_TABS: { label: string; value: Window }[] = [
@@ -147,16 +135,10 @@ export default function ThisWeekPage() {
   }, [assignments, tasks, windowConfig, showCompleted, showTasks]);
 
   // Group by display-day label so we can render dividers.
-  const grouped = useMemo(() => {
-    const map = new Map<string, DueItem[]>();
-    for (const item of relevant) {
-      const label = dayLabel(parseDateLocal(item.data.due_date), today);
-      const bucket = map.get(label) ?? [];
-      if (!map.has(label)) map.set(label, bucket);
-      bucket.push(item);
-    }
-    return map;
-  }, [relevant, today]);
+  const grouped = useMemo(
+    () => groupByDueDay(relevant, (i) => i.data.due_date, today),
+    [relevant, today],
+  );
 
   function openEditAssignment(a: Assignment) {
     setEditingAssignment(a);
@@ -295,7 +277,7 @@ export default function ThisWeekPage() {
       {/* Grouped rows */}
       {!isLoading && relevant.length > 0 && (
         <div className="space-y-4">
-          {Array.from(grouped.entries()).map(([label, items]) => (
+          {grouped.map(({ label, items }) => (
             <div key={label} className="bg-surface border border-line rounded-xl shadow-sm overflow-hidden">
               <div className={cn(
                 'px-4 py-2 text-xs font-semibold uppercase tracking-wide border-b border-line bg-inset',

@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { parseDateLocal, computeDeadlineLabel, formatDueDate, formatClock12, dueSortValue } from '../deadlines';
+import {
+  parseDateLocal,
+  computeDeadlineLabel,
+  formatDueDate,
+  formatClock12,
+  dueSortValue,
+  dueDayLabel,
+  groupByDueDay,
+} from '../deadlines';
 
 function offsetDate(days: number): Date {
   const d = new Date();
@@ -158,5 +166,61 @@ describe('dueSortValue', () => {
 
   it('orders timed items chronologically within a day', () => {
     expect(dueSortValue('2026-09-01', '09:00') < dueSortValue('2026-09-01', '13:30')).toBe(true);
+  });
+});
+
+// ── dueDayLabel / groupByDueDay ────────────────────────────────────────────────
+// Fixed dates, not offsets from `new Date()`: these headings are the whole point
+// of the day-card layout, and a test that drifts with the clock can't guard them.
+
+describe('dueDayLabel', () => {
+  const today = new Date(2026, 7, 17); // Mon Aug 17 2026, local midnight
+
+  it('names the three near days rather than dating them', () => {
+    expect(dueDayLabel(new Date(2026, 7, 17), today)).toBe('Today');
+    expect(dueDayLabel(new Date(2026, 7, 18), today)).toBe('Tomorrow');
+    expect(dueDayLabel(new Date(2026, 7, 16), today)).toBe('Overdue');
+  });
+
+  it('collapses every past day into one Overdue heading', () => {
+    expect(dueDayLabel(new Date(2026, 6, 2), today)).toBe('Overdue');
+    expect(dueDayLabel(new Date(2026, 7, 16), today)).toBe('Overdue');
+  });
+
+  it('dates anything further out', () => {
+    expect(dueDayLabel(new Date(2026, 7, 21), today)).toBe('Fri Aug 21');
+  });
+
+  it('ignores the time of day on both sides', () => {
+    const afternoon = new Date(2026, 7, 17, 15, 30);
+    expect(dueDayLabel(new Date(2026, 7, 17, 23, 59), afternoon)).toBe('Today');
+  });
+});
+
+describe('groupByDueDay', () => {
+  const today = new Date(2026, 7, 17);
+  const item = (id: string, due: string) => ({ id, due });
+
+  it('buckets items under their day, keeping the order they came in', () => {
+    const groups = groupByDueDay(
+      [
+        item('a', '2026-08-10'),
+        item('b', '2026-08-15'),
+        item('c', '2026-08-17'),
+        item('d', '2026-08-17'),
+        item('e', '2026-08-21'),
+      ],
+      (i) => i.due,
+      today,
+    );
+
+    expect(groups.map((g) => g.label)).toEqual(['Overdue', 'Today', 'Fri Aug 21']);
+    expect(groups[0].items.map((i) => i.id)).toEqual(['a', 'b']);
+    expect(groups[1].items.map((i) => i.id)).toEqual(['c', 'd']);
+    expect(groups[2].items.map((i) => i.id)).toEqual(['e']);
+  });
+
+  it('returns nothing for an empty list', () => {
+    expect(groupByDueDay([], (i: { due: string }) => i.due, today)).toEqual([]);
   });
 });
