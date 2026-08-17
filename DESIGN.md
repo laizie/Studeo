@@ -31,6 +31,14 @@ colors:
   warm-surface: "#7e5a38"
   warm-surface-hi: "#8e6a48"
   warm-border: "#6e4c30"
+  blush-bg: "#ffe5ec"
+  blush-surface: "#fffbfc"
+  blush-surface-hi: "#ffeaf0"
+  blush-border: "#ffb3c6"
+  blush-text: "#2b0c17"
+  blush-muted: "#7c3f53"
+  blush-accent: "#fb6f92"
+  blush-sidebar: "#4a1f2e"
   danger-ink: "#b91c1c"
   danger-bg: "#fee2e2"
   warning-ink: "#c2410c"
@@ -174,7 +182,7 @@ components:
 
 Studeo is a dark espresso room with a single amber glow, and light falls only where the work is. The chrome — the sidebar, the divider lines, the muted labels — recedes into warm shadow. The content surface is a clean cream page, and the one accent color, Lamplight Amber, appears exactly where the student should act or look: the primary button, the active nav item, the focus-list star. Everything else is deliberately quiet. The feeling is calm, focused, and intentional: the app should lower a student's stress, not compete for their attention.
 
-The palette is committed to warmth without flooding it. The body is true cream (`#f9f5f0`) and content sits on white cards with hairline sand borders — warmth lives in the espresso sidebar, the amber accent, and the per-course color dots, never in a saturated background wash. Three themes share one identity: a light cream default, a deep-brown `dark` mode, and a mid-brown `warm` mode; all three stay in the same espresso-and-amber family so the brand never breaks. Density is comfortable, not cramped — generous page padding, soft dividers between list rows, and a tight type scale carried entirely by one humanist sans (DM Sans) in three weights.
+The palette is committed to warmth without flooding it. The body is true cream (`#f9f5f0`) and content sits on white cards with hairline sand borders — warmth lives in the espresso sidebar, the amber accent, and the per-course color dots, never in a saturated background wash. Three themes share one identity: a light cream default, a deep-brown `dark` mode, and a mid-brown `warm` mode; all three stay in the same espresso-and-amber family so the brand never breaks. A fourth, `blush`, is an opt-in rose theme that deliberately steps outside that family — it keeps the structure and the discipline but not the brand (see "Blush" below); the espresso identity remains the default and the one everything else is designed against. Density is comfortable, not cramped — generous page padding, soft dividers between list rows, and a tight type scale carried entirely by one humanist sans (DM Sans) in three weights.
 
 This system explicitly rejects the **corporate SaaS dashboard** (metric-tile cockpits, enterprise-blue chrome), the **generic gray to-do app** it replaces, **loud gamified productivity** (streaks, confetti, bright competing primaries), and the **cluttered institutional LMS**. Studeo is personal, warm, and scannable — the calm antidote to the school portal.
 
@@ -223,10 +231,17 @@ A fixed 28-color palette (14 hues × normal + pastel) lives in `src/renderer/lib
 Deadline badges map urgency to a warm→cool ramp (text / tint): **overdue & today** danger red (`#b91c1c` / `#fee2e2`), **tomorrow** orange (`#c2410c` / `#ffedd5`), **soon** amber (`#e2a53b` / amber-100), **this week & later** green (`#15803d` / `#dcfce7`). Honest, not alarmist — color reinforces the word, it doesn't replace it.
 
 ### Dark & Warm themes
-`dark` mode is the North Star scene taken literally — a near-neutral roasted espresso (Gruvbox-style low chroma) where the warmth lives in the cream text and the amber lamp, never in saturated brown surfaces: bg `#211a13`, surfaces `#2c241b`/`#3a3128`, borders `#423627`, text `#f0e0cc`, muted `#c9b594`. `warm` mode stays the committed mid-brown identity, pitched one notch deeper so cream text clears AA: bg `#3d2918`, surfaces `#6a4b2f`/`#7a5a3c`, borders `#5c4128`, with a soft gold muted (`#ecca8a`). Both keep Lamplight Amber unchanged. Switched via `.dark` class and `html[data-theme="warm"]` (warm applies `.dark` plus variable overrides).
+`dark` mode is the North Star scene taken literally — a near-neutral roasted espresso (Gruvbox-style low chroma) where the warmth lives in the cream text and the amber lamp, never in saturated brown surfaces: bg `#211a13`, surfaces `#2c241b`/`#3a3128`, borders `#423627`, text `#f0e0cc`, muted `#c9b594`. `warm` mode stays the committed mid-brown identity, pitched one notch deeper so cream text clears AA: bg `#3d2918`, surfaces `#6a4b2f`/`#7a5a3c`, borders `#5c4128`, with a soft gold muted (`#f4d9a4` — bright enough to clear AA on `--surface-hi`, warm's lightest fill, which the earlier `#ecca8a` missed at 3.99:1). Both keep Lamplight Amber unchanged. Switched via `.dark` class and `html[data-theme="warm"]` (warm applies `.dark` plus variable overrides).
+
+### Blush — the one theme outside the espresso family
+`blush` is a deliberate, user-requested exception to "one identity across every theme": a light-family rose theme built on `#ffe5ec` · `#ffc2d1` · `#ffb3c6` · `#ff8fab` · `#fb6f92`, running light→deep onto the page → well → hairline → hover-edge → accent ladder. Page `#ffe5ec`, cards on a near-white `#fffbfc`, wells `#ffd0dd`, hairlines `#ffb3c6`, accent `#fb6f92` with a `#f24a76` pressed step. Two roles are branched off-palette because five pale pinks can't carry them: the ink ramp is the same hue taken to near-black (`#2b0c17` / `#4a1c2a` / `#7c3f53`), and the espresso sidebar is repainted as deep wine (`#4a1f2e`, muted `#e0a8ba`, ink `#ffe5ec`) — the one theme that overrides the otherwise-invariant chrome tokens, because a brown sidebar beside pink reads as a bug, not a choice.
+
+Structurally it is still the same app: same token names, same ladder, same One Lamp discipline (the accent is just rose instead of amber). What it gives up is the espresso-and-amber brand. Applied with `html[data-theme="blush"]` and **no** `.dark` class — it is a light-family theme, so every `dark:` utility must stay off.
+
+**The Visible-Theme Rule.** A theme is not finished when its colors are chosen; it is finished when `themeTokens.test.ts` passes. That test parses `src/index.css` and holds every theme to two bars: text clears WCAG AA (4.5:1) on **every** fill it can land on — including `--surface-hi`, the one most often forgotten — and neighbouring roles stay far enough apart to be told apart (a card lifted off the page, a hairline that reads as a line, a hover that reads as a hover). Adding a theme means adding it to the `THEMES` list there and in `colors.test.ts`, not eyeballing it.
 
 ### Named Rules
-**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark` and `html[data-theme="warm"]`, so a component writes **one class, never a light/dark/warm hex trio**. Writing an inline theme hex in a component is prohibited — add or reuse a token. The theme-*invariant* chrome has tokens too (`--sidebar`, `--sidebar-line`, `--sidebar-hover`, `--sidebar-muted`, `--sidebar-ink`, `--task` → `bg-sidebar`, `text-sidebar-muted`, `bg-task`, …) so even constant colors are written once.
+**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark`, `html[data-theme="warm"]` and `html[data-theme="blush"]`, so a component writes **one class, never a per-theme hex set**. Writing an inline theme hex in a component is prohibited — add or reuse a token. The theme-*invariant* chrome has tokens too (`--sidebar`, `--sidebar-line`, `--sidebar-hover`, `--sidebar-muted`, `--sidebar-ink`, `--task` → `bg-sidebar`, `text-sidebar-muted`, `bg-task`, …) so even constant colors are written once.
 
 **The One Lamp Rule.** Lamplight Amber appears only where the user should act, what is currently selected, or a live state indicator. If amber is on screen as decoration, it is wrong. Its rarity is what makes it read as "look here."
 
@@ -330,7 +345,8 @@ Components are **warm and tactile**: gentle radii, hairline sand borders, the am
 - **Do** keep Lamplight Amber (`#e2a53b`) to one job per screen — the primary action or the active selection. Text on amber is always Amber Ink (`#1e1208`).
 - **Do** keep body text at the ink end of the ramp (`espresso-ink` / `stone-body`). The warm cream background makes muted browns the single likeliest contrast failure — hold body text to ≥4.5:1.
 - **Do** import every per-course color from `src/renderer/lib/colors.ts`. Never hardcode a course hex in a component.
-- **Do** carry one identity across all three themes (light / `dark` / `warm`) — same amber, same structure, only the browns shift.
+- **Do** carry one identity across the three espresso themes (light / `dark` / `warm`) — same amber, same structure, only the browns shift. `blush` is the single ratified exception: it changes the hue family, never the structure.
+- **Do** run `themeTokens.test.ts` behind any token change — it is the only thing standing between a retuned color and an unreadable screen (see The Visible-Theme Rule).
 - **Do** use skeletons (`animate-pulse`) for loading and a friendly, encouraging empty state with a primary action on every screen.
 - **Do** use `tabular-nums` on every number that updates in place (counts, %, timers, stat chips).
 - **Do** reuse the shared `INPUT_CLASS` and existing row/card patterns instead of re-spelling Tailwind strings.

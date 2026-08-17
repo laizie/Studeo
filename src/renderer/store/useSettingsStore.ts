@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { readPref, writePref } from '../lib/prefs';
 
-export type Theme = 'light' | 'dark' | 'warm';
+export type Theme = 'light' | 'dark' | 'warm' | 'blush';
 /** A real, playable music service. */
 export type MusicService = 'spotify' | 'apple_music';
 /** What the music UI shows: a specific service, or the auto "Now Playing" card. */
@@ -53,7 +53,14 @@ function applyTheme(theme: Theme) {
     // Apply data-theme="warm" so warm: bg utilities override dark: bg utilities.
     html.classList.add('dark');
     html.setAttribute('data-theme', 'warm');
+  } else if (theme === 'blush') {
+    // Light-family (dark ink on pale pink), so NO .dark — every `dark:` utility
+    // in the app has to stay off or its light-on-dark colors would land on a
+    // pale page. The attribute alone swaps the tokens; see index.css.
+    html.setAttribute('data-theme', 'blush');
   }
+  // 'light' is the bare :root — no class, no attribute, which is why both are
+  // cleared above before any theme is applied.
 }
 
 // All preferences are persisted by the main process (a file it owns) via lib/prefs —

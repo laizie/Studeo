@@ -22,13 +22,23 @@ const OPTIONS: { id: Theme; label: string; desc: string; swatches: string[] }[] 
     desc:     'Rich warm browns',
     swatches: ['#3d2918', '#6a4b2f', '#5c4128', '#e2a53b'],
   },
+  {
+    id:       'blush',
+    label:    'Blush',
+    desc:     'Soft rose daylight',
+    // page · the palette midpoint that no token claims · hairline · accent.
+    swatches: ['#ffe5ec', '#ffc2d1', '#ffb3c6', '#fb6f92'],
+  },
 ];
 
 export default function ThemePicker() {
   const { theme, setTheme } = useSettingsStore();
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    // Two-up rather than one row: at four themes a single row inside the
+    // max-w-2xl settings card squeezes each card narrower than its own swatch
+    // strip. A 2×2 grid keeps every card readable and has room for a fifth.
+    <div className="grid grid-cols-2 gap-3">
       {OPTIONS.map(opt => (
         <button
           key={opt.id}
@@ -38,7 +48,9 @@ export default function ThemePicker() {
             'relative text-left p-4 rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted',
             theme === opt.id
               ? 'border-accent bg-accent/5'
-              : 'border-line hover:border-stone-300 dark:hover:border-line'
+              // Token, not stone-300: the hover edge has to follow the theme, or
+              // picking Blush leaves a gray hover sitting in a pink card.
+              : 'border-line hover:border-line-strong'
           )}
         >
           {theme === opt.id && (

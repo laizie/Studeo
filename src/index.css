@@ -40,8 +40,23 @@
 
 /* ── Theme tokens ─────────────────────────────────────────────────────────────
    One name per role; the value switches with the theme. Components write a
-   single class (bg-surface) instead of a light/dark/warm trio. Add new colors
-   HERE, not as inline hexes in components. */
+   single class (bg-surface) instead of a light/dark/warm/blush quartet. Add new
+   colors HERE, not as inline hexes in components.
+
+   Themes come in two families, and which family a theme joins is the first
+   decision when adding one:
+     - LIGHT-based (light, blush): dark ink on pale surfaces. Only overrides the
+       tokens below; `applyTheme` adds no class, so every `dark:` utility in the
+       app correctly stays off.
+     - DARK-based (dark, warm): pale ink on deep surfaces. `applyTheme` adds
+       `.dark` so those utilities switch, plus a data-theme attribute if the
+       theme needs to beat the dark: layer.
+   A new theme that picks the wrong family gets light-mode chrome punched into a
+   dark room (or vice versa) wherever a component still writes a `dark:` class.
+
+   Every value here is contrast-checked by themeTokens.test.ts, which parses this
+   file — so a token edited to something unreadable fails the test suite, not the
+   user's eyes. */
 :root {
   /* Tells the browser which palette to use for the parts it paints itself:
      the date/time picker glyph + popup, scrollbars, native select menus.
@@ -83,10 +98,15 @@
   --text-display: 3.25rem;    /* 52px */
 }
 
-/* Chrome + secondary accents — deliberately constant across all three themes
-   (the espresso sidebar IS the dark room the lamp sits in), so they live
-   outside the theme-switching block above. Consumed as bg-sidebar,
-   text-sidebar-muted, bg-task, … instead of inline hexes. */
+/* Chrome + secondary accents — the default for every theme built on the amber
+   identity (the espresso sidebar IS the dark room the lamp sits in), so they
+   live outside the theme-switching block above. Consumed as bg-sidebar,
+   text-sidebar-muted, bg-task, … instead of inline hexes.
+
+   A theme only overrides these if its accent leaves the amber family entirely —
+   blush does, and a brown sidebar next to pink reads as a mistake rather than a
+   choice. Its overrides sit in the blush block below; `html[data-theme=...]`
+   outranks this plain `:root`, so they win wherever they appear in the file. */
 :root {
   --sidebar:       #2c1f14;  /* sidebar background */
   --sidebar-line:  #3d2b1f;  /* sidebar dividers + hover fill */
@@ -137,10 +157,65 @@ html[data-theme="warm"] {
   --line:       #5c4128;
   --line-strong:#7a5836;  /* card hover border — one step up from --line */
   /* ink / ink-soft inherit the .dark creams (now ≥5.4:1 on surface);
-     muted brightened so it clears AA on the brown surfaces */
-  --muted:      #ecca8a;
+     muted brightened so it clears AA on the brown surfaces — including
+     --surface-hi, the LIGHTEST of them, which the previous #ecca8a missed at
+     3.99:1 (it was checked against --surface only). Meta text on a hovered row
+     was the one place warm dropped under AA; themeTokens.test.ts now covers
+     every fill, so this can't be half-checked again. Kept a clear step below
+     --ink so meta text still reads as quieter than body text. */
+  --muted:      #f4d9a4;
   --paper:      #6a4b2f;  /* note sheet = the mid-brown surface, lifted off --bg */
 }
+
+/* Blush = "a lamplit desk at golden hour, in rose". A LIGHT-family theme (no
+   `.dark` class — see the family note at the top), built on the five pinks
+   #ffe5ec · #ffc2d1 · #ffb3c6 · #ff8fab · #fb6f92, which run light→deep in that
+   order and so map cleanly onto the page → well → hairline → hover-edge → accent
+   ladder the tokens already describe.
+
+   Two roles had to be branched off-palette, because five values that are all
+   pale and all pink cannot carry them:
+     - INK. Every palette color is far too light to read as text; the darkest,
+       #fb6f92, is only 2.3:1 on the page. So the ink ramp is a deep plum drawn
+       from the same hue (#2b0c17 → #4a1c2a → #7c3f53) — the palette's own color
+       taken down past where text becomes text, rather than a neutral gray that
+       would leave the theme reading as "pink background, default app".
+     - SURFACES. Cards sit on a near-white (#fffbfc) rather than one of the
+       pinks, so the pink page reads as the room and the cards as paper in it.
+       Reversing that (pink cards on a pale page) flattens the two into one
+       field: the whole point of --bg vs --surface is that a card looks lifted.
+
+   The palette is warm-neutral enough that the amber-era chrome had to move too —
+   the espresso sidebar is overridden here with a deep wine that belongs to the
+   same hue family as the accent. */
+html[data-theme="blush"] {
+  --bg:         #ffe5ec;  /* palette 1 — the page */
+  --surface:    #fffbfc;  /* branched: near-white paper, clearly lifted off --bg */
+  --surface-hi: #ffeaf0;  /* hovered rows — a pink breath on the near-white card */
+  --inset:      #ffd0dd;  /* tab tracks + input wells — a step DOWN from the page */
+  --line:       #ffb3c6;  /* palette 3 — hairline, visible on card AND page */
+  --line-strong:#ff8fab;  /* palette 4 — the hover border on interactive cards */
+  --ink:        #2b0c17;  /* branched: plum taken to near-black, 17:1 on a card */
+  --ink-soft:   #4a1c2a;  /* branched */
+  --muted:      #7c3f53;  /* branched — still ≥5:1 on the deepest well (--inset) */
+  --accent:     #fb6f92;  /* palette 5 — actions & selection */
+  --accent-deep:#f24a76;  /* branched: one clear step deeper for hover/pressed */
+  --accent-ink: #350a17;  /* text ON accent — 6.5:1; white would be 2.6:1 */
+  --paper:      #ffffff;  /* the note sheet: the one pure white in the theme */
+
+  /* Chrome overrides (see the note above the default :root chrome block). */
+  --sidebar:       #4a1f2e;  /* deep wine — the espresso room, repainted in rose */
+  --sidebar-line:  #5e2c3d;
+  --sidebar-hover: #74394c;
+  --sidebar-muted: #e0a8ba;  /* inactive nav labels — 6.9:1 on the sidebar */
+  --sidebar-ink:   #ffe5ec;  /* wordmark = palette 1, the page color echoed back */
+}
+
+/* palette 2 (#ffc2d1) is deliberately unassigned: between --line and --inset it
+   would have duplicated one of them rather than earning its own role, and a
+   token that is nearly a copy of its neighbour is exactly the "awkwardly
+   similar" case the token ladder exists to prevent. It survives as the midpoint
+   the swatch strip in ThemePicker shows. */
 
 /* Expose the tokens as Tailwind utilities (bg-surface, text-ink, border-line,
    divide-line, ring-accent, …). `inline` keeps them var()-based so they follow
