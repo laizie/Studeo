@@ -6,6 +6,7 @@ import {
   deleteReminderLink,
 } from '../db/repositories/appleReminderLinkRepo';
 import { planReminderSync } from '../../shared/appleReminderSync';
+import { createSyncScheduler } from './syncScheduler';
 import type { AppleRemindersStatus } from '../../shared/types';
 import { getSetting, setSetting } from '../settings';
 import {
@@ -55,6 +56,20 @@ const REMOVE_COMPLETED_KEY = 'appleRemindersRemoveCompleted';
  *  notice". A sync with nothing to do costs zero AppleScript calls (see below),
  *  so the idle case is just a SQLite read. */
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * How long to wait after an assignment changes before syncing.
+ *
+ * The interval above is the backstop; this is what makes the mirror feel
+ * attached to what you just did. Ten seconds is long enough that Day-One Setup
+ * — a semester entered a row at a time — produces one pass rather than thirty,
+ * and short enough that ticking something off and reaching for your phone finds
+ * it already done. The ceiling stops a long stream of edits deferring the pass
+ * forever; a pass with nothing to do costs no AppleScript calls, so an early
+ * one is cheap.
+ */
+const CHANGE_QUIET_MS = 10 * 1000;
+const CHANGE_MAX_WAIT_MS = 60 * 1000;
 
 /**
  * Two limits that turn "wedged forever" into "stopped, and said why".
@@ -416,6 +431,29 @@ export async function setAppleRemindersRemoveCompleted(remove: boolean): Promise
   return syncAppleReminders();
 }
 
+/**
+ * Debounced "an assignment changed" trigger. Call it from anywhere that mutates
+ * assignments; it decides whether that's worth a pass and when.
+ *
+ * Guarded on enabled/supported at fire time rather than request time, so a
+ * change made in the seconds after the mirror is switched off doesn't sync.
+ */
+const changeScheduler = createSyncScheduler(
+  () => { if (supported() && isEnabled()) void syncAppleReminders(); },
+  { quietMs: CHANGE_QUIET_MS, maxWaitMs: CHANGE_MAX_WAIT_MS, isBusy: () => syncing },
+);
+
+/**
+ * Tell the mirror an assignment was added, completed, edited or removed.
+ *
+ * Cheap and safe to call on every mutation: it coalesces, it no-ops when the
+ * mirror is off, and it waits out any pass already running.
+ */
+export function notifyAssignmentsChanged(): void {
+  if (!supported() || !isEnabled()) return;
+  changeScheduler.request();
+}
+
 /** Start the recurring pass. Separate from the kick-off so a caller that intends to
  *  await its own sync doesn't race a fire-and-forget one for the in-flight guard. */
 function armInterval(): void {
@@ -432,6 +470,9 @@ export function startAppleRemindersSync(): void {
 }
 
 export function stopAppleRemindersSync(): void {
+  // A queued change-triggered pass would otherwise fire after the mirror was
+  // switched off, or during shutdown.
+  changeScheduler.cancel();
   if (interval) {
     clearInterval(interval);
     interval = null;

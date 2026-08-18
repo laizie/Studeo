@@ -15,6 +15,7 @@ import {
   deleteAssignment,
   restoreAssignment,
 } from '../db/repositories/assignmentRepo';
+import { notifyAssignmentsChanged } from '../applereminders';
 
 // score/pointsPossible: absent or null = "no grade recorded"; otherwise both
 // must be sane non-negative numbers and you can't earn points out of nothing.
@@ -59,7 +60,12 @@ export function registerAssignmentHandlers(): void {
     validateGradeFields(input);
     validateDueTime(input);
     validateEnums(input);
-    return createAssignment(input);
+    const created = createAssignment(input);
+    // The mirror otherwise moved only on a five-minute poll, so something you
+    // just added could take that long to reach your phone. The notifier
+    // debounces, so a burst of these still costs one pass.
+    notifyAssignmentsChanged();
+    return created;
   });
 
   ipcMain.handle(IPC.ASSIGNMENTS.CREATE_MANY, (_event, inputs: CreateAssignmentInput[]) => {
@@ -75,7 +81,9 @@ export function registerAssignmentHandlers(): void {
       // importer is the likeliest source of a nonsense score in the first place.
       validateGradeFields(input);
     }
-    return createAssignments(inputs);
+    const created = createAssignments(inputs);
+    notifyAssignmentsChanged();
+    return created;
   });
 
   ipcMain.handle(IPC.ASSIGNMENTS.UPDATE, (_event, id: string, input: UpdateAssignmentInput) => {
@@ -83,14 +91,20 @@ export function registerAssignmentHandlers(): void {
     validateGradeFields(input);
     validateDueTime(input);
     validateEnums(input);
-    return updateAssignment(id, input);
+    const updated = updateAssignment(id, input);
+    // Covers completing one, which is a status update — and also a moved due
+    // date, which changes when the reminder should fire.
+    notifyAssignmentsChanged();
+    return updated;
   });
 
   // Note links are captured and removed inside deleteAssignment's transaction now, so
   // the snapshot it returns is a complete record of what went away.
   ipcMain.handle(IPC.ASSIGNMENTS.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Assignment id is required');
-    return deleteAssignment(id);
+    const snapshot = deleteAssignment(id);
+    notifyAssignmentsChanged();
+    return snapshot;
   });
 
   ipcMain.handle(IPC.ASSIGNMENTS.RESTORE, (_event, snapshot: AssignmentSnapshot) => {
@@ -98,6 +112,9 @@ export function registerAssignmentHandlers(): void {
     for (const key of ['subtasks', 'studyBlocks', 'noteLinks'] as const) {
       if (!Array.isArray(snapshot[key])) throw new Error('Nothing to restore');
     }
-    return restoreAssignment(snapshot);
+    const restored = restoreAssignment(snapshot);
+    // Undo puts the assignment back, so the reminder should come back with it.
+    notifyAssignmentsChanged();
+    return restored;
   });
 }
