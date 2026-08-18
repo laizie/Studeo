@@ -255,7 +255,9 @@ Two user-requested exceptions to "one identity across every theme". Both are lig
 **The Visible-Theme Rule.** A theme is not finished when its colors are chosen; it is finished when `themeTokens.test.ts` passes. That test parses `src/index.css` and holds every theme to two bars: text clears WCAG AA (4.5:1) on **every** fill it can land on — including `--surface-hi`, the one most often forgotten — and neighbouring roles stay far enough apart to be told apart (a card lifted off the page, a hairline that reads as a line, a hover that reads as a hover). Adding a theme means adding it to the `THEMES` list there and in `colors.test.ts`, not eyeballing it.
 
 ### Named Rules
-**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark`, `html[data-theme="warm"]` and `html[data-theme="blush"]`, so a component writes **one class, never a per-theme hex set**. Writing an inline theme hex in a component is prohibited — add or reuse a token. The theme-*invariant* chrome has tokens too (`--sidebar`, `--sidebar-line`, `--sidebar-hover`, `--sidebar-muted`, `--sidebar-ink`, `--task` → `bg-sidebar`, `text-sidebar-muted`, `bg-task`, …) so even constant colors are written once.
+**The Token Rule.** Every theme-dependent color is a CSS variable defined once in `src/index.css` (`--bg`, `--surface`, `--surface-hi`, `--inset`, `--line`, `--line-strong`, `--ink`, `--ink-soft`, `--muted`, `--accent`, `--accent-deep`, `--accent-ink`, `--accent-text`, `--focus`, `--paper`) and consumed as a Tailwind utility (`bg-surface`, `border-line`, `text-ink`, `text-muted`, `bg-accent`…). The variables switch values under `.dark`, `html[data-theme="warm"]`, `html[data-theme="blush"]` and `html[data-theme="linen"]`, so a component writes **one class, never a per-theme hex set**. Writing an inline theme hex in a component is prohibited — add or reuse a token. The theme-*invariant* chrome has tokens too (`--sidebar`, `--sidebar-line`, `--sidebar-hover`, `--sidebar-muted`, `--sidebar-ink`, `--task` → `bg-sidebar`, `text-sidebar-muted`, `bg-task`, …) so even constant colors are written once — though `blush` and `linen` override that set too, which is why `--sidebar-ink` and `--sidebar-muted` are roles rather than "the cream ones".
+
+**The Two Accents Rule.** `--accent` is the accent as a FILL, read behind `--accent-ink`; `--accent-text` is the accent as a WORD or a standalone icon, read against a page surface. They are different values because they are different jobs, and one value cannot do both: Lamplight Amber is perfect behind dark ink and 2.17:1 as a link on a white card — under the 4.5:1 text bar and the 3:1 graphics bar alike. Links, `+ Add`, the streak flame, `+N more` take `text-accent-text`; buttons, chips and the active nav item take `bg-accent`. If a component sets a text or icon color to the accent, it wants `--accent-text`. Both are locked by `themeTokens.test.ts`.
 
 **The One Lamp Rule.** Lamplight Amber appears only where the user should act, what is currently selected, or a live state indicator. If amber is on screen as decoration, it is wrong. Its rarity is what makes it read as "look here."
 
@@ -318,7 +320,7 @@ Components are **warm and tactile**: gentle radii, hairline sand borders, the am
 
 ### Inputs / Fields
 - **Style:** `surface-white` background, `1px stone-300` border (`#d6d3d1`), `rounded-lg`, `8px 12px` padding, `text-sm`. Placeholder is `stone-muted` (`#a8a29e`).
-- **Focus:** `focus:ring-2 ring-stone-400` with `border-transparent` — a calm gray ring, not amber. The shared `INPUT_CLASS` constant carries dark/warm overrides; reuse it, don't re-spell inputs.
+- **Focus:** `focus:ring-2 ring-focus` with `border-transparent` — still a calm neutral, not amber, but a per-theme one. It was `ring-stone-400` respelled into ~36 components, and #a8a29e is 2.1–2.5:1 on the light family's fills, under the 3:1 WCAG minimum for a focus indicator. As a token it also stops a cool gray ring landing in a pink or sage room. The shared `INPUT_CLASS` constant reuses it; don't re-spell inputs.
 - **Select / textarea:** Same treatment as text inputs for a consistent control vocabulary.
 
 ### Cards / Containers
@@ -373,6 +375,7 @@ Components are **warm and tactile**: gentle radii, hairline sand borders, the am
 - **Don't** recreate a **cluttered institutional LMS** — keep it scannable, calm, and personal.
 - **Don't** flood any surface with a course color or use it as a card background. Color is data: dots, pills, the 1px card outline, and the ≤6px leading identity bar (see The Color-Is-Data Rule). A tinted hairline that traces all four sides is structure, not decoration — decorative `border-left`/`border-right` side-stripes on cards and callouts remain prohibited.
 - **Don't** introduce a second typeface or a display/serif face. DM Sans does every job; hierarchy is weight and size.
-- **Don't** use amber for input focus rings, decorative borders, or large fills — focus rings are the calm gray `ring-stone-400`.
+- **Don't** use amber for input focus rings, decorative borders, or large fills — focus rings are `ring-focus`, the theme's calm neutral.
+- **Don't** colour text or an icon with `text-accent`. That's `--accent-text` — see The Two Accents Rule.
 - **Don't** ship gradient text, decorative glassmorphism, a hero-metric template, or spinners-in-content.
 - **Don't** put `shadow-md`+ on static, non-interactive elements. Heavy shadow is a response to state (hover, modal) only.
