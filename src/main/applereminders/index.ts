@@ -16,6 +16,7 @@ import {
   deleteReminder,
   listRemindersInList,
   parseReminderIndex,
+  countReminders,
   deleteList,
 } from './remindersScript';
 
@@ -84,6 +85,24 @@ const PASS_BUDGET_MS = 90 * 1000;
  * self-healing path (a reminder deleted on the phone), and must not stop a pass
  * that is otherwise working. A *run* of them means the next call will fail too.
  */
+/**
+ * Is the list too big to be a mirror of these assignments?
+ *
+ * The mirror holds at most one reminder per assignment, so a list far larger
+ * than the assignment count is not a mirror any more — it is the wreckage of
+ * the duplicate bug, and adding to it makes the cleanup worse. The slack is
+ * generous because legitimate drift exists (an assignment deleted while its
+ * reminder is still ticked off, a reminder added by hand), and because being
+ * wrong in this direction only costs a sync.
+ *
+ * Cheap on purpose: `count of reminders` is one Apple Event. Every richer
+ * question about a broken list is too slow to ask — which is how the first
+ * attempt at this failed, timing out and letting creation proceed regardless.
+ */
+export function mirrorLooksCorrupt(remindersInList: number, assignmentCount: number): boolean {
+  return remindersInList > assignmentCount * 2 + 20;
+}
+
 export function shouldAbortPass(
   consecutiveFailures: number,
   elapsedMs: number,
@@ -243,12 +262,30 @@ async function runSyncPass(): Promise<void> {
   // duplicated, and it also recovers everything the old code already stranded.
   let adoptable = new Map<string, string>();
   if (plan.create.length > 0 && !stopped) {
+    // Cheap question first. If the list is already wreckage, creating more is
+    // the one thing guaranteed to make it worse, and the user needs telling
+    // rather than a mirror that quietly keeps growing.
+    const counted = await countReminders(LIST_NAME);
+    const inList = counted.ok ? Number.parseInt(counted.value, 10) : NaN;
+    if (Number.isFinite(inList) && mirrorLooksCorrupt(inList, listAssignments().length)) {
+      lastSyncAt = new Date().toISOString();
+      lastError =
+        `"${LIST_NAME}" holds ${inList} reminders for ${listAssignments().length} assignments, ` +
+        'so Studeo has stopped adding to it. Use "Rebuild list" to clear it and mirror them again.';
+      return;
+    }
+
     const existing = await listRemindersInList(LIST_NAME);
     if (existing.ok) {
       adoptable = parseReminderIndex(existing.value);
+    } else {
+      // Couldn't read what's there. Creating blind is how the duplicates
+      // happened, so skip creation this pass and try again on the next one —
+      // removals, completions and updates above have already been applied.
+      lastSyncAt = new Date().toISOString();
+      lastError = firstFailure ?? 'Could not read the Reminders list, so nothing new was added this time.';
+      return;
     }
-    // A failed read is not fatal: worst case we're back to the old behaviour for
-    // this pass, and the budget above stops it running away.
   }
 
   for (const reminder of plan.create) {

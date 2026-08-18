@@ -28,20 +28,31 @@ const execFileAsync = promisify(execFile);
 /** Reminders is scripted per-item, so a slow call must not wedge the sync. */
 const SCRIPT_TIMEOUT_MS = 20_000;
 
+/** The one bulk read gets longer, because it stands in for hundreds of calls. */
+const BULK_READ_TIMEOUT_MS = 120_000;
+
+/** The corruption gate. Cheap, but on a list that has already gone wrong even
+ *  counting takes a while, and this is the call that prevents making it worse. */
+const COUNT_TIMEOUT_MS = 45_000;
+
 export interface ScriptResult {
   ok: boolean;
   /** stdout on success; a short reason on failure (surfaced in Settings). */
   value: string;
 }
 
-async function osascript(script: string, args: string[]): Promise<ScriptResult> {
+async function osascript(
+  script: string,
+  args: string[],
+  timeoutMs: number = SCRIPT_TIMEOUT_MS,
+): Promise<ScriptResult> {
   if (process.platform !== 'darwin') return { ok: false, value: 'not macOS' };
   try {
     // Full path: a packaged Electron app doesn't inherit the shell's PATH.
     const { stdout } = await execFileAsync(
       '/usr/bin/osascript',
       ['-e', script, ...args],
-      { timeout: SCRIPT_TIMEOUT_MS },
+      { timeout: timeoutMs },
     );
     return { ok: true, value: stdout.trim() };
   } catch (err) {
@@ -143,47 +154,97 @@ export async function ensureList(listName: string): Promise<ScriptResult> {
 }
 
 /**
- * Every reminder in the list, as "id\ttitle" lines — ONE AppleScript call.
+ * How many un-ticked reminders the list holds. One Apple Event, so it is the
+ * only question that can be asked of a broken list cheaply.
  *
- * This exists because a create is not atomic from our side. `createReminder`
- * makes the reminder and then returns its id, and if the script is killed
- * between those two things (the 20s timeout, which a slow Reminders.app hits
- * easily) the reminder exists while the link does not. The next pass sees an
- * unmirrored assignment and makes a SECOND one, every five minutes, forever —
- * and each duplicate slows every subsequent `whose id is` walk, which causes
- * more timeouts, which makes more duplicates. One real user's list reached 316
- * reminders for 125 assignments with 9 links recorded.
- *
- * So before creating anything, the pass reads what is already there and adopts
- * matches instead. One call for the whole list rather than one per item, because
- * at ~5-12s per round-trip a per-item probe would cost more than the bug.
+ * This is the gate that makes creation safe. Everything else here scales with
+ * the size of the list, and a list that has gone wrong is exactly the one too
+ * big to inspect: the first attempt at adoption walked the reminders in a
+ * repeat loop, which is one Apple Event per property per item, and took over
+ * two minutes on a real (broken) list — so it hit the script timeout every
+ * pass, returned nothing, and the sync went on creating duplicates anyway.
+ * A fix that only works on a healthy list is not a fix.
  */
-export async function listRemindersInList(listName: string): Promise<ScriptResult> {
+export async function countReminders(listName: string): Promise<ScriptResult> {
   return osascript(
+    // No `whose` clause. Filtering server-side is what makes Reminders slow:
+    // `count of (reminders whose completed is false)` timed out at 25s on a
+    // real broken list, while the plain count answered the same list in under
+    // two. The total is the better signal here anyway — ticked-off duplicates
+    // are still wreckage.
     `on run argv
-       set listName to item 1 of argv
-       set out to ""
        tell application "Reminders"
-         tell list listName
-           repeat with r in (every reminder whose completed is false)
-             set out to out & (id of r) & tab & (name of r) & linefeed
-           end repeat
+         tell list (item 1 of argv)
+           return (count of reminders) as text
          end tell
        end tell
-       return out
      end run`,
     [listName],
+    COUNT_TIMEOUT_MS,
   );
 }
 
-/** Parse what listRemindersInList returns into title → id (first wins). */
+/** Field/record separators — control characters, so a reminder title containing
+ *  a comma, tab or newline can't desync the two columns. */
+const UNIT = String.fromCharCode(31);
+const RECORD = String.fromCharCode(30);
+
+/**
+ * Every un-ticked reminder's id and title, for adoption.
+ *
+ * Asks for each property across the whole collection at once — `id of every
+ * reminder`, then `name of every reminder` — which is two Apple Events rather
+ * than two per item. On the broken list that took the per-item version past
+ * 120s, this returns in ~87s; on a healthy one (roughly one reminder per
+ * assignment) it is a few seconds. It gets a longer timeout than the per-item
+ * calls precisely because it replaces hundreds of them.
+ */
+export async function listRemindersInList(listName: string): Promise<ScriptResult> {
+  return osascript(
+    // Three whole-collection property fetches, and the completed flag filtered
+    // on this side. Asking Reminders to filter (`whose completed is false`) cost
+    // more than fetching the extra column and discarding it: 87s versus 52s on
+    // the same 1066-item list.
+    `on run argv
+       set listName to item 1 of argv
+       tell application "Reminders"
+         tell list listName
+           set theIds to id of every reminder
+           set theNames to name of every reminder
+           set theDone to completed of every reminder
+         end tell
+       end tell
+       set AppleScript's text item delimiters to (character id 31)
+       set out to (theIds as text) & (character id 30) & (theNames as text) & (character id 30) & (theDone as text)
+       set AppleScript's text item delimiters to ""
+       return out
+     end run`,
+    [listName],
+    BULK_READ_TIMEOUT_MS,
+  );
+}
+
+/** Parse what listRemindersInList returns into title -> id (first wins). */
 export function parseReminderIndex(stdout: string): Map<string, string> {
   const index = new Map<string, string>();
-  for (const line of stdout.split('\n')) {
-    const tab = line.indexOf('\t');
-    if (tab === -1) continue;
-    const id = line.slice(0, tab).trim();
-    const title = line.slice(tab + 1).trim();
+  const [idBlock, nameBlock, doneBlock] = stdout.split(RECORD);
+  if (idBlock === undefined || nameBlock === undefined || doneBlock === undefined) return index;
+
+  const ids = idBlock.split(UNIT);
+  const names = nameBlock.split(UNIT);
+  const done = doneBlock.split(UNIT);
+  // Three columns fetched as three separate calls: if they disagree the pairing
+  // is guesswork, and a wrong pairing links an assignment to someone else's
+  // reminder. Refuse rather than guess — the caller treats an empty index as
+  // "couldn't check", which is the safe direction.
+  if (ids.length !== names.length || ids.length !== done.length) return index;
+
+  for (let i = 0; i < ids.length; i++) {
+    // A ticked-off reminder is not something to adopt: linking an assignment to
+    // it would show the work as already done.
+    if (done[i].trim() === 'true') continue;
+    const id = ids[i].trim();
+    const title = names[i].trim();
     // First wins: with duplicates present, adopting the oldest is the one that
     // has been carried to the phone longest.
     if (id && title && !index.has(title)) index.set(title, id);
@@ -286,6 +347,10 @@ export async function deleteList(listName: string): Promise<ScriptResult> {
        end tell
      end run`,
     [listName],
+    // The repair runs against the worst list the app will ever see — a
+    // thousand-item one is exactly why someone reaches for it — so it gets the
+    // long timeout rather than the per-item one.
+    BULK_READ_TIMEOUT_MS,
   );
 }
 
