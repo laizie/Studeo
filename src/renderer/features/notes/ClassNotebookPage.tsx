@@ -117,7 +117,7 @@ function NoteRow({
         className={cn(
           'mt-0.5 shrink-0 rounded-md p-1 transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           pinned
-            ? 'text-accent'
+            ? 'text-accent-text'
             : 'text-muted opacity-0 hover:text-ink group-hover:opacity-100',
         )}
       >
@@ -329,7 +329,7 @@ export default function ClassNotebookPage() {
                           <button
                             onClick={() => addLectureNote(entry.session)}
                             disabled={createNote.isPending}
-                            className="text-xs text-accent hover:underline disabled:opacity-50"
+                            className="text-xs text-accent-text hover:underline disabled:opacity-50"
                           >
                             ＋ Lecture note
                           </button>

@@ -187,7 +187,7 @@ export default function StudySessionsNotesCard() {
                       <button
                         onClick={() => setSelected(sitting)}
                         aria-label={`Open notes for ${sittingTitle(sitting)}`}
-                        className="min-w-0 flex-1 text-left after:absolute after:inset-0 after:rounded-lg rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                        className="min-w-0 flex-1 text-left after:absolute after:inset-0 after:rounded-lg rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       >
                         {/* The title carries the identity, so it gets primary ink; the
                             clock drops to meta beneath it. `first-letter:uppercase`

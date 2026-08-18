@@ -109,8 +109,8 @@ describe('theme tokens', () => {
     const ROLES = [
       '--bg', '--surface', '--surface-hi', '--inset', '--line', '--line-strong',
       '--ink', '--ink-soft', '--muted', '--accent', '--accent-deep', '--accent-ink',
-      '--paper', '--sidebar', '--sidebar-line', '--sidebar-hover', '--sidebar-muted',
-      '--sidebar-ink',
+      '--accent-text', '--focus', '--paper', '--sidebar', '--sidebar-line', '--sidebar-hover',
+      '--sidebar-muted', '--sidebar-ink',
     ];
     for (const { name, tokens } of THEMES) {
       for (const role of ROLES) {
@@ -140,6 +140,15 @@ describe('theme tokens', () => {
       // Label on a filled accent button — resting and hovered.
       ['--accent-ink', '--accent',      4.5],
       ['--accent-ink', '--accent-deep', 4.5],
+      // The accent as a WORD or a standalone icon — note links, "+ Add", the
+      // streak flame. This is a different job from the accent as a fill, and
+      // --accent fails it badly in three themes (light 2.17, blush 2.66, linen
+      // 2.05 on a card), which is why --accent-text exists. It lands on all four
+      // page fills, so all four are checked.
+      ['--accent-text', '--surface',    4.5],
+      ['--accent-text', '--paper',      4.5],
+      ['--accent-text', '--bg',         4.5],
+      ['--accent-text', '--inset',      4.5],
       // The sidebar is its own room: it keeps its own ink/muted against its own fill.
       ['--sidebar-ink',   '--sidebar', 4.5],
       ['--sidebar-muted', '--sidebar', 4.5],
@@ -154,6 +163,22 @@ describe('theme tokens', () => {
         if (ratio < min) {
           failures.push(`${name}: ${fg} on ${bg} is ${ratio.toFixed(2)}:1 (needs ${min})`);
         }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('draws a focus ring you can actually see', () => {
+    // WCAG 2.2 requires a focus indicator to reach 3:1 against what it sits on.
+    // This was `ring-stone-400` hardcoded into ~36 components, and #a8a29e is
+    // 2.1–2.5:1 on the light family's fills — failing in the shipped light theme
+    // as much as in the new ones. It only became visible as a problem when a
+    // cool gray ring landed in a pink room.
+    const failures: string[] = [];
+    for (const { name, tokens } of THEMES) {
+      for (const fill of ['--surface', '--bg', '--inset'] as const) {
+        const ratio = contrast(tokens['--focus'], tokens[fill]);
+        if (ratio < 3) failures.push(`${name}: --focus on ${fill} is ${ratio.toFixed(2)}:1 (needs 3)`);
       }
     }
     expect(failures).toEqual([]);

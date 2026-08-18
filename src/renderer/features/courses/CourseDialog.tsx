@@ -213,7 +213,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
                         aria-label={colorName}
                         onClick={() => setColor(value)}
                         className={cn(
-                          'w-6 h-6 rounded-full border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+                          'w-6 h-6 rounded-full border-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
                           color === value
                             ? 'border-stone-500 scale-125'
                             : 'border-transparent hover:scale-110'
@@ -305,7 +305,7 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
                 <button
                   type="button"
                   onClick={() => setConfirmingDelete(false)}
-                  className="shrink-0 px-2 py-1.5 text-sm text-muted hover:text-ink-soft transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                  className="shrink-0 px-2 py-1.5 text-sm text-muted hover:text-ink-soft transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 >
                   Keep
                 </button>

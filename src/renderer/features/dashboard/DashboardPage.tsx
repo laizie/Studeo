@@ -200,7 +200,7 @@ function AssignmentItem({ assignment, course, onEdit, selectable, selected, onTo
         <Link
           to={`/courses/${course.id}`}
           title={`Open ${course.name}`}
-          className="relative z-10 shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="relative z-10 shrink-0 text-xs font-semibold px-1.5 py-0.5 rounded hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
         >
           {course.abbreviation}
@@ -214,7 +214,7 @@ function AssignmentItem({ assignment, course, onEdit, selectable, selected, onTo
         onClick={() => onEdit(assignment)}
         // A truncated name has to be readable somehow without opening the editor.
         title={assignment.name}
-        className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
+        className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         {assignment.name}
       </button>
@@ -229,8 +229,8 @@ function AssignmentItem({ assignment, course, onEdit, selectable, selected, onTo
         className={cn(
           'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
-            ? 'text-accent opacity-100'
-            : 'text-muted hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            ? 'text-accent-text opacity-100'
+            : 'text-muted hover:text-accent-text opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
         <Target size={13} />
@@ -262,7 +262,7 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
         type="button"
         onClick={() => onEdit(task)}
         title={task.name}
-        className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
+        className="flex-1 min-w-0 truncate text-left text-sm text-ink-soft rounded-sm after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         {task.name}
       </button>
@@ -277,8 +277,8 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
         className={cn(
           'relative shrink-0 p-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
-            ? 'text-accent opacity-100'
-            : 'text-muted hover:text-accent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            ? 'text-accent-text opacity-100'
+            : 'text-muted hover:text-accent-text opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
         <Target size={13} />

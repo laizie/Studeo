@@ -155,7 +155,7 @@ export default function StudyHeatmap({ sessions, compact = false }: Props) {
 function Stat({ value, unit, flame = false }: { value: string | number; unit: string; flame?: boolean }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      {flame && <Flame size={15} className="self-center text-accent" fill="currentColor" />}
+      {flame && <Flame size={15} className="self-center text-accent-text" fill="currentColor" />}
       <span className="text-xl font-semibold tabular-nums text-ink">{value}</span>
       <span className="text-xs text-muted">{unit}</span>
     </div>

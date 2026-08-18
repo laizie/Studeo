@@ -269,7 +269,7 @@ export default function CommandPalette({ isOpen, onClose, onQuickAdd }: Props) {
         const Icon = item.icon;
         return (
           <>
-            <Icon size={15} className="shrink-0 text-accent" aria-hidden="true" />
+            <Icon size={15} className="shrink-0 text-accent-text" aria-hidden="true" />
             <span className="flex-1 truncate text-sm font-medium text-ink">{item.label}</span>
             {item.hint && <span className="shrink-0 text-xs text-muted">{item.hint}</span>}
           </>

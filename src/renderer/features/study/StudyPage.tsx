@@ -149,7 +149,7 @@ function FocusListPanel() {
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="w-full py-8 text-center border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+          className="w-full py-8 text-center border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus transition-colors"
         >
           <p className="text-sm text-muted">
             No assignments or tasks added yet.
@@ -208,7 +208,7 @@ function FocusListPanel() {
                 onClick={() => removeItem(item.id)}
                 aria-label={`Remove ${item.name} from focus list`}
                 title="Remove from focus list"
-                className="shrink-0 p-1 rounded text-muted hover:text-ink-soft opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition"
+                className="shrink-0 p-1 rounded text-muted hover:text-ink-soft opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus transition"
               >
                 <X size={13} />
               </button>

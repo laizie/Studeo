@@ -85,7 +85,7 @@ export default function TaskRow({ task, onEdit }: Props) {
         onClick={(e) => { e.stopPropagation(); handleStatusToggle(); }}
         disabled={updateTask.isPending}
         aria-pressed={isCompleted}
-        className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+        className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         title={isCompleted ? 'Mark as not done' : 'Mark as done'}
         aria-label={isCompleted ? `Mark ${task.name} as not done` : `Mark ${task.name} as done`}
       >
@@ -97,7 +97,7 @@ export default function TaskRow({ task, onEdit }: Props) {
         type="button"
         onClick={(e) => { e.stopPropagation(); onEdit(task); }}
         className={cn(
-          'flex-1 min-w-0 truncate text-left text-sm rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+          'flex-1 min-w-0 truncate text-left text-sm rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
           isCompleted ? 'line-through text-muted' : 'text-ink',
         )}
       >
@@ -121,8 +121,8 @@ export default function TaskRow({ task, onEdit }: Props) {
         className={cn(
           'shrink-0 p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
-            ? 'text-accent'
-            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent'
+            ? 'text-accent-text'
+            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent-text'
         )}
       >
         <Target size={13} />
@@ -132,7 +132,7 @@ export default function TaskRow({ task, onEdit }: Props) {
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           aria-label={`Edit ${task.name}`}
-          className="p-1 text-muted hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="p-1 text-muted hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           title="Edit"
         >
           <Pencil size={13} />

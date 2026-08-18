@@ -126,8 +126,11 @@
 
 /* Links: amber, with a soft underline that sits a little off the text. */
 .studeo-bn a {
-  color: var(--accent);
-  text-decoration-color: var(--accent);
+  /* A link is the accent as a WORD, so it takes --accent-text, not --accent:
+     the fill value is 2.1–2.7:1 on a note sheet in the rose themes, which is
+     what "the note font blends into the paper" actually was. */
+  color: var(--accent-text);
+  text-decoration-color: var(--accent-text);
   text-underline-offset: 2px;
 }
 .studeo-bn a:hover {

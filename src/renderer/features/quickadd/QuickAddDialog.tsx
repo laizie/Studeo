@@ -267,7 +267,7 @@ export default function QuickAddDialog({ isOpen, onClose }: Props) {
               onClick={captureLecture}
               className="flex w-full items-center gap-2.5 rounded-lg border border-line bg-inset px-3 py-2 text-left hover:bg-surface-hi transition-colors"
             >
-              <NotebookPen size={15} className="shrink-0 text-accent" />
+              <NotebookPen size={15} className="shrink-0 text-accent-text" />
               <span className="min-w-0">
                 <span className="block text-sm font-medium text-ink">
                   {nextSession.active ? 'In class now' : 'Next class'} · {courses.find((c) => c.id === nextSession.courseId)?.abbreviation ?? 'Class'}

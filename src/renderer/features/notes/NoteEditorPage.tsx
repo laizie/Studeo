@@ -56,7 +56,7 @@ export default function NoteEditorPage() {
         )}
         {!isLoading && !isError && !note && (
           <div className="p-10 text-muted">
-            This note doesn't exist. <Link to="/notes" className="text-accent underline">Back to notes</Link>
+            This note doesn't exist. <Link to="/notes" className="text-accent-text underline">Back to notes</Link>
           </div>
         )}
         {note && <NoteEditor key={note.id} note={note} />}

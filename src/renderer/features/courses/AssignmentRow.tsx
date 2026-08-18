@@ -112,7 +112,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         onClick={(e) => { e.stopPropagation(); handleStatusToggle(); }}
         disabled={updateAssignment.isPending}
         aria-pressed={isCompleted}
-        className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+        className="shrink-0 hover:scale-110 transition-transform disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         title={isCompleted ? 'Mark as not done' : 'Mark as done'}
         aria-label={isCompleted ? `Mark ${assignment.name} as not done` : `Mark ${assignment.name} as done`}
       >
@@ -126,7 +126,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
           to={`/courses/${course.id}`}
           onClick={(e) => e.stopPropagation()}
           title={`Open ${course.name}`}
-          className="shrink-0 px-2 py-0.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="shrink-0 px-2 py-0.5 rounded text-xs font-semibold hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           style={{ backgroundColor: coursePillBg(course.color), color: courseInk(course.color) }}
         >
           {course.abbreviation}
@@ -138,7 +138,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         type="button"
         onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
         className={cn(
-          'flex-1 min-w-0 truncate text-left text-sm rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+          'flex-1 min-w-0 truncate text-left text-sm rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
           isCompleted ? 'line-through text-muted' : 'text-ink',
         )}
       >
@@ -176,10 +176,10 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
           : 'Break into steps'}
         title={subtasks.length > 0 ? 'Show steps' : 'Break into steps'}
         className={cn(
-          'shrink-0 flex items-center gap-1 p-1 rounded text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
+          'shrink-0 flex items-center gap-1 p-1 rounded text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
           subtasks.length > 0
-            ? (stepsOpen ? 'text-accent' : 'text-muted hover:text-accent')
-            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent'
+            ? (stepsOpen ? 'text-accent-text' : 'text-muted hover:text-accent-text')
+            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent-text'
         )}
       >
         <ListTodo size={13} />
@@ -192,7 +192,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
           onClick={(e) => { e.stopPropagation(); setPlanOpen(true); }}
           aria-label={`Plan study sessions for ${assignment.name}`}
           title="Plan study sessions"
-          className="shrink-0 p-1 rounded text-muted hover:text-accent transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="shrink-0 p-1 rounded text-muted hover:text-accent-text transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <CalendarPlus size={13} />
         </button>
@@ -207,8 +207,8 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         className={cn(
           'shrink-0 p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           inFocusList
-            ? 'text-accent'
-            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent'
+            ? 'text-accent-text'
+            : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 text-muted hover:text-accent-text'
         )}
       >
         <Target size={13} />
@@ -219,7 +219,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
           aria-label={`Edit ${assignment.name}`}
-          className="p-1 text-muted hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+          className="p-1 text-muted hover:text-ink-soft rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           title="Edit"
         >
           <Pencil size={13} />

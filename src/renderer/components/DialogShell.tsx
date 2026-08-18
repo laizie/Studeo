@@ -78,7 +78,7 @@ export default function DialogShell({ isOpen, onClose, title, maxWidth = 'max-w-
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded p-1 text-muted transition-colors hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+            className="rounded p-1 text-muted transition-colors hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             <X size={16} />
           </button>

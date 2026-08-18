@@ -32,14 +32,14 @@ const NO_SPINNER =
 
 const NUM_INPUT =
   'w-16 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-surface dark:bg-inset ' +
-  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted ' +
+  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-focus ' +
   NO_SPINNER;
 
 // Flexible variant for the weight/score fields so they share the row and shrink
 // to fit the narrow column instead of overflowing (the card clips overflow).
 const FIELD_INPUT =
   'w-full min-w-0 px-2 py-1.5 text-sm text-right border border-line rounded-lg bg-surface dark:bg-inset ' +
-  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted ' +
+  'text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-focus ' +
   NO_SPINNER;
 
 // A real, always-bordered field (so it's obviously editable), but font-medium so
@@ -47,7 +47,7 @@ const FIELD_INPUT =
 const NAME_INPUT =
   'flex-1 min-w-0 px-2.5 py-1.5 text-sm font-medium rounded-lg bg-surface dark:bg-inset border border-line ' +
   'text-ink placeholder:text-muted placeholder:font-normal ' +
-  'hover:border-stone-300 dark:hover:border-muted focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted transition-colors';
+  'hover:border-stone-300 dark:hover:border-muted focus:outline-none focus:ring-2 focus:ring-focus transition-colors';
 
 function rowsFromRaw(raw: string | null): Row[] {
   return parseGradeSections(raw).map(s => ({

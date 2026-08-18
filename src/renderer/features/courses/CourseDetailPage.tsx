@@ -411,7 +411,7 @@ export default function CourseDetailPage() {
                     <button
                       onClick={() => setExceptionMeeting(m)}
                       aria-label={`Cancel or move a ${DAY_NAMES[m.day_of_week]} class date`}
-                      className="p-1 text-muted hover:text-ink rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                      className="p-1 text-muted hover:text-ink rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       title="Cancel or move a date"
                     >
                       <CalendarOff size={13} />
@@ -419,7 +419,7 @@ export default function CourseDetailPage() {
                     <button
                       onClick={() => { setEditingMeeting(m); setMeetingDialogOpen(true); }}
                       aria-label={`Edit ${DAY_NAMES[m.day_of_week]} class time`}
-                      className="p-1 text-muted hover:text-ink rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                      className="p-1 text-muted hover:text-ink rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       title="Edit"
                     >
                       <Pencil size={13} />

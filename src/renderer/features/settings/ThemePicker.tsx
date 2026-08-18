@@ -3,7 +3,7 @@ import { useSettingsStore, type Theme } from '../../store/useSettingsStore';
 import { cn } from '../../lib/utils';
 
 // Swatch strips are the actual theme token values, so the preview is honest.
-const OPTIONS: { id: Theme; label: string; desc: string; swatches: string[] }[] = [
+const OPTIONS = [
   {
     id:       'light',
     label:    'Light',
@@ -36,7 +36,15 @@ const OPTIONS: { id: Theme; label: string; desc: string; swatches: string[] }[] 
     // page · card · the sage sidebar's mint voice · accent.
     swatches: ['#faf0e6', '#fcfaf6', '#c1e0d8', '#ee99b0'],
   },
-];
+] as const satisfies readonly { id: Theme; label: string; desc: string; swatches: readonly string[] }[];
+
+// Compile-time coverage: every Theme needs a card here. Without this, adding a
+// theme to the union and to index.css leaves it working but unreachable — there
+// is no way to select it, and the omission looks like nothing at all. The
+// `satisfies` above keeps the ids literal so this can compare the two unions.
+type Uncovered = Exclude<Theme, typeof OPTIONS[number]['id']>;
+const _everyThemeHasACard: Uncovered extends never ? true : ['missing a card for', Uncovered] = true;
+void _everyThemeHasACard;
 
 export default function ThemePicker() {
   const { theme, setTheme } = useSettingsStore();
@@ -52,7 +60,7 @@ export default function ThemePicker() {
           onClick={() => setTheme(opt.id)}
           aria-pressed={theme === opt.id}
           className={cn(
-            'relative text-left p-4 rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted',
+            'relative text-left p-4 rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
             theme === opt.id
               ? 'border-accent bg-accent/5'
               // Token, not stone-300: the hover edge has to follow the theme, or

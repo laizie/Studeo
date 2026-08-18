@@ -64,7 +64,7 @@ function readDraft(courseId: string): Row[] | null {
 const INPUT =
   'w-full px-2.5 py-1.5 text-sm border border-line rounded-lg ' +
   'bg-surface dark:bg-inset text-ink ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted focus:border-transparent ' +
+  'focus:outline-none focus:ring-2 focus:ring-focus focus:border-transparent ' +
   'placeholder:text-muted';
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -459,8 +459,8 @@ export default function BatchAddPage() {
                     <button
                       onClick={() => toggleRepeat(row.id)}
                       className={cn(
-                        'p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400',
-                        repeatOpen ? 'text-accent' : 'text-muted hover:text-accent'
+                        'p-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                        repeatOpen ? 'text-accent-text' : 'text-muted hover:text-accent-text'
                       )}
                       title="Repeat this assignment weekly"
                       aria-label={`Repeat row ${idx + 1} weekly`}

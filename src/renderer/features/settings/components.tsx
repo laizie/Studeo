@@ -9,7 +9,7 @@ import Switch from '../../components/Switch';
 export const SETTINGS_INPUT =
   'px-3 py-1.5 text-sm border border-line rounded-lg bg-transparent dark:bg-inset text-ink ' +
   'placeholder:text-muted ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted';
+  'focus:outline-none focus:ring-2 focus:ring-focus';
 
 export function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -68,7 +68,7 @@ export function PillGroup<T extends number>({
           onClick={() => onChange(opt)}
           aria-pressed={value === opt}
           className={cn(
-            'px-3 py-1 text-sm rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted',
+            'px-3 py-1 text-sm rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
             value === opt
               ? 'bg-surface text-ink shadow-sm font-medium'
               : 'text-ink-soft hover:bg-surface-hi'
@@ -93,7 +93,7 @@ export function Toggle({ checked, onChange, disabled }: {
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="rounded-full disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+      className="rounded-full disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
     >
       <Switch checked={checked} size="md" />
     </button>
@@ -110,7 +110,7 @@ export function CardButton({ onClick, disabled, children }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="shrink-0 px-3 py-1.5 text-xs rounded-lg border border-line text-muted hover:bg-surface-hi transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:focus-visible:ring-muted"
+      className="shrink-0 px-3 py-1.5 text-xs rounded-lg border border-line text-muted hover:bg-surface-hi transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
     >
       {children}
     </button>
@@ -124,7 +124,7 @@ export function TipCard({ icon, title, children }: {
 }) {
   return (
     <div className="flex gap-3 px-5 py-4">
-      <span className="text-accent shrink-0 mt-0.5">{icon}</span>
+      <span className="text-accent-text shrink-0 mt-0.5">{icon}</span>
       <div>
         <p className="text-sm font-medium text-ink-soft">{title}</p>
         <p className="text-xs text-muted mt-1 leading-relaxed">{children}</p>

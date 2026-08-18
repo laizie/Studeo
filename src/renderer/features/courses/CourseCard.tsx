@@ -37,7 +37,7 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
           <h3 className="font-semibold truncate leading-snug">
             <Link
               to={`/courses/${course.id}`}
-              className="text-ink group-hover:text-stone-900 dark:group-hover:text-white after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-stone-400"
+              className="text-ink group-hover:text-stone-900 dark:group-hover:text-white after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-focus"
             >
               {course.name}
             </Link>
@@ -97,7 +97,7 @@ export default function CourseCard({ course, total = 0, completed = 0, gradePerc
           onClick={() => setEditOpen(true)}
           aria-label={`Edit ${course.name}`}
           title="Edit course"
-          className="p-1 rounded text-muted hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+          className="p-1 rounded text-muted hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus transition-colors"
         >
           <Pencil size={13} />
         </button>

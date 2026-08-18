@@ -182,7 +182,7 @@ function EventPopover({
   // One shared action-row recipe so every verb in the popover looks alike.
   const ACTION =
     'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-ink-soft ' +
-    'hover:bg-surface-hi transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400';
+    'hover:bg-surface-hi transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus';
 
   return (
     <>

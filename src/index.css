@@ -76,6 +76,21 @@
   --accent:      #e2a53b;  /* Lamplight Amber — actions & selection only */
   --accent-deep: #d49530;  /* accent hover/pressed */
   --accent-ink:  #1e1208;  /* text ON accent */
+  /* The accent as TEXT or a standalone icon, which is a different job from the
+     accent as a fill and needs a different value. #e2a53b is beautiful behind
+     dark ink and unreadable as a word: 2.17:1 on a white card, under both the
+     4.5:1 text bar and the 3:1 bar for graphics. Note links, "+ Add", the
+     streak flame and the version-history link were all drawing at that. This is
+     the same amber taken down until it clears AA on every fill it can land on;
+     `bg-accent` is untouched, so buttons keep the lamp exactly as it was. */
+  --accent-text: #8f6119;
+  /* The keyboard focus ring. A calm neutral rather than the accent (DESIGN.md
+     §Components), but a VISIBLE one: this was `ring-stone-400` spelled into ~36
+     components, and #a8a29e is 2.1–2.5:1 on the light family's fills — under the
+     3:1 WCAG minimum for a focus indicator, in the shipped light theme as much
+     as in the new ones. As a token it also follows the theme instead of dropping
+     a cool gray ring into a pink or sage room. */
+  --focus:       #78716c;
   --paper:       #fffdf8;  /* the note "sheet" — a soft warm white lifted off --bg */
 }
 
@@ -149,6 +164,8 @@
   --ink:        #f0e0cc;
   --ink-soft:   #e8d5c0;
   --muted:      #c9b594;  /* calm warm tan — the old gold (#e0b870) made meta text shout */
+  --accent-text:#e2a53b;  /* on a dark room the lamp IS readable — 7:1, so it's the accent itself */
+  --focus:      #c9b594;  /* the warm tan — a pale ring reads on a dark room */
   --paper:      #2c241b;  /* note sheet = the roasted surface, lifted off the darker --bg */
 }
 
@@ -170,6 +187,8 @@ html[data-theme="warm"] {
      every fill, so this can't be half-checked again. Kept a clear step below
      --ink so meta text still reads as quieter than body text. */
   --muted:      #f4d9a4;
+  --accent-text:#f0c476;  /* amber lifted, not deepened: warm's surfaces are mid-brown */
+  --focus:      #f4d9a4;
   --paper:      #6a4b2f;  /* note sheet = the mid-brown surface, lifted off --bg */
 }
 
@@ -209,6 +228,8 @@ html[data-theme="blush"] {
   --accent:     #fb6f92;  /* palette 5 — actions & selection */
   --accent-deep:#f5537d;  /* branched: one step deeper for hover/pressed */
   --accent-ink: #3d0d1c;  /* text ON accent — 6:1; white would be 2.6:1 */
+  --accent-text:#c01d47;  /* the accent as a WORD — #fb6f92 is 2.7:1 on a card */
+  --focus:      #9c5a70;  /* rose-neutral: calm, but 4:1 on the palest fill */
   --paper:      #ffffff;  /* the note sheet: the one pure white in the theme */
 
   /* The pale sidebar. Every other theme leaves the default espresso chrome
@@ -252,6 +273,8 @@ html[data-theme="linen"] {
   --accent:     #ee99b0;  /* palette 5 — actions & selection */
   --accent-deep:#e07f99;  /* branched: pressed/hover step */
   --accent-ink: #3a1220;  /* text ON accent — 5.7:1 */
+  --accent-text:#ab3557;  /* the accent as a WORD — #ee99b0 is 2.1:1 on a card */
+  --focus:      #7a7466;  /* warm neutral drawn from the linen, not a cool stone */
   --paper:      #fffdf9;  /* the note sheet, lifted off the linen page */
 
   /* Deep sage chrome, with the palette's mint as the sidebar's muted voice. */
@@ -285,6 +308,8 @@ html[data-theme="linen"] {
   --color-accent:      var(--accent);
   --color-accent-deep: var(--accent-deep);
   --color-accent-ink:  var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-focus:       var(--focus);
   --color-paper:       var(--paper);
 }
 
@@ -509,7 +534,7 @@ html[data-theme="linen"] {
   background-color: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .rbc-show-more {
-  color: var(--accent);
+  color: var(--accent-text);
   background-color: transparent;
 }
 .rbc-show-more:hover,

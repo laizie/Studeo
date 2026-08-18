@@ -31,7 +31,7 @@ export default function Toaster() {
           {t.actionLabel && t.onAction && (
             <button
               onClick={() => { t.onAction?.(); dismiss(t.id); }}
-              className="shrink-0 rounded-md border border-line px-2 py-1 text-xs font-medium text-ink-soft hover:bg-surface-hi transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+              className="shrink-0 rounded-md border border-line px-2 py-1 text-xs font-medium text-ink-soft hover:bg-surface-hi transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             >
               {t.actionLabel}
             </button>
@@ -39,7 +39,7 @@ export default function Toaster() {
           <button
             onClick={() => dismiss(t.id)}
             aria-label="Dismiss"
-            className="shrink-0 rounded p-0.5 text-muted hover:text-ink-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+            className="shrink-0 rounded p-0.5 text-muted hover:text-ink-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             <X size={13} />
           </button>

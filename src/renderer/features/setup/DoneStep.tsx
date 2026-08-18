@@ -24,7 +24,7 @@ export default function DoneStep({ termId, onBack }: Props) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <CheckCircle2 size={40} className="mx-auto text-accent" />
+        <CheckCircle2 size={40} className="mx-auto text-accent-text" />
         <h2 className="mt-3 text-lg font-semibold text-ink">
           {term?.name ?? 'Your semester'} is set up
         </h2>

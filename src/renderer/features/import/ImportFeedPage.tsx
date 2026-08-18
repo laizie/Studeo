@@ -19,7 +19,7 @@ const NO_COURSE = '__none__';
 const INPUT =
   'w-full px-2.5 py-1.5 text-sm border border-line rounded-lg ' +
   'bg-surface dark:bg-inset text-ink ' +
-  'focus:outline-none focus:ring-2 focus:ring-stone-400 dark:focus:ring-muted focus:border-transparent ' +
+  'focus:outline-none focus:ring-2 focus:ring-focus focus:border-transparent ' +
   'placeholder:text-muted';
 
 // ── Pure helpers ────────────────────────────────────────────────────────────
@@ -268,7 +268,7 @@ export default function ImportFeedPage() {
       {step === 'url' && (
         <div className="border border-line rounded-xl p-6 space-y-4">
           <div className="flex items-start gap-3">
-            <Rss size={18} className="text-accent shrink-0 mt-0.5" />
+            <Rss size={18} className="text-accent-text shrink-0 mt-0.5" />
             <div className="text-sm text-ink-soft space-y-1">
               <p className="font-medium text-ink">Paste your calendar feed URL</p>
               <p className="text-muted text-xs leading-relaxed">
@@ -313,7 +313,7 @@ export default function ImportFeedPage() {
           {courses.length === 0 ? (
             <div className="border border-line rounded-xl p-6 text-sm text-muted">
               You don't have any courses yet. {' '}
-              <Link to="/courses" className="text-accent hover:underline">Create a course</Link>{' '}
+              <Link to="/courses" className="text-accent-text hover:underline">Create a course</Link>{' '}
               first, then come back to import into it.
             </div>
           ) : (
@@ -480,7 +480,7 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
     <span
       className={cn(
         'inline-flex items-center gap-1.5 px-2 py-1 rounded-md',
-        active ? 'bg-accent/10 text-accent font-medium' : done ? 'text-ink-soft' : 'text-muted',
+        active ? 'bg-accent/10 text-accent-text font-medium' : done ? 'text-ink-soft' : 'text-muted',
       )}
     >
       {done ? <Check size={12} /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}

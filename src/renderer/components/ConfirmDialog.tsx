@@ -82,7 +82,7 @@ export default function ConfirmDialog({
           <button
             ref={cancelRef}
             onClick={onClose}
-            className="px-4 py-2 text-sm text-muted hover:text-ink-soft rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 transition-colors"
+            className="px-4 py-2 text-sm text-muted hover:text-ink-soft rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus transition-colors"
           >
             Cancel
           </button>

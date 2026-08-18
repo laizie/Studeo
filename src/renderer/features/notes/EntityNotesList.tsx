@@ -113,7 +113,7 @@ export default function EntityNotesList({
                 className={cn(
                   'mt-0.5 shrink-0 rounded-md p-1 transition-colors',
                   note.is_pinned
-                    ? 'text-accent'
+                    ? 'text-accent-text'
                     : 'text-muted opacity-0 hover:text-ink group-hover:opacity-100 focus-visible:opacity-100',
                 )}
               >
