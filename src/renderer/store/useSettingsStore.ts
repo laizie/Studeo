@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import { readPref, writePref } from '../lib/prefs';
+import { THEMES, isDarkTheme, type Theme } from '../../shared/themes';
 
-/** Every theme the app can actually render. The guard below validates against it. */
-export const THEMES = ['light', 'dark', 'warm', 'blush', 'linen'] as const;
-export type Theme = typeof THEMES[number];
+// Re-exported so existing importers keep working and there is still one name to
+// import; the definition lives in shared/ because the note editor needs it too.
+export { THEMES, isDarkTheme };
+export type { Theme };
 /** A real, playable music service. */
 export type MusicService = 'spotify' | 'apple_music';
 /** What the music UI shows: a specific service, or the auto "Now Playing" card. */
@@ -47,22 +49,15 @@ function applyTheme(theme: Theme) {
   html.classList.remove('dark');
   html.removeAttribute('data-theme');
 
-  if (theme === 'dark') {
-    // Pure dark: the deep-espresso layer defined under the dark: variant.
-    html.classList.add('dark');
-  } else if (theme === 'warm') {
-    // Apply .dark so all dark: text/color utilities resolve (light text, warm accents).
-    // Apply data-theme="warm" so warm: bg utilities override dark: bg utilities.
-    html.classList.add('dark');
-    html.setAttribute('data-theme', 'warm');
-  } else if (theme === 'blush' || theme === 'linen') {
-    // Light-family (dark ink on pale surfaces), so NO .dark — every `dark:`
-    // utility in the app has to stay off, or its light-on-dark colors would
-    // land on a pale page. The attribute alone swaps the tokens; see index.css.
-    html.setAttribute('data-theme', theme);
-  }
-  // 'light' is the bare :root — no class, no attribute, which is why both are
-  // cleared above before any theme is applied.
+  // The dark family gets `.dark`, which is what makes every `dark:` utility in
+  // the app resolve. Light-family themes must NOT get it, or light-on-dark
+  // colors land on a pale page.
+  if (isDarkTheme(theme)) html.classList.add('dark');
+
+  // Every theme but light names itself, so its token block applies — and, for
+  // warm, so `warm:` utilities outrank `dark:` ones. 'light' is the bare :root,
+  // which is why both the class and the attribute are cleared first.
+  if (theme !== 'light') html.setAttribute('data-theme', theme);
 }
 
 // All preferences are persisted by the main process (a file it owns) via lib/prefs —

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
+import { THEMES as SHIPPED_THEMES, isDarkTheme } from '../../../shared/themes';
 
 // Every theme's tokens, checked against the two questions a color theme can fail:
 //
@@ -103,6 +104,32 @@ function deltaE(a: string, b: string): number {
   const [lb, ab, bb] = toLab(hexToRgb(b));
   return Math.hypot(la - lb, aa - ab, ba - bb);
 }
+
+describe('theme family', () => {
+  it('classifies every theme by what its colors actually are', () => {
+    // isDarkTheme() decides two things that are invisible until they're wrong:
+    // whether <html> gets `.dark` (so every `dark:` utility resolves) and which
+    // color scheme BlockNote is handed for the note editor. It was a hand-kept
+    // list, and the note editor kept a SECOND copy spelled `theme === 'light'`
+    // — which quietly meant "light is the only light theme" and put BlockNote's
+    // #cfcfcf editor text on blush's and linen's pale paper.
+    //
+    // The list is now checked against the thing it describes: a theme is
+    // dark-family if and only if its ink is lighter than its page.
+    for (const { name, tokens } of THEMES) {
+      const inkIsPale = luminance(hexToRgb(tokens['--ink'])) > luminance(hexToRgb(tokens['--bg']));
+      expect(isDarkTheme(name as (typeof SHIPPED_THEMES)[number]), `${name}: --ink is ${inkIsPale ? 'lighter' : 'darker'} than --bg, so isDarkTheme should be ${inkIsPale}`)
+        .toBe(inkIsPale);
+    }
+  });
+
+  it('checks every theme the app actually ships', () => {
+    // Otherwise a theme could be added to shared/themes.ts and index.css and
+    // simply never be contrast-checked, because this file's own list is where
+    // the checking starts.
+    expect(THEMES.map(t => t.name).sort()).toEqual([...SHIPPED_THEMES].sort());
+  });
+});
 
 describe('theme tokens', () => {
   it('defines every role in every theme', () => {

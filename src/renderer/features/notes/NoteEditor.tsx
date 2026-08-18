@@ -27,6 +27,7 @@ import { useCourses } from '../../lib/queries/useCourses';
 import { useAssignments } from '../../lib/queries/useAssignments';
 import { useCreateTask } from '../../lib/queries/useTasks';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { isDarkTheme } from '../../../shared/themes';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { detectCodeLanguage } from '../../../shared/detectLanguage';
 import type { Note, NoteVersion } from '../../../shared/types';
@@ -394,7 +395,11 @@ export default function NoteEditor({ note }: { note: Note }) {
       >
         <BlockNoteView
           editor={editor}
-          theme={theme === 'light' ? 'light' : 'dark'}
+          // By FAMILY, not by name. This read `theme === 'light' ? … : 'dark'`,
+          // i.e. "light is the only light theme" — true until blush and linen
+          // existed, after which both were handed BlockNote's dark scheme and
+          // its #cfcfcf editor text landed on their pale paper.
+          theme={isDarkTheme(theme) ? 'dark' : 'light'}
           onChange={handleChange}
           slashMenu={false}
           sideMenu={false}
