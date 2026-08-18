@@ -142,6 +142,55 @@ export async function ensureList(listName: string): Promise<ScriptResult> {
   );
 }
 
+/**
+ * Every reminder in the list, as "id\ttitle" lines — ONE AppleScript call.
+ *
+ * This exists because a create is not atomic from our side. `createReminder`
+ * makes the reminder and then returns its id, and if the script is killed
+ * between those two things (the 20s timeout, which a slow Reminders.app hits
+ * easily) the reminder exists while the link does not. The next pass sees an
+ * unmirrored assignment and makes a SECOND one, every five minutes, forever —
+ * and each duplicate slows every subsequent `whose id is` walk, which causes
+ * more timeouts, which makes more duplicates. One real user's list reached 316
+ * reminders for 125 assignments with 9 links recorded.
+ *
+ * So before creating anything, the pass reads what is already there and adopts
+ * matches instead. One call for the whole list rather than one per item, because
+ * at ~5-12s per round-trip a per-item probe would cost more than the bug.
+ */
+export async function listRemindersInList(listName: string): Promise<ScriptResult> {
+  return osascript(
+    `on run argv
+       set listName to item 1 of argv
+       set out to ""
+       tell application "Reminders"
+         tell list listName
+           repeat with r in (every reminder whose completed is false)
+             set out to out & (id of r) & tab & (name of r) & linefeed
+           end repeat
+         end tell
+       end tell
+       return out
+     end run`,
+    [listName],
+  );
+}
+
+/** Parse what listRemindersInList returns into title → id (first wins). */
+export function parseReminderIndex(stdout: string): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const line of stdout.split('\n')) {
+    const tab = line.indexOf('\t');
+    if (tab === -1) continue;
+    const id = line.slice(0, tab).trim();
+    const title = line.slice(tab + 1).trim();
+    // First wins: with duplicates present, adopting the oldest is the one that
+    // has been carried to the phone longest.
+    if (id && title && !index.has(title)) index.set(title, id);
+  }
+  return index;
+}
+
 /** Create one reminder; resolves with the new reminder's id for the link table. */
 export async function createReminder(listName: string, reminder: PlannedReminder): Promise<ScriptResult> {
   return osascript(

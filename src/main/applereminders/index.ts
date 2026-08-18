@@ -14,6 +14,8 @@ import {
   updateReminder,
   completeReminder,
   deleteReminder,
+  listRemindersInList,
+  parseReminderIndex,
 } from './remindersScript';
 
 /**
@@ -51,6 +53,44 @@ const REMOVE_COMPLETED_KEY = 'appleRemindersRemoveCompleted';
  *  notice". A sync with nothing to do costs zero AppleScript calls (see below),
  *  so the idle case is just a SQLite read. */
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * Two limits that turn "wedged forever" into "stopped, and said why".
+ *
+ * Every item in the plan is its own osascript process, awaited one at a time,
+ * and each can burn the full 20s script timeout. So a pass whose calls are all
+ * failing slowly — Reminders wedged, or an Automation consent prompt sitting
+ * unanswered behind the window and eating each call until it's killed — costs
+ * 20s × every item in the plan. With a semester's assignments that is a Settings
+ * row reading "Syncing…" for a quarter of an hour, which is indistinguishable
+ * from a hang and was being reported as one.
+ *
+ * ensureList already had this instinct ("one clear message beats twenty
+ * identical ones"); the item loops just never honoured it.
+ *
+ * Stopping early is safe because the pass is resumable by construction: links
+ * are written to the DB as each item succeeds, and the plan is recomputed from
+ * scratch next time, so an abandoned pass costs nothing but the work not yet
+ * done.
+ */
+const MAX_CONSECUTIVE_FAILURES = 3;
+const PASS_BUDGET_MS = 90 * 1000;
+
+/**
+ * Should the pass stop early? Pure so it can be tested without a Reminders.app.
+ *
+ * Consecutive, not total: an occasional failure among successes is the
+ * self-healing path (a reminder deleted on the phone), and must not stop a pass
+ * that is otherwise working. A *run* of them means the next call will fail too.
+ */
+export function shouldAbortPass(
+  consecutiveFailures: number,
+  elapsedMs: number,
+): 'failures' | 'budget' | null {
+  if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) return 'failures';
+  if (elapsedMs >= PASS_BUDGET_MS) return 'budget';
+  return null;
+}
 
 let interval: NodeJS.Timeout | null = null;
 let syncing = false;
@@ -147,27 +187,43 @@ async function runSyncPass(): Promise<void> {
     if (!firstFailure) firstFailure = describeFailure(reason);
   };
 
+  // Shared by every loop below: a run of failures, or a pass that has outstayed
+  // its budget, ends the pass instead of grinding through the rest at 20s each.
+  const startedAt = Date.now();
+  let consecutiveFailures = 0;
+  let stopped: 'failures' | 'budget' | null = null;
+  /** Record one item's outcome; returns false when the pass should stop. */
+  const step = (ok: boolean, reason?: string): boolean => {
+    if (ok) {
+      consecutiveFailures = 0;
+    } else {
+      consecutiveFailures += 1;
+      if (reason) noteFailure(reason);
+    }
+    stopped = shouldAbortPass(consecutiveFailures, Date.now() - startedAt);
+    return stopped === null;
+  };
+
   for (const { assignmentId, reminderId } of plan.remove) {
     const result = await deleteReminder(LIST_NAME, reminderId);
     // Gone from Reminders already is the outcome we wanted, so drop the link
     // either way — leaving it would retry this delete forever.
     deleteReminderLink(assignmentId);
-    if (!result.ok) noteFailure(result.value);
+    if (!step(result.ok, result.value)) break;
   }
 
   for (const { assignmentId, reminderId } of plan.complete) {
+    if (stopped) break;
     const result = await completeReminder(LIST_NAME, reminderId);
-    if (result.ok) {
-      // Keep the link: the assignment still exists, and if it's un-completed
-      // later the next sync updates this same reminder instead of adding one.
-      continue;
-    }
-    // Couldn't tick it off — most likely deleted on the phone. Forget it.
-    deleteReminderLink(assignmentId);
-    noteFailure(result.value);
+    // Keep the link on success: the assignment still exists, and if it's
+    // un-completed later the next sync updates this same reminder instead of
+    // adding one. On failure it was most likely deleted on the phone — forget it.
+    if (!result.ok) deleteReminderLink(assignmentId);
+    if (!step(result.ok, result.value)) break;
   }
 
   for (const { reminderId, reminder } of plan.update) {
+    if (stopped) break;
     const result = await updateReminder(LIST_NAME, reminderId, reminder);
     if (result.ok) {
       saveReminderLink(reminder.assignmentId, reminderId, reminder.signature);
@@ -175,21 +231,56 @@ async function runSyncPass(): Promise<void> {
       // The reminder we recorded is unreachable. Dropping the link makes the
       // next pass recreate it, which is how a delete-on-phone self-heals.
       deleteReminderLink(reminder.assignmentId);
-      noteFailure(result.value);
     }
+    if (!step(result.ok, result.value)) break;
+  }
+
+  // Adopt before creating. A create that is killed after `make new reminder` but
+  // before it returns the id leaves a reminder we have no link for, and the next
+  // pass would make another one — the runaway that turned 125 assignments into
+  // 316 reminders. One read of the list lets an orphan be reclaimed instead of
+  // duplicated, and it also recovers everything the old code already stranded.
+  let adoptable = new Map<string, string>();
+  if (plan.create.length > 0 && !stopped) {
+    const existing = await listRemindersInList(LIST_NAME);
+    if (existing.ok) {
+      adoptable = parseReminderIndex(existing.value);
+    }
+    // A failed read is not fatal: worst case we're back to the old behaviour for
+    // this pass, and the budget above stops it running away.
   }
 
   for (const reminder of plan.create) {
-    const result = await createReminder(LIST_NAME, reminder);
-    if (result.ok && result.value) {
-      saveReminderLink(reminder.assignmentId, result.value, reminder.signature);
-    } else {
-      noteFailure(result.value || 'Reminders did not return an id');
+    if (stopped) break;
+
+    const orphan = adoptable.get(reminder.title);
+    if (orphan) {
+      // Already in the list under this title. Record the link and let the next
+      // pass update it if the details differ — cheaper and safer than a create,
+      // and it can't produce a duplicate.
+      saveReminderLink(reminder.assignmentId, orphan, '');
+      adoptable.delete(reminder.title);
+      step(true);
+      continue;
     }
+
+    const result = await createReminder(LIST_NAME, reminder);
+    const ok = result.ok && Boolean(result.value);
+    if (ok) {
+      saveReminderLink(reminder.assignmentId, result.value, reminder.signature);
+    }
+    if (!step(ok, result.value || 'Reminders did not return an id')) break;
   }
 
   lastSyncAt = new Date().toISOString();
-  lastError = firstFailure;
+  // A stopped pass reports WHY it stopped, on top of the failure that caused it.
+  // "Syncing…" that simply never ends is the one outcome with no next step in it.
+  lastError =
+    stopped === 'budget'
+      ? 'Reminders is responding slowly — synced what it could, and will pick up the rest shortly.'
+      : stopped === 'failures'
+        ? `${firstFailure ?? 'Reminders kept refusing'} — stopped after ${MAX_CONSECUTIVE_FAILURES} failures in a row rather than retrying every item.`
+        : firstFailure;
 }
 
 /**
