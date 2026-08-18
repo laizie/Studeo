@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { readPref, writePref } from '../lib/prefs';
 
-export type Theme = 'light' | 'dark' | 'warm' | 'blush' | 'linen';
+/** Every theme the app can actually render. The guard below validates against it. */
+export const THEMES = ['light', 'dark', 'warm', 'blush', 'linen'] as const;
+export type Theme = typeof THEMES[number];
 /** A real, playable music service. */
 export type MusicService = 'spotify' | 'apple_music';
 /** What the music UI shows: a specific service, or the auto "Now Playing" card. */
@@ -68,10 +70,18 @@ function applyTheme(theme: Theme) {
 const readSetting = readPref;
 const saveSetting = writePref;
 
-const storedTheme = readSetting('theme', 'studeo:theme') as Theme | null;
+const storedTheme = readSetting('theme', 'studeo:theme');
 // Back-compat: migrate the even older darkMode flag to a theme.
 const legacyDark = !storedTheme && localStorage.getItem('studeo:darkMode') === 'true';
-const initTheme: Theme = storedTheme ?? (legacyDark ? 'warm' : 'light');
+// Validated against the list, not cast to it. A stored value that isn't a theme
+// we ship — a hand-edited settings.json, or a theme dropped in a later version —
+// used to sail through as `Theme`: applyTheme would match no branch (so the app
+// renders as light) while the store still held the unknown value, leaving the
+// picker with nothing selected and no way to tell what happened.
+const initTheme: Theme =
+  THEMES.includes(storedTheme as Theme) ? (storedTheme as Theme)
+    : legacyDark ? 'warm'
+      : 'light';
 if (!storedTheme && legacyDark) saveSetting('theme', initTheme);
 applyTheme(initTheme);
 
