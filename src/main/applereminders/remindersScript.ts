@@ -263,6 +263,32 @@ export async function completeReminder(listName: string, reminderId: string): Pr
   );
 }
 
+/**
+ * Delete the entire list, in one call.
+ *
+ * The repair path for a mirror that has already gone wrong. Deleting the
+ * duplicates individually would be the surgical option, but at ~5-12s per
+ * round-trip a few hundred of them is half an hour of scripting; dropping the
+ * list is a single call and the next sync rebuilds it from the assignments,
+ * which are the source of truth anyway.
+ *
+ * Safe only because the list is ours: the sync owns a list called "Studeo" and
+ * nothing else, precisely so that the worst it can do is mismanage its own
+ * mirror (see LIST_NAME in index.ts).
+ */
+export async function deleteList(listName: string): Promise<ScriptResult> {
+  return osascript(
+    `on run argv
+       set listName to item 1 of argv
+       tell application "Reminders"
+         if exists list listName then delete list listName
+         return "ok"
+       end tell
+     end run`,
+    [listName],
+  );
+}
+
 export async function deleteReminder(listName: string, reminderId: string): Promise<ScriptResult> {
   return osascript(
     `on run argv

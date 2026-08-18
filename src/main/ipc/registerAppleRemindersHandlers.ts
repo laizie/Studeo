@@ -5,6 +5,7 @@ import {
   setAppleRemindersEnabled,
   setAppleRemindersRemoveCompleted,
   syncAppleReminders,
+  rebuildAppleRemindersMirror,
 } from '../applereminders';
 
 // The Apple Reminders mirror. Every handler returns the whole status object so the
@@ -23,4 +24,6 @@ export function registerAppleRemindersHandlers(): void {
   });
 
   ipcMain.handle(IPC.APPLE_REMINDERS.SYNC_NOW, () => syncAppleReminders());
+
+  ipcMain.handle(IPC.APPLE_REMINDERS.REBUILD, () => rebuildAppleRemindersMirror());
 }

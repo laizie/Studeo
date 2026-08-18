@@ -97,6 +97,30 @@ export default function NotificationsSection() {
     }
   }
 
+  /**
+   * Throw the mirrored list away and let the next sync rebuild it.
+   *
+   * Confirmed rather than immediate: this deletes reminders that iCloud has
+   * already carried to the phone, which is not something to discover after the
+   * fact. The repair exists because a sync that lost track of what it created
+   * used to make a fresh copy every five minutes, and nothing links the strays.
+   */
+  async function handlePhoneRebuild() {
+    const ok = window.confirm(
+      `This deletes the "${phone?.listName ?? 'Studeo'}" list from Reminders — on this Mac and, ` +
+      'through iCloud, on your phone — and rebuilds it from your assignments on the next sync.\n\n' +
+      'Use this if the list has filled up with duplicates. Anything you added to it by hand will be lost.',
+    );
+    if (!ok) return;
+    setPhone(current => (current ? { ...current, syncing: true } : current));
+    try {
+      setPhone(await window.api.appleReminders.rebuild());
+      await handlePhoneSync();
+    } catch {
+      setPhone(await window.api.appleReminders.status().catch(() => phone));
+    }
+  }
+
   async function handleLoginItemChange(enabled: boolean) {
     try {
       setLoginItem(await window.api.app.setLoginItem(enabled));
@@ -171,9 +195,16 @@ export default function NotificationsSection() {
           >
             <div className="flex items-center gap-3">
               {phone.enabled && (
-                <CardButton onClick={handlePhoneSync} disabled={phone.syncing}>
-                  {phone.syncing ? 'Syncing…' : 'Sync now'}
-                </CardButton>
+                <>
+                  {/* Repair, not routine — it's destructive, so it stays quiet
+                      next to the action people actually reach for. */}
+                  <CardButton onClick={handlePhoneRebuild} disabled={phone.syncing}>
+                    Rebuild list
+                  </CardButton>
+                  <CardButton onClick={handlePhoneSync} disabled={phone.syncing}>
+                    {phone.syncing ? 'Syncing…' : 'Sync now'}
+                  </CardButton>
+                </>
               )}
               <Toggle checked={phone.enabled} onChange={handlePhoneToggle} disabled={phone.syncing} />
             </div>

@@ -16,6 +16,7 @@ import {
   deleteReminder,
   listRemindersInList,
   parseReminderIndex,
+  deleteList,
 } from './remindersScript';
 
 /**
@@ -281,6 +282,44 @@ async function runSyncPass(): Promise<void> {
       : stopped === 'failures'
         ? `${firstFailure ?? 'Reminders kept refusing'} — stopped after ${MAX_CONSECUTIVE_FAILURES} failures in a row rather than retrying every item.`
         : firstFailure;
+}
+
+/**
+ * Throw the mirror away and start over.
+ *
+ * For a list that has already accumulated duplicates — the failure mode fixed
+ * by adoption, after it has happened. Adoption stops the growth and reclaims
+ * one reminder per assignment, but the extra copies are unreachable: nothing
+ * links them, so nothing will ever clean them up.
+ *
+ * Deletes the list (one call) and forgets every link, so the next pass rebuilds
+ * from the assignments. Destructive by design, hence user-initiated only —
+ * never on a timer, and never as part of a sync.
+ */
+export async function rebuildAppleRemindersMirror(): Promise<AppleRemindersStatus> {
+  if (!supported() || !isEnabled()) return getAppleRemindersStatus();
+  if (syncing) return getAppleRemindersStatus();
+
+  syncing = true;
+  try {
+    const dropped = await deleteList(LIST_NAME);
+    if (!dropped.ok) {
+      lastError = describeFailure(dropped.value);
+      return getAppleRemindersStatus();
+    }
+    // Only after the list is actually gone: clearing links first would strand
+    // every reminder in it if the delete then failed — the exact bug this is
+    // here to repair.
+    for (const link of listReminderLinks()) deleteReminderLink(link.assignment_id);
+    listVerified = false;
+    lastError = null;
+    lastSyncAt = null;
+  } catch (err) {
+    lastError = describeFailure(err instanceof Error ? err.message : String(err));
+  } finally {
+    syncing = false;
+  }
+  return getAppleRemindersStatus();
 }
 
 /**

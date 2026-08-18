@@ -633,6 +633,7 @@ export const IPC = {
     SET_ENABLED:          'apple_reminders:set-enabled',
     SET_REMOVE_COMPLETED: 'apple_reminders:set-remove-completed',
     SYNC_NOW:             'apple_reminders:sync-now',
+    REBUILD:              'apple_reminders:rebuild',
   },
   FEEDS: {
     FETCH_ICS: 'feeds:fetch-ics',
@@ -850,6 +851,9 @@ export interface WindowApi {
     setRemoveCompleted(remove: boolean): Promise<AppleRemindersStatus>;
     /** Force a pass now instead of waiting for the interval. */
     syncNow():                       Promise<AppleRemindersStatus>;
+    /** Delete the mirrored list and forget every link, so the next sync rebuilds
+     *  it. The repair for a list that already accumulated duplicates. */
+    rebuild():                       Promise<AppleRemindersStatus>;
   };
   appleMusic: {
     status():                        Promise<AppleMusicStatus>;
