@@ -17,8 +17,12 @@ import { cn } from '../../lib/utils';
 interface Props {
   assignment: Assignment;
   onEdit: (assignment: Assignment) => void;
-  /** Pass the course to show a colored course badge (used in cross-course views like This Week). */
+  /** The course this assignment belongs to. Pass it wherever it's known — it's what names
+   *  the course on the focus-list entry, not just what draws the badge. */
   course?: Course;
+  /** Draw the colored course badge in the row. On a course page every row is the same
+   *  course, so the badge would only repeat the heading. */
+  showCourseBadge?: boolean;
 }
 
 // Status is a simple done / not-done toggle (PRD §11, resolved June 2026).
@@ -30,7 +34,7 @@ function StatusIcon({ status }: { status: AssignmentStatus }) {
     : <Circle       size={17} className="text-muted" />;
 }
 
-export default function AssignmentRow({ assignment, onEdit, course }: Props) {
+export default function AssignmentRow({ assignment, onEdit, course, showCourseBadge = false }: Props) {
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment  = useDeleteAssignment();
   const restoreAssignment = useRestoreAssignment();
@@ -121,7 +125,7 @@ export default function AssignmentRow({ assignment, onEdit, course }: Props) {
 
       {/* Course badge — shown first in cross-course views so color is the first
           thing seen; clicking it opens the course itself */}
-      {course && (
+      {course && showCourseBadge && (
         <Link
           to={`/courses/${course.id}`}
           onClick={(e) => e.stopPropagation()}

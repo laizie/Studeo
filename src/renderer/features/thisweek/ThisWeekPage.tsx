@@ -293,6 +293,7 @@ export default function ThisWeekPage() {
                       assignment={item.data}
                       onEdit={openEditAssignment}
                       course={courseMap.get(item.data.course_id)}
+                      showCourseBadge
                     />
                   ) : (
                     <TaskRow

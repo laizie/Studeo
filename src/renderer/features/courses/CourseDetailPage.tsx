@@ -351,7 +351,9 @@ export default function CourseDetailPage() {
                   </div>
                   <div className="divide-y divide-line">
                     {items.map(a => (
-                      <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} />
+                      // The course is passed even though the badge stays off here: it's
+                      // what labels the row once it lands on the focus list.
+                      <AssignmentRow key={a.id} assignment={a} onEdit={openEdit} course={course} />
                     ))}
                   </div>
                 </div>
