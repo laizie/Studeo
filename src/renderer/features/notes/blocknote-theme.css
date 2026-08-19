@@ -83,6 +83,12 @@
   --note-h2: 1.5rem;
   --note-h3: 1.22rem;
   --note-heading-leading: 1.3;
+  /* Room above a heading, so sections breathe. Padding, not margin — see below. */
+  --note-h1-space: 1.6rem;
+  --note-h2-space: 1.4rem;
+  --note-h3-space: 1.1rem;
+  /* BlockNote's own padding above every heading, which the space adds to. */
+  --note-heading-pad: 18px;
 }
 
 .studeo-bn .bn-editor {
@@ -102,6 +108,15 @@
 /* Heading hierarchy + rhythm: distinct sizes with room above each so sections
    breathe. BlockNote tags heading level via data-level.
 
+   The room above a heading is padding rather than margin, and that is load-bearing
+   for the gutter. BlockNote positions the ⊞ and ⠿ against the *block* element, whose
+   box includes a margin on the content inside it (.bn-block is a flex container, so
+   nothing collapses out). A 1.6rem margin therefore sat between the top of the box
+   the buttons are aligned to and the top of the text they point at, and pushed them
+   exactly 1.6rem above the heading — margin is space the anchor can see but the
+   geometry below cannot. As padding it's inside the content box, both edges agree,
+   and the same arithmetic works whichever of the two elements is anchored.
+
    The sizes are set through --level, which is BlockNote's own knob, rather than as
    font-size. Its rule
      .bn-block-outer:not([data-prev-type])>.bn-block>.bn-block-content[data-content-type=heading]
@@ -118,15 +133,15 @@
 }
 .studeo-bn .bn-block-content[data-content-type='heading'][data-level='1'] {
   --level: var(--note-h1);
-  margin-top: 1.6rem;
+  padding-top: calc(var(--note-heading-pad) + var(--note-h1-space));
 }
 .studeo-bn .bn-block-content[data-content-type='heading'][data-level='2'] {
   --level: var(--note-h2);
-  margin-top: 1.4rem;
+  padding-top: calc(var(--note-heading-pad) + var(--note-h2-space));
 }
 .studeo-bn .bn-block-content[data-content-type='heading'][data-level='3'] {
   --level: var(--note-h3);
-  margin-top: 1.1rem;
+  padding-top: calc(var(--note-heading-pad) + var(--note-h3-space));
 }
 /* The same sizes for the outgoing level, so turning a heading into a paragraph
    animates from the size it was actually rendering at. */
@@ -136,10 +151,12 @@
 
 /* ── Where the gutter buttons sit ──────────────────────────────────────────────
    The ⊞ and ⠿ are centred inside a fixed-height box whose *top* edge is pinned to
-   the block's top edge (BlockNote anchors the menu "left-start" and Mantine's Group
-   centres its children). So the box's height is the only thing deciding how far
-   down the buttons land: half of it has to equal the distance from the top of the
-   block to the middle of its first line.
+   the top of the block element (BlockNote anchors the menu "left-start" against the
+   block, and Mantine's Group centres its children). So the box's height is the only
+   thing deciding how far down the buttons land: half of it has to equal the distance
+   from the top of that block box to the middle of its first line — which is why the
+   space above a heading is padding here, so that box and the text box start in the
+   same place.
 
    BlockNote ships heights for its own type scale — 16px text, 1.5 leading, 3em
    headings, unpadded code. Ours is a different scale, so every one of those heights
@@ -162,15 +179,16 @@
   height: calc(2 * 3px + var(--note-body) * var(--note-leading));
 }
 
-/* Headings: 18px of block padding (BlockNote's) + one heading line. */
+/* Headings: all the padding above the text — BlockNote's 18px plus the space this
+   file adds for rhythm — then one heading line. */
 .studeo-bn .bn-side-menu[data-block-type='heading'][data-level='1'] {
-  height: calc(2 * 18px + var(--note-h1) * var(--note-heading-leading));
+  height: calc(2 * (var(--note-heading-pad) + var(--note-h1-space)) + var(--note-h1) * var(--note-heading-leading));
 }
 .studeo-bn .bn-side-menu[data-block-type='heading'][data-level='2'] {
-  height: calc(2 * 18px + var(--note-h2) * var(--note-heading-leading));
+  height: calc(2 * (var(--note-heading-pad) + var(--note-h2-space)) + var(--note-h2) * var(--note-heading-leading));
 }
 .studeo-bn .bn-side-menu[data-block-type='heading'][data-level='3'] {
-  height: calc(2 * 18px + var(--note-h3) * var(--note-heading-leading));
+  height: calc(2 * (var(--note-heading-pad) + var(--note-h3-space)) + var(--note-h3) * var(--note-heading-leading));
 }
 
 /* Code: 3px block padding + the 40px of top room the language picker needs (see the
