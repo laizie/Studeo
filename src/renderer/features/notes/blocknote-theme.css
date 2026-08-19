@@ -67,32 +67,72 @@
 
 /* ── Reading typography ─────────────────────────────────────────────────────────
    Notes read like a journal, not an app form: a warm serif, a larger size, and
-   generous leading. Scoped to the editor body so the UI chrome stays DM Sans. */
+   generous leading. Scoped to the editor body so the UI chrome stays DM Sans.
+
+   Two of the rules here used to lose to BlockNote's own, quietly: the size and the
+   leading were written, and neither reached the page. Both are stated at the right
+   strength now, so what this file says is what the editor renders. */
+/* The scale itself, declared once. The gutter geometry further down is computed
+   from these same variables — that pairing is the whole point: the ⊞ and ⠿ are
+   positioned by arithmetic over the type scale, so a size changed here moves them
+   with it instead of leaving them pointing at where a line used to be. */
+.studeo-bn {
+  --note-body: 1.0625rem;      /* 17px */
+  --note-leading: 1.75;
+  --note-h1: 1.9rem;
+  --note-h2: 1.5rem;
+  --note-h3: 1.22rem;
+  --note-heading-leading: 1.3;
+}
+
 .studeo-bn .bn-editor {
   font-family: var(--font-serif);
-  font-size: 1.0625rem;  /* 17px */
-  line-height: 1.75;
+  font-size: var(--note-body);
+  line-height: var(--note-leading);
+}
+
+/* The leading has to be set on the block outer, not inherited into it. BlockNote
+   puts `line-height: 1.5` on .bn-block-outer itself, and an inherited value never
+   beats a declared one on a nearer ancestor — so the 1.75 above reached the editor
+   and stopped there, and every note rendered at BlockNote's 1.5. */
+.studeo-bn .bn-block-outer {
+  line-height: var(--note-leading);
 }
 
 /* Heading hierarchy + rhythm: distinct sizes with room above each so sections
-   breathe. BlockNote tags heading level via data-level. */
+   breathe. BlockNote tags heading level via data-level.
+
+   The sizes are set through --level, which is BlockNote's own knob, rather than as
+   font-size. Its rule
+     .bn-block-outer:not([data-prev-type])>.bn-block>.bn-block-content[data-content-type=heading]
+   declares `font-size: var(--level)` at a specificity nothing scoped to .studeo-bn
+   can reach, so a font-size written here simply lost and headings rendered at
+   BlockNote's 3em/2em/1.3em — a 51px H1 where this file asked for 30px. Feeding the
+   variable wins by supplying the value that rule reads. --prev-level is the same
+   value for the block-type transition, so a heading doesn't animate through a size
+   it never has. */
 .studeo-bn .bn-block-content[data-content-type='heading'] {
   font-family: var(--font-serif);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: var(--note-heading-leading);
 }
 .studeo-bn .bn-block-content[data-content-type='heading'][data-level='1'] {
-  font-size: 1.9rem;
+  --level: var(--note-h1);
   margin-top: 1.6rem;
 }
 .studeo-bn .bn-block-content[data-content-type='heading'][data-level='2'] {
-  font-size: 1.5rem;
+  --level: var(--note-h2);
   margin-top: 1.4rem;
 }
 .studeo-bn .bn-block-content[data-content-type='heading'][data-level='3'] {
-  font-size: 1.22rem;
+  --level: var(--note-h3);
   margin-top: 1.1rem;
 }
+/* The same sizes for the outgoing level, so turning a heading into a paragraph
+   animates from the size it was actually rendering at. */
+.studeo-bn .bn-block-outer[data-prev-level='1'] { --prev-level: var(--note-h1); }
+.studeo-bn .bn-block-outer[data-prev-level='2'] { --prev-level: var(--note-h2); }
+.studeo-bn .bn-block-outer[data-prev-level='3'] { --prev-level: var(--note-h3); }
 
 /* ── Where the gutter buttons sit ──────────────────────────────────────────────
    The ⊞ and ⠿ are centred inside a fixed-height box whose *top* edge is pinned to
@@ -103,44 +143,41 @@
 
    BlockNote ships heights for its own type scale — 16px text, 1.5 leading, 3em
    headings, unpadded code. Ours is a different scale, so every one of those heights
-   was aiming at a line that isn't there: 3px out on a paragraph (invisible), 3px on
-   an H1, and 17–39px on tables, code and equations, where the ⊞ floated well above
-   the text it belongs to.
+   was aiming at a line that isn't there: the ⊞ sat 3px low on an H1 and 17–39px high
+   on tables, code and equations, well clear of the text it belongs to.
 
    Each height below is 2 × (the block's top padding + half its first line box),
-   written as the arithmetic rather than the result so it can be re-derived. They are
-   paired to the type rules above: change a size or a leading there and these move
-   with it. 1.0625rem is the editor's 17px body size.
+   written as arithmetic over the --note-* scale rather than as a number. That's what
+   keeps them honest: the type scale is the input, so changing a size or a leading up
+   there moves the buttons rather than stranding them.
 
    Blocks whose height is content-dependent are not centred at all — see the
    equation rule at the end. */
 
-/* Paragraphs, list items, quotes: 3px block padding + a 17px/1.5 line.
-   (1.5 is BlockNote's own .bn-block-outer leading, which wins over this file's
-   1.75 by proximity — the block outer is the nearer ancestor.)
+/* Paragraphs, list items, quotes: 3px block padding + one body line.
    Images, video, audio and file blocks are left out: they keep BlockNote's own
    heights, which park the handle near the *top*, the only sane place on something
    that can be 400px tall. :where() keeps this rule from outweighing them. */
 .studeo-bn .bn-side-menu:where(:not([data-url], [data-block-type='audio'], [data-block-type='file'])) {
-  height: calc(2 * 3px + 1.0625rem * 1.5);
+  height: calc(2 * 3px + var(--note-body) * var(--note-leading));
 }
 
-/* Headings: 18px of block padding (BlockNote's) + a line of --level × our 1.3
-   leading, where --level is 3em / 2em / 1.3em of the body size. */
+/* Headings: 18px of block padding (BlockNote's) + one heading line. */
 .studeo-bn .bn-side-menu[data-block-type='heading'][data-level='1'] {
-  height: calc(2 * 18px + 3 * 1.0625rem * 1.3);
+  height: calc(2 * 18px + var(--note-h1) * var(--note-heading-leading));
 }
 .studeo-bn .bn-side-menu[data-block-type='heading'][data-level='2'] {
-  height: calc(2 * 18px + 2 * 1.0625rem * 1.3);
+  height: calc(2 * 18px + var(--note-h2) * var(--note-heading-leading));
 }
 .studeo-bn .bn-side-menu[data-block-type='heading'][data-level='3'] {
-  height: calc(2 * 18px + 1.3 * 1.0625rem * 1.3);
+  height: calc(2 * 18px + var(--note-h3) * var(--note-heading-leading));
 }
 
-/* Code: 3px block padding + the 40px of top room the language picker needs
-   (see the code-block section below) + a 0.85em/1.55 mono line. */
+/* Code: 3px block padding + the 40px of top room the language picker needs (see the
+   code-block section below) + a mono line, which sets its own 0.85em/1.55 and so
+   doesn't follow the body leading. */
 .studeo-bn .bn-side-menu[data-block-type='codeBlock'] {
-  height: calc(2 * (3px + 40px) + 0.85 * 1.0625rem * 1.55);
+  height: calc(2 * (3px + 40px) + 0.85 * var(--note-body) * 1.55);
 }
 
 /* Tables: 3px block padding + the 9px handle gutter the table wrapper reserves +
