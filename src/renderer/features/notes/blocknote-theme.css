@@ -94,6 +94,79 @@
   margin-top: 1.1rem;
 }
 
+/* ── Where the gutter buttons sit ──────────────────────────────────────────────
+   The ⊞ and ⠿ are centred inside a fixed-height box whose *top* edge is pinned to
+   the block's top edge (BlockNote anchors the menu "left-start" and Mantine's Group
+   centres its children). So the box's height is the only thing deciding how far
+   down the buttons land: half of it has to equal the distance from the top of the
+   block to the middle of its first line.
+
+   BlockNote ships heights for its own type scale — 16px text, 1.5 leading, 3em
+   headings, unpadded code. Ours is a different scale, so every one of those heights
+   was aiming at a line that isn't there: 3px out on a paragraph (invisible), 3px on
+   an H1, and 17–39px on tables, code and equations, where the ⊞ floated well above
+   the text it belongs to.
+
+   Each height below is 2 × (the block's top padding + half its first line box),
+   written as the arithmetic rather than the result so it can be re-derived. They are
+   paired to the type rules above: change a size or a leading there and these move
+   with it. 1.0625rem is the editor's 17px body size.
+
+   Blocks whose height is content-dependent are not centred at all — see the
+   equation rule at the end. */
+
+/* Paragraphs, list items, quotes: 3px block padding + a 17px/1.5 line.
+   (1.5 is BlockNote's own .bn-block-outer leading, which wins over this file's
+   1.75 by proximity — the block outer is the nearer ancestor.)
+   Images, video, audio and file blocks are left out: they keep BlockNote's own
+   heights, which park the handle near the *top*, the only sane place on something
+   that can be 400px tall. :where() keeps this rule from outweighing them. */
+.studeo-bn .bn-side-menu:where(:not([data-url], [data-block-type='audio'], [data-block-type='file'])) {
+  height: calc(2 * 3px + 1.0625rem * 1.5);
+}
+
+/* Headings: 18px of block padding (BlockNote's) + a line of --level × our 1.3
+   leading, where --level is 3em / 2em / 1.3em of the body size. */
+.studeo-bn .bn-side-menu[data-block-type='heading'][data-level='1'] {
+  height: calc(2 * 18px + 3 * 1.0625rem * 1.3);
+}
+.studeo-bn .bn-side-menu[data-block-type='heading'][data-level='2'] {
+  height: calc(2 * 18px + 2 * 1.0625rem * 1.3);
+}
+.studeo-bn .bn-side-menu[data-block-type='heading'][data-level='3'] {
+  height: calc(2 * 18px + 1.3 * 1.0625rem * 1.3);
+}
+
+/* Code: 3px block padding + the 40px of top room the language picker needs
+   (see the code-block section below) + a 0.85em/1.55 mono line. */
+.studeo-bn .bn-side-menu[data-block-type='codeBlock'] {
+  height: calc(2 * (3px + 40px) + 0.85 * 1.0625rem * 1.55);
+}
+
+/* Tables: 3px block padding + the 9px handle gutter the table wrapper reserves +
+   a cell's 1px border and 5px padding, then half its line. Measured at 32px to
+   the middle of the first cell's text. */
+.studeo-bn .bn-side-menu[data-block-type='table'] {
+  height: 64px;
+}
+
+/* Divider: the rule sits 0.5em down from the block's top. */
+.studeo-bn .bn-side-menu[data-block-type='divider'] {
+  height: 24px;
+}
+
+/* Equations are the one case where centring can't work: a display equation is as
+   tall as its own tallest symbol, so no fixed height can find its middle — an
+   integral and an `x = 1` would need different ones. Align to just inside the top
+   of the equation instead — a constant (its 0.9rem margin + 0.5rem padding, then a
+   few px in), so it holds for any equation: on the middle of a one-line one, near
+   the top of a tall one. This is what BlockNote itself does for images. */
+.studeo-bn .bn-side-menu[data-block-type='math'] {
+  height: auto;
+  align-items: flex-start;
+  padding-top: 22px;
+}
+
 /* ── Warm block formatting ──────────────────────────────────────────────────────
    Blockquote: a hairline rule + italic serif, set in muted ink. The rule is 1px
    and neutral on purpose — a 3px amber stripe broke two house rules at once (the
