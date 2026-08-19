@@ -525,6 +525,20 @@ export interface AppleMusicStatus {
 // Defined once as constants so main/preload/renderer all use the exact same
 // string — a typo anywhere would be a compile error instead of a silent bug.
 
+/** What one manual "check for updates" round trip found.
+ *  - `unsupported`  — a dev build: not packaged or signed, so the OS updater can't run.
+ *  - `up-to-date`   — the service has no release newer than this build.
+ *  - `downloading`  — a newer release exists and is downloading in the background;
+ *                     the app offers to restart once it's ready.
+ *  - `downloaded`   — a build is already staged, waiting for a restart.
+ *  - `error`        — the check couldn't be completed. */
+export type UpdateCheckResult =
+  | { status: 'unsupported' }
+  | { status: 'up-to-date' }
+  | { status: 'downloading' }
+  | { status: 'downloaded'; version?: string }
+  | { status: 'error'; message: string };
+
 export const IPC = {
   COURSES: {
     LIST:    'courses:list',
@@ -627,6 +641,7 @@ export const IPC = {
     SET_SETTING:    'app:set-setting',
     SET_FULLSCREEN: 'app:set-fullscreen',
     GET_FULLSCREEN: 'app:get-fullscreen',
+    CHECK_UPDATES:  'app:check-updates',
   },
   APPLE_REMINDERS: {
     STATUS:               'apple_reminders:status',
@@ -803,6 +818,8 @@ export interface WindowApi {
   app: {
     /** Highlight the database file in Finder / Explorer. */
     revealData(): Promise<void>;
+    /** Ask the update service now instead of waiting for the hourly check. */
+    checkForUpdates(): Promise<UpdateCheckResult>;
     /** Save-dialog + consistent snapshot of the database. saved=false means canceled. */
     backupData(): Promise<{ saved: boolean; path?: string; error?: string }>;
     /** Open-dialog + validate + (after a safety snapshot of current data) replace the live

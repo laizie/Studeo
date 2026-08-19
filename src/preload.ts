@@ -153,6 +153,7 @@ const api: WindowApi = {
 
   app: {
     revealData: () => ipcRenderer.invoke(IPC.APP.REVEAL_DATA),
+    checkForUpdates: () => ipcRenderer.invoke(IPC.APP.CHECK_UPDATES),
     backupData: () => ipcRenderer.invoke(IPC.APP.BACKUP_DATA),
     restoreData: () => ipcRenderer.invoke(IPC.APP.RESTORE_DATA),
     listBackups: () => ipcRenderer.invoke(IPC.APP.LIST_BACKUPS),

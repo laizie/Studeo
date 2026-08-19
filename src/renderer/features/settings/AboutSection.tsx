@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Info, FolderOpen, HardDriveDownload, HardDriveUpload, History } from 'lucide-react';
+import { Info, FolderOpen, HardDriveDownload, HardDriveUpload, History, RefreshCw } from 'lucide-react';
 import { version as appVersion } from '../../../../package.json';
 import { SectionHeading, SettingsCard, SettingsRow, CardButton } from './components';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import type { UpdateCheckResult } from '../../../shared/types';
 
 export default function AboutSection() {
   const [backupState, setBackupState] = useState<'idle' | 'saving' | 'done' | 'failed'>('idle');
   const [backupDetail, setBackupDetail] = useState('');
 
   const [autoBackups, setAutoBackups] = useState<{ count: number; newestDay: string | null } | null>(null);
+
+  // 'idle' before the first check; afterwards the answer main gave us.
+  const [updateState, setUpdateState] = useState<'idle' | 'checking'>('idle');
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
 
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [restoreState, setRestoreState] = useState<'idle' | 'restoring' | 'done' | 'failed'>('idle');
@@ -43,6 +48,17 @@ export default function AboutSection() {
     }
   }
 
+  async function handleCheckUpdates() {
+    setUpdateState('checking');
+    try {
+      setUpdateResult(await window.api.app.checkForUpdates());
+    } catch {
+      setUpdateResult({ status: 'error', message: "The update check couldn't be started." });
+    } finally {
+      setUpdateState('idle');
+    }
+  }
+
   async function handleRestore() {
     setRestoreConfirmOpen(false);
     setRestoreState('restoring');
@@ -63,6 +79,17 @@ export default function AboutSection() {
       setRestoreDetail('');
     }
   }
+
+  // Updates arrive on their own, so this button exists to *answer a question*
+  // ("am I current?") — which means every branch has to say something definite.
+  const updateDescription =
+    updateState === 'checking'   ? 'Asking the update service…'
+    : updateResult === null        ? `Studeo checks hourly on its own. Version ${appVersion}.`
+    : updateResult.status === 'up-to-date'  ? `You're on the newest version (${appVersion}).`
+    : updateResult.status === 'downloading' ? 'A newer version is downloading — you\'ll be asked to restart when it\'s ready.'
+    : updateResult.status === 'downloaded'  ? `An update${updateResult.version ? ` (${updateResult.version})` : ''} is ready — restart Studeo to finish installing it.`
+    : updateResult.status === 'unsupported' ? 'Updates only run in an installed build, not while developing.'
+    : `Couldn't check — ${updateResult.message}`;
 
   const backupDescription =
     backupState === 'done'   ? `Saved to ${backupDetail}`
@@ -96,6 +123,15 @@ export default function AboutSection() {
           label={`Studeo ${appVersion}`}
           description="Local-first — everything you enter stays in a database on this device."
         />
+        <SettingsRow
+          icon={<RefreshCw size={17} />}
+          label="Updates"
+          description={updateDescription}
+        >
+          <CardButton onClick={handleCheckUpdates} disabled={updateState === 'checking'}>
+            {updateState === 'checking' ? 'Checking…' : 'Check now'}
+          </CardButton>
+        </SettingsRow>
         <SettingsRow
           icon={<FolderOpen size={17} />}
           label="Your data"

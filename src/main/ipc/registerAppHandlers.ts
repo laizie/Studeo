@@ -9,6 +9,7 @@ import { getLoginItemState, setOpenAtLogin } from '../loginItem';
 import { getDb, getDbPath, closeDb, snapshotInto, validateBackupFile } from '../db/connection';
 import { getAssetsRoot } from '../media';
 import { getAllSettings, setSetting } from '../settings';
+import { checkForUpdatesNow } from '../updater';
 
 // The allowlist itself lives in shared/settingsKeys.ts so main and the renderer read the
 // same list instead of two hand-synced copies. A Set for the O(1) membership check here.
@@ -21,6 +22,11 @@ export function registerAppHandlers(): void {
   ipcMain.handle(IPC.APP.REVEAL_DATA, () => {
     shell.showItemInFolder(getDbPath());
   });
+
+  // Updates install themselves in the background, which is quiet but unverifiable:
+  // there's no way to tell "already up to date" from "the updater is broken". This
+  // is the on-demand answer.
+  ipcMain.handle(IPC.APP.CHECK_UPDATES, () => checkForUpdatesNow());
 
   // Preferences persistence. GET is synchronous (ipcMain.on + event.returnValue) so the
   // preload can read it before the renderer paints — e.g. the theme applies with no flash.
