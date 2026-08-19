@@ -23,6 +23,7 @@ import CourseDialog from '../courses/CourseDialog';
 import AddAssignmentDialog from '../courses/AddAssignmentDialog';
 import AddTaskDialog from '../tasks/AddTaskDialog';
 import SemesterTimelineStrip from './SemesterTimelineStrip';
+import FocusListPanel from '../study/FocusListPanel';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -630,8 +631,18 @@ export default function DashboardPage() {
                with the strip again. */}
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_240px] gap-x-8 gap-y-8">
 
-            {/* Left: overdue + due this week */}
+            {/* Left: today's focus + overdue + due this week */}
             <div className="min-w-0 space-y-8">
+
+              {/* The same panel the Study page shows, on the screen you land on:
+                  what you decided to work on today belongs above what's merely
+                  due. Same store, so ticking an item off in either place shows
+                  in both. The title is off because SectionLabel already names it
+                  in this page's header style. */}
+              <div>
+                <SectionLabel title="Today's focus" />
+                <FocusListPanel showTitle={false} />
+              </div>
 
               {overdue.length > 0 && (
                 <div>

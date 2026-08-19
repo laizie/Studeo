@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, Plus, X, BookOpen, ListTodo, CheckCircle2, Circle, Timer, Music2, Maximize2, Activity } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Timer, Music2, Maximize2, Activity } from 'lucide-react';
 import {
   useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
   PHASE_LABELS, PHASE_COLORS, formatClock,
   type Phase,
 } from '../../store/useTimerStore';
-import { useStudyListStore } from '../../store/useStudyListStore';
-import { showUndoToast } from '../../store/useToastStore';
-import { useUpdateAssignment } from '../../lib/queries/useAssignments';
-import { useUpdateTask } from '../../lib/queries/useTasks';
-import StudyPickerDialog from './StudyPickerDialog';
+import FocusListPanel from './FocusListPanel';
 import AppleMusicStudyPanel from '../applemusic/AppleMusicStudyPanel';
 import SpotifyStudyPanel from '../spotify/SpotifyStudyPanel';
 import AutoNowPlaying from '../music/AutoNowPlaying';
@@ -17,7 +13,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import StudySessionsNotesCard from './StudySessionsNotesCard';
-import { contrastTextColor, courseInk, coursePillBg } from '../../lib/colors';
+import { contrastTextColor } from '../../lib/colors';
 import StudyHeatmap from './StudyHeatmap';
 import ProgressRing from './ProgressRing';
 import { useFocusStore } from '../../store/useFocusStore';
@@ -82,143 +78,6 @@ function segBtn(active: boolean): string {
     active
       ? 'bg-surface text-ink shadow-sm'
       : 'text-ink-soft hover:bg-surface-hi',
-  );
-}
-
-// ── Focus list panel ──────────────────────────────────────────────────────────
-
-function FocusListPanel() {
-  const { items, toggleDone, removeItem, clear } = useStudyListStore();
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const updateAssignment = useUpdateAssignment();
-  const updateTask       = useUpdateTask();
-
-  function handleToggle(id: string, type: 'assignment' | 'task', currentlyDone: boolean, name: string) {
-    toggleDone(id);
-    const status = currentlyDone ? 'not_started' : 'completed';
-    const mutation = type === 'assignment' ? updateAssignment : updateTask;
-    mutation.mutate(
-      { id, input: { status } },
-      {
-        onSuccess: () => {
-          if (currentlyDone) return; // unchecking is its own undo
-          showUndoToast(`Marked “${name}” done`, () => {
-            toggleDone(id);
-            mutation.mutate({ id, input: { status: 'not_started' } });
-          });
-        },
-      },
-    );
-  }
-
-  const doneCount = items.filter(i => i.done).length;
-
-  return (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-ink-soft">
-            Today's Focus List
-          </h2>
-          {items.length > 0 && (
-            <p className="text-xs text-muted mt-0.5">
-              {doneCount} of {items.length} done
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {items.length > 0 && (
-            <button
-              onClick={clear}
-              className="text-xs text-muted hover:text-ink transition-colors"
-            >
-              Clear all
-            </button>
-          )}
-          <button
-            onClick={() => setPickerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent text-accent-ink rounded-lg hover:bg-accent-deep active:scale-[0.98] transition-colors"
-          >
-            <Plus size={14} />
-            Add
-          </button>
-        </div>
-      </div>
-
-      {items.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="w-full py-8 text-center border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-stone-300 dark:hover:border-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus transition-colors"
-        >
-          <p className="text-sm text-muted">
-            No assignments or tasks added yet.
-          </p>
-          <p className="text-xs text-muted mt-1">
-            Click to pick what you're working on today
-          </p>
-        </button>
-      ) : (
-        <div className="bg-inset border border-line rounded-xl overflow-hidden divide-y divide-line">
-          {items.map(item => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 px-4 py-3 group hover:bg-surface-hi transition-colors"
-            >
-              <button
-                onClick={() => handleToggle(item.id, item.type, item.done, item.name)}
-                className="shrink-0 hover:scale-110 transition-transform"
-                title={item.done ? 'Mark incomplete' : 'Mark complete'}
-              >
-                {item.done
-                  ? <CheckCircle2 size={17} className="text-green-500" />
-                  : <Circle size={17} className="text-muted" />
-                }
-              </button>
-
-              <span className={cn(
-                'flex-1 text-sm truncate',
-                item.done
-                  ? 'line-through text-muted'
-                  : 'text-ink'
-              )}>
-                {item.name}
-              </span>
-
-              <span className="shrink-0 hidden sm:flex items-center gap-1 text-xs text-muted">
-                {item.type === 'assignment'
-                  ? <BookOpen size={11} />
-                  : <ListTodo size={11} />
-                }
-              </span>
-
-              {item.courseName && (
-                <span
-                  className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs font-medium"
-                  style={{
-                    backgroundColor: coursePillBg(item.courseColor ?? ''),
-                    color: courseInk(item.courseColor ?? ''),
-                  }}
-                >
-                  {item.courseName}
-                </span>
-              )}
-
-              <button
-                onClick={() => removeItem(item.id)}
-                aria-label={`Remove ${item.name} from focus list`}
-                title="Remove from focus list"
-                className="shrink-0 p-1 rounded text-muted hover:text-ink-soft opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus transition"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <StudyPickerDialog isOpen={pickerOpen} onClose={() => setPickerOpen(false)} />
-    </>
   );
 }
 
