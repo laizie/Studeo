@@ -9,6 +9,10 @@ import { showToast } from '../../store/useToastStore';
 interface Props {
   courseId: string;
   meeting?: ClassMeeting;
+  /** The course's building, used as the placeholder: it's the room this time
+   *  falls back to when the field is left blank, so it should be visible while
+   *  deciding whether to fill one in. */
+  courseBuilding?: string | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -24,12 +28,16 @@ const DAYS = [
 ];
 
 
-export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose }: Props) {
+export default function ClassMeetingDialog({ courseId, meeting, courseBuilding, isOpen, onClose }: Props) {
   const isEditing = !!meeting;
 
   const [dayOfWeek, setDayOfWeek] = useState(1); // Monday
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime]     = useState('10:00');
+  // Per-meeting room. A course rarely meets in one place all week — the Tuesday
+  // lab isn't the Monday lecture hall — so the place belongs to the time, not to
+  // the course. Blank falls back to the course's building.
+  const [location, setLocation]   = useState('');
 
   const createMeeting = useCreateClassMeeting();
   const updateMeeting = useUpdateClassMeeting();
@@ -42,10 +50,12 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
       setDayOfWeek(meeting.day_of_week);
       setStartTime(meeting.start_time);
       setEndTime(meeting.end_time);
+      setLocation(meeting.location ?? '');
     } else {
       setDayOfWeek(1);
       setStartTime('09:00');
       setEndTime('10:00');
+      setLocation('');
     }
     setTimeout(() => dayRef.current?.focus(), 50);
   }, [isOpen, meeting]);
@@ -55,14 +65,19 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
     if (!startTime || !endTime) return;
 
     try {
+      const room = location.trim();
       if (isEditing) {
         await updateMeeting.mutateAsync({
           id: meeting.id,
-          input: { dayOfWeek, startTime, endTime },
+          // location is null, not undefined, when the field is empty: the repo reads an
+          // absent key as "leave this alone", so clearing a room has to say so explicitly.
+          input: { dayOfWeek, startTime, endTime, location: room || null },
         });
         showToast('Class time updated');
       } else {
-        await createMeeting.mutateAsync({ courseId, dayOfWeek, startTime, endTime });
+        await createMeeting.mutateAsync({
+          courseId, dayOfWeek, startTime, endTime, location: room || undefined,
+        });
         showToast('Class time added');
       }
       onClose();
@@ -124,6 +139,25 @@ export default function ClassMeetingDialog({ courseId, meeting, isOpen, onClose 
                 className={INPUT_CLASS}
               />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor={`${uid}-location`} className="block text-sm font-medium text-ink-soft mb-1">
+              Room <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <input
+              id={`${uid}-location`}
+              type="text"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder={courseBuilding || 'e.g. Science Hall 204'}
+              className={INPUT_CLASS}
+            />
+            <p className="mt-1 text-xs text-muted">
+              {courseBuilding
+                ? `Leave empty for ${courseBuilding}.`
+                : 'Set this when a day meets somewhere other than the usual room.'}
+            </p>
           </div>
 
           {isError && (

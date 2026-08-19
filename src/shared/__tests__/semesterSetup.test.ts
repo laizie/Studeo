@@ -61,4 +61,24 @@ describe('expandWeekdayMeetings', () => {
   it('returns an empty array when no days are selected', () => {
     expect(expandWeekdayMeetings('c', [], '09:00', '10:00')).toEqual([]);
   });
+
+  it('puts the room on every day of the selection', () => {
+    const out = expandWeekdayMeetings('c', [1, 3], '09:00', '09:50', 'Hall 204');
+    expect(out.map(m => m.location)).toEqual(['Hall 204', 'Hall 204']);
+  });
+
+  it('leaves the location off when no room is given, so the course building applies', () => {
+    const out = expandWeekdayMeetings('c', [1], '09:00', '09:50');
+    expect(out[0].location).toBeUndefined();
+  });
+
+  it('treats a whitespace-only room as no room', () => {
+    const out = expandWeekdayMeetings('c', [1], '09:00', '09:50', '   ');
+    expect(out[0].location).toBeUndefined();
+  });
+
+  it('trims a room before storing it', () => {
+    const out = expandWeekdayMeetings('c', [1], '09:00', '09:50', '  Lab B  ');
+    expect(out[0].location).toBe('Lab B');
+  });
 });

@@ -33,7 +33,8 @@ export default function MeetingsStep({ termId, onBack, onNext }: Props) {
         <h2 className="text-lg font-semibold text-ink">Set class times</h2>
         <p className="mt-1 text-sm text-muted">
           Pick the weekdays a course meets and its hours — one entry covers the
-          whole recurring pattern (e.g. Mon/Wed/Fri 9–9:50). Optional; you can add
+          whole recurring pattern (e.g. Mon/Wed/Fri 9–9:50). Add a second entry for
+          a day that meets elsewhere, like a Thursday lab. Optional; you can add
           these later.
         </p>
       </div>
@@ -72,6 +73,9 @@ function CourseMeetingsEditor({ course }: { course: Course }) {
   const [days, setDays] = useState<number[]>([]);
   const [start, setStart] = useState('09:00');
   const [end, setEnd] = useState('09:50');
+  // Per-entry room: "MWF 9–9:50 in Hall 204" and "Thu 2–4 in the lab" are two
+  // entries, each carrying its own place. Blank falls back to the course building.
+  const [room, setRoom] = useState('');
 
   const rangeInvalid = !timeRangeValid(start, end);
   const canAdd = days.length > 0 && !rangeInvalid && !createMeeting.isPending;
@@ -84,10 +88,11 @@ function CourseMeetingsEditor({ course }: { course: Course }) {
     if (!canAdd) return;
     // One selection → one meeting per weekday (MWF 9–10 becomes three rows).
     try {
-      for (const input of expandWeekdayMeetings(course.id, days, start, end)) {
+      for (const input of expandWeekdayMeetings(course.id, days, start, end, room)) {
         await createMeeting.mutateAsync(input);
       }
       setDays([]);
+      setRoom('');
     } catch {
       // mutateAsync rethrows on failure. Skipping the rest is the behaviour we want —
       // the surface stays open holding what the user typed — but the rejection still
@@ -112,6 +117,7 @@ function CourseMeetingsEditor({ course }: { course: Course }) {
               className="inline-flex items-center gap-1.5 rounded-full bg-surface-hi px-2.5 py-1 text-xs text-ink-soft"
             >
               {DAY_ABBR[m.day_of_week]} {formatClock12(m.start_time)}–{formatClock12(m.end_time)}
+              {m.location && <span className="text-muted">· {m.location}</span>}
               <button
                 onClick={() => deleteMeeting.mutate(m.id)}
                 aria-label="Remove class time"
@@ -155,6 +161,16 @@ function CourseMeetingsEditor({ course }: { course: Course }) {
         <label>
           <span className="mb-1 block text-xs text-muted">End</span>
           <input type="time" value={end} onChange={e => setEnd(e.target.value)} className={`${WIZARD_INPUT} w-auto`} />
+        </label>
+        <label className="min-w-[9rem] flex-1">
+          <span className="mb-1 block text-xs text-muted">Room (optional)</span>
+          <input
+            type="text"
+            value={room}
+            onChange={e => setRoom(e.target.value)}
+            placeholder={course.building || 'e.g. Hall 204'}
+            className={WIZARD_INPUT}
+          />
         </label>
 
         <button

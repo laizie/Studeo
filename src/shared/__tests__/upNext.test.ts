@@ -83,6 +83,25 @@ describe('findUpcomingClasses / findUpNextClass', () => {
     expect(up?.date).toBe('2026-09-16');
   });
 
+  it('falls back to the course building when a meeting has no room of its own', () => {
+    const m1 = meeting({ id: 'm1', day_of_week: DOW, start_time: '09:00', location: null });
+    const up = findUpNextClass([m1], noExceptions, [course({ building: 'Science Hall' })], REF);
+    expect(up?.location).toBe('Science Hall');
+  });
+
+  it("prefers the meeting's own room over the course building", () => {
+    // The point of the whole feature: a course with a usual building can still
+    // have one day that meets in a lab.
+    const m1 = meeting({ id: 'm1', day_of_week: DOW, start_time: '09:00', location: 'Lab B' });
+    const up = findUpNextClass([m1], noExceptions, [course({ building: 'Science Hall' })], REF);
+    expect(up?.location).toBe('Lab B');
+  });
+
+  it('reports no location when neither the meeting nor the course names one', () => {
+    const m1 = meeting({ id: 'm1', day_of_week: DOW, start_time: '09:00', location: null });
+    expect(findUpNextClass([m1], noExceptions, [course()], REF)?.location).toBeNull();
+  });
+
   it('uses a moved occurrence’s new time and location', () => {
     const m1 = meeting({ id: 'm1', day_of_week: DOW, start_time: '09:00', end_time: '10:15', location: 'Room 1' });
     const ex = buildExceptionIndex([

@@ -406,8 +406,19 @@ export default function CourseDetailPage() {
                   <span className="w-8 text-xs font-semibold text-muted shrink-0">
                     {DAY_NAMES[m.day_of_week]}
                   </span>
-                  <span className="flex-1 text-sm text-ink-soft">
+                  {/* Room under the time rather than beside it: this column is 280px
+                      and a room name ("Engineering Annex 112B") won't share a line
+                      with a time range without truncating one of them. Only shown
+                      when this day has its own room — the course's building is
+                      already in the header, and repeating it on every row would
+                      bury the one day that differs. */}
+                  <span className="flex-1 min-w-0 text-sm text-ink-soft">
                     {formatTime(m.start_time)} – {formatTime(m.end_time)}
+                    {m.location && (
+                      <span className="block truncate text-xs text-muted" title={m.location}>
+                        {m.location}
+                      </span>
+                    )}
                   </span>
                   <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                     <button
@@ -479,6 +490,7 @@ export default function CourseDetailPage() {
       />
       <ClassMeetingDialog
         courseId={course.id}
+        courseBuilding={course.building}
         meeting={editingMeeting}
         isOpen={meetingDialogOpen}
         onClose={() => setMeetingDialogOpen(false)}

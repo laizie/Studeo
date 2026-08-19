@@ -36,13 +36,26 @@ export function timeRangeValid(startTime: string, endTime: string): boolean {
  * Expand a "same time on several weekdays" selection (the common MWF 9–10
  * pattern) into one CreateClassMeetingInput per day. Days are de-duplicated and
  * sorted Sunday-first so the created meetings read in weekday order.
+ *
+ * `location` applies to every day in the selection, which is what "MWF 9–10 in
+ * Hall 204" means. A lab that meets somewhere else is a second selection with
+ * its own room — that's exactly how a differing day gets a differing place.
+ * Blank means "wherever the course normally is" (the course's building).
  */
 export function expandWeekdayMeetings(
   courseId: string,
   days: number[],
   startTime: string,
   endTime: string,
+  location?: string,
 ): CreateClassMeetingInput[] {
   const unique = Array.from(new Set(days)).sort((a, b) => a - b);
-  return unique.map(dayOfWeek => ({ courseId, dayOfWeek, startTime, endTime }));
+  const room = location?.trim();
+  return unique.map(dayOfWeek => ({
+    courseId,
+    dayOfWeek,
+    startTime,
+    endTime,
+    ...(room ? { location: room } : {}),
+  }));
 }

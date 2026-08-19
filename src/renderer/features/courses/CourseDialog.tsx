@@ -242,6 +242,10 @@ export default function CourseDialog({ isOpen, onClose, course }: Props) {
               placeholder="e.g. Engineering Hall 204"
               className={INPUT_CLASS}
             />
+            <p className="mt-1 text-xs text-muted">
+              Where this course usually meets. A class time that meets somewhere
+              else can carry its own room.
+            </p>
           </div>
 
           {/* Semester (optional — only shown when terms exist) */}

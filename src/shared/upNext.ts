@@ -85,7 +85,11 @@ export function findUpcomingClasses(
         date: dateStr,
         startTime: occ.startTime,
         endTime: occ.endTime,
-        location: occ.location,
+        // The course's building is the default place; a meeting's own location
+        // overrides it for the days that meet elsewhere (a lab, a lecture hall).
+        // The reminder notifications already resolve it this way — the menu bar
+        // shouldn't be the one surface that says nothing about where to go.
+        location: occ.location ?? courseById.get(m.course_id)?.building ?? null,
         minutesUntil: Math.round((start.getTime() - now.getTime()) / 60_000),
         inProgress: start.getTime() <= now.getTime() && now.getTime() < end.getTime(),
       });

@@ -289,6 +289,8 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
 }
 
 function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course | undefined }) {
+  const where = meeting.location ?? course?.building ?? null;
+
   const row = (
     <>
       {course ? (
@@ -301,8 +303,19 @@ function ClassItem({ meeting, course }: { meeting: ClassMeeting; course: Course 
       ) : (
         <span className="shrink-0 text-xs text-muted font-medium">?</span>
       )}
-      <span className="text-sm text-ink-soft flex-1 truncate">
-        {course?.name ?? 'Unknown'}
+      {/* Where, under what — a course whose Tuesday lab isn't in its usual building
+          makes "Today's classes" the wrong place to omit the room. The meeting's own
+          location wins; the course building is the fallback, same resolution the
+          class reminders use. */}
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm text-ink-soft truncate">
+          {course?.name ?? 'Unknown'}
+        </span>
+        {where && (
+          <span className="block text-xs text-muted truncate" title={where}>
+            {where}
+          </span>
+        )}
       </span>
       <span className="text-xs text-muted shrink-0">{formatTime(meeting.start_time)}</span>
     </>
