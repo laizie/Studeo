@@ -70,7 +70,7 @@ export default function TaskRow({ task, onEdit }: Props) {
     if (inFocusList) {
       removeFromFocus(task.id);
     } else {
-      addToFocus({ id: task.id, type: 'task', name: task.name });
+      addToFocus({ id: task.id, type: 'task' });
     }
   }
 

@@ -4,6 +4,7 @@ import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
 } from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { useFocusList } from '../../lib/useFocusList';
 import { useParkingLotStore } from '../../store/useParkingLotStore';
 import { useAmbienceStore } from '../../store/useAmbienceStore';
 import { useFocusStore } from '../../store/useFocusStore';
@@ -542,12 +543,14 @@ function ParkingDock({ inputRef }: { inputRef: React.RefObject<HTMLInputElement 
 // You can check items off, drop ones you're done thinking about, and add more —
 // all without leaving the room (the picker opens above the overlay).
 function FocusList({ onAdd }: { onAdd: () => void }) {
-  const { items, toggleDone, removeItem } = useStudyListStore();
+  const { removeItem } = useStudyListStore();
+  const items = useFocusList();
   const updateAssignment = useUpdateAssignment();
   const updateTask       = useUpdateTask();
 
   function handleToggle(id: string, type: 'assignment' | 'task', currentlyDone: boolean) {
-    toggleDone(id);
+    // No local flag to flip: the checkbox reads the row's real status, so the
+    // mutation landing is what re-renders it (here and everywhere else).
     const status = currentlyDone ? 'not_started' : 'completed';
     if (type === 'assignment') updateAssignment.mutate({ id, input: { status } });
     else                       updateTask.mutate({ id, input: { status } });

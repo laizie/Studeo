@@ -172,13 +172,7 @@ function AssignmentItem({ assignment, course, onEdit, selectable, selected, onTo
     if (inFocusList) {
       removeFromFocus(assignment.id);
     } else {
-      addToFocus({
-        id: assignment.id,
-        type: 'assignment',
-        name: assignment.name,
-        courseName: course?.abbreviation || course?.name,
-        courseColor: course?.color,
-      });
+      addToFocus({ id: assignment.id, type: 'assignment' });
     }
   }
 
@@ -251,7 +245,7 @@ function TaskItem({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
     if (inFocusList) {
       removeFromFocus(task.id);
     } else {
-      addToFocus({ id: task.id, type: 'task', name: task.name });
+      addToFocus({ id: task.id, type: 'task' });
     }
   }
 

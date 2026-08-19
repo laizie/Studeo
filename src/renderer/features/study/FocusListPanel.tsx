@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, X, BookOpen, ListTodo, CheckCircle2, Circle } from 'lucide-react';
 import { useStudyListStore } from '../../store/useStudyListStore';
+import { useFocusList } from '../../lib/useFocusList';
 import { showUndoToast } from '../../store/useToastStore';
 import { useUpdateAssignment } from '../../lib/queries/useAssignments';
 import { useUpdateTask } from '../../lib/queries/useTasks';
@@ -10,9 +11,12 @@ import { cn } from '../../lib/utils';
 
 // Today's Focus List: the handful of assignments and tasks you've decided to work on
 // right now. It lives on the Study page and on the Dashboard, so it's one component
-// rather than two drifting copies. The list itself is ephemeral UI state in
-// useStudyListStore (Zustand) — ticking an item off here also writes the real status
-// through the normal mutation, so the rest of the app agrees.
+// rather than two drifting copies.
+//
+// The store holds only which items are on the list; their names, courses and done
+// state are resolved from the live data by useFocusList. So ticking a box here
+// writes the real status through the normal mutation and the row re-renders from
+// that — and an item ticked off anywhere else in the app arrives ticked here.
 
 interface Props {
   /** Render the panel's own "Today's Focus List" heading. Off on the Dashboard,
@@ -22,13 +26,13 @@ interface Props {
 }
 
 export default function FocusListPanel({ showTitle = true }: Props) {
-  const { items, toggleDone, removeItem, clear } = useStudyListStore();
+  const { removeItem, clear } = useStudyListStore();
+  const items = useFocusList();
   const [pickerOpen, setPickerOpen] = useState(false);
   const updateAssignment = useUpdateAssignment();
   const updateTask       = useUpdateTask();
 
   function handleToggle(id: string, type: 'assignment' | 'task', currentlyDone: boolean, name: string) {
-    toggleDone(id);
     const status = currentlyDone ? 'not_started' : 'completed';
     const mutation = type === 'assignment' ? updateAssignment : updateTask;
     mutation.mutate(
@@ -36,10 +40,10 @@ export default function FocusListPanel({ showTitle = true }: Props) {
       {
         onSuccess: () => {
           if (currentlyDone) return; // unchecking is its own undo
-          showUndoToast(`Marked “${name}” done`, () => {
-            toggleDone(id);
-            mutation.mutate({ id, input: { status: 'not_started' } });
-          });
+          // Undo only has to put the status back: the checkbox reads the row.
+          showUndoToast(`Marked “${name}” done`, () =>
+            mutation.mutate({ id, input: { status: 'not_started' } }),
+          );
         },
       },
     );

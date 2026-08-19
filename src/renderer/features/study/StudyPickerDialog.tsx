@@ -64,14 +64,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
     if (listIds.has(a.id)) {
       removeItem(a.id);
     } else {
-      const course = courseMap.get(a.course_id);
-      addItem({
-        id: a.id,
-        type: 'assignment',
-        name: a.name,
-        courseName:  course?.abbreviation || course?.name,
-        courseColor: course?.color,
-      });
+      addItem({ id: a.id, type: 'assignment' });
     }
   }
 
@@ -79,7 +72,7 @@ export default function StudyPickerDialog({ isOpen, onClose }: Props) {
     if (listIds.has(t.id)) {
       removeItem(t.id);
     } else {
-      addItem({ id: t.id, type: 'task', name: t.name });
+      addItem({ id: t.id, type: 'task' });
     }
   }
 

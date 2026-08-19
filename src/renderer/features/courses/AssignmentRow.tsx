@@ -17,8 +17,8 @@ import { cn } from '../../lib/utils';
 interface Props {
   assignment: Assignment;
   onEdit: (assignment: Assignment) => void;
-  /** The course this assignment belongs to. Pass it wherever it's known — it's what names
-   *  the course on the focus-list entry, not just what draws the badge. */
+  /** The course this assignment belongs to. Pass it wherever it's known: it draws the
+   *  badge in cross-course views and names the course in the plan-study dialog. */
   course?: Course;
   /** Draw the colored course badge in the row. On a course page every row is the same
    *  course, so the badge would only repeat the heading. */
@@ -92,13 +92,7 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
     if (inFocusList) {
       removeFromFocus(assignment.id);
     } else {
-      addToFocus({
-        id: assignment.id,
-        type: 'assignment',
-        name: assignment.name,
-        courseName: course?.abbreviation || course?.name,
-        courseColor: course?.color,
-      });
+      addToFocus({ id: assignment.id, type: 'assignment' });
     }
   }
 
