@@ -8,6 +8,7 @@ import Toaster from '../components/Toaster';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useTimerDriver } from '../lib/useTimerDriver';
 import { useMiniTimerBridge } from '../lib/useMiniTimer';
+import { useAmbienceEngine } from '../features/study/ambience/useAmbienceEngine';
 import { useReminderNavigation } from '../lib/useReminderNavigation';
 import { useToastStore, showToast } from '../store/useToastStore';
 
@@ -22,6 +23,10 @@ export default function Layout() {
   // This window owns the timer; feed the floating pop-out from it (and run the
   // pop-out's play/pause/skip against the same store). No-op while it's closed.
   useMiniTimerBridge();
+
+  // Ambient sound follows the store app-wide, not the screen that started it — so a
+  // texture picked on the Study page keeps playing into Focus Mode and back out.
+  useAmbienceEngine();
 
   // Route the app when the user clicks a desktop reminder (main → renderer push).
   useReminderNavigation();

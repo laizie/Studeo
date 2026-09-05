@@ -10,6 +10,7 @@ import AppleMusicStudyPanel from '../applemusic/AppleMusicStudyPanel';
 import SpotifyStudyPanel from '../spotify/SpotifyStudyPanel';
 import AutoNowPlaying from '../music/AutoNowPlaying';
 import { useMiniTimerWindow } from '../../lib/useMiniTimer';
+import AmbienceControls from './AmbienceControls';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -363,8 +364,13 @@ export default function StudyPage() {
             )}
           </div>
 
-          {/* ── Music card ────────────────────────────────────────────────────── */}
+          {/* ── Sound card ───────────────────────────────────────────────────────
+              Same order as Focus Mode's music rail: ambience on top, because it always
+              works (it's synthesized locally, no service to connect), then whatever
+              music service is set up below it. */}
           <div className="bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:flex-1 flex flex-col">
+            <AmbienceControls tone="surface" />
+            <div className="my-5 border-t border-line" />
             <MusicStudyColumn />
           </div>
 

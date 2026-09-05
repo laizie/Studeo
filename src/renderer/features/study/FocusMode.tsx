@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, Volume2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, PictureInPicture2 } from 'lucide-react';
 import {
   useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
 } from '../../store/useTimerStore';
@@ -15,39 +15,19 @@ import { useUpdateStudySession, useStudySessions } from '../../lib/queries/useSt
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { focusMinutesSince, startOfDay } from '../../../shared/studyStats';
 import { buildParkingLotNote } from '../../../shared/parkingLot';
-import { AMBIENCE_SOUNDS } from '../../../shared/ambience';
-import { ambienceEngine } from './ambience/ambienceEngine';
 import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
 import SpotifyUpNext from '../spotify/SpotifyUpNext';
 import AutoNowPlaying from '../music/AutoNowPlaying';
 import ProgressRing from './ProgressRing';
 import StudyPickerDialog from './StudyPickerDialog';
+import AmbienceControls from './AmbienceControls';
+import { useMiniTimerWindow } from '../../lib/useMiniTimer';
 import { contrastTextColor } from '../../lib/colors';
 import { cn } from '../../lib/utils';
 import { useFocusTrap } from '../../lib/useFocusTrap';
 import { showToast } from '../../store/useToastStore';
-
-// ── The room ────────────────────────────────────────────────────────────────────
-// Focus Mode dims the lights regardless of the app theme: a fixed warm-dark palette
-// so the experience is consistent and low-stim. Named here, not pulled from theme
-// tokens (those flip bright in the light theme and would wash out on the dark room).
-const ROOM = {
-  ink:   '#f0e0cc', // hero text — warm cream
-  soft:  '#d8c5ab', // intention echo, secondary
-  muted: '#a08a6e', // meta, hints
-  line:  '#3a2c1e', // hairlines, input wells
-  well:  '#160f0a', // input background
-  card:  '#1f1710', // reflection card
-  done:  '#5fa37a', // success check — the room's on-dark green
-} as const;
-
-// The lamplight. Amber while you work (the brand "Lamplight Amber"); it cools to a
-// calm green on breaks, so the room itself tells you which phase you're in.
-const GLOW: Record<Phase, string> = {
-  focus:       '#e2a53b',
-  short_break: '#5fa37a',
-  long_break:  '#4f9270',
-};
+// The room's fixed palette — shared with AmbienceControls, which renders in here too.
+import { ROOM, GLOW } from './roomPalette';
 
 // A tiny, opinionated set of presets for the in-room method switch — the same three
 // techniques as the Study page minus Custom, which belongs to the fuller settings there.
@@ -625,60 +605,6 @@ function FocusList({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-// ── Ambience controls ──────────────────────────────────────────────────────────────
-// Bundled ambient sound, synthesized on the fly (no files, no network, no Spotify).
-// Pick a texture to start it; pick it again to stop. Volume persists; the selection
-// resets each visit so the room opens quiet. The audio graph lives in ambienceEngine.
-function AmbienceControls() {
-  const activeId  = useAmbienceStore(s => s.activeId);
-  const volume    = useAmbienceStore(s => s.volume);
-  const toggle    = useAmbienceStore(s => s.toggle);
-  const setVolume = useAmbienceStore(s => s.setVolume);
-
-  return (
-    <div>
-      <p className="mb-2 px-3 text-caption font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
-        Ambience
-      </p>
-      <div className="flex flex-wrap gap-1.5 px-1">
-        {AMBIENCE_SOUNDS.map(s => {
-          const active = activeId === s.id;
-          return (
-            <button
-              key={s.id}
-              onClick={() => toggle(s.id)}
-              title={s.description}
-              aria-pressed={active}
-              className="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-              style={active
-                ? { backgroundColor: GLOW.focus, borderColor: GLOW.focus, color: '#1e1208' }
-                : { borderColor: ROOM.line, color: ROOM.muted }}
-            >
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
-      {activeId && (
-        <div className="mt-3 flex items-center gap-2 px-2">
-          <Volume2 size={14} className="shrink-0" style={{ color: ROOM.muted }} />
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={e => setVolume(parseFloat(e.target.value))}
-            aria-label="Ambience volume"
-            className="h-1 flex-1 cursor-pointer"
-            style={{ accentColor: GLOW.focus }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Music sidebar ─────────────────────────────────────────────────────────────────
 // Ambience sits on top (always available — no service needed); below it, the polished
 // now-playing card and, for the full Spotify/Apple modes, the upcoming queue ("Up next")
@@ -692,7 +618,7 @@ function MusicSidebar() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <AmbienceControls />
+      <AmbienceControls tone="room" />
       <div className="my-4 border-t" style={{ borderColor: ROOM.line }} />
       <p className="mb-2 px-3 text-caption font-medium uppercase tracking-wider" style={{ color: ROOM.muted }}>
         Music
@@ -749,13 +675,24 @@ export default function FocusMode() {
   // keyboard focus walks "out the back" into the hidden page underneath.
   useFocusTrap(isOpen, overlayRef);
 
-  const ambienceActive = useAmbienceStore(s => s.activeId);
-  const ambienceVolume = useAmbienceStore(s => s.volume);
-  const stopAmbience   = useAmbienceStore(s => s.stop);
+  const stopAmbience = useAmbienceStore(s => s.stop);
+
+  // Leave the room as you found it. Ambience is no longer the room's own feature — the
+  // Study page starts it too — so silencing it on the way out is only right for a sound
+  // this visit started. Rain you had going before you came in keeps going after you
+  // leave; a texture you picked in here still stops behind you, as it always did.
+  const ambienceWasPlayingOnOpen = useRef(false);
+  useEffect(() => {
+    if (isOpen) ambienceWasPlayingOnOpen.current = useAmbienceStore.getState().activeId !== null;
+  }, [isOpen]);
   // True OS fullscreen, driven from the main process (BrowserWindow.setFullScreen) so
   // the window chrome / title bar is genuinely gone — like the Apple Music or Spotify
   // full-screen player. The HTML Fullscreen API alone can leave the title bar visible.
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // The floating pop-out — the same window the Study page's button opens, since both
+  // are views onto the one timer.
+  const miniTimer = useMiniTimerWindow();
 
   const totalSecs =
     phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
@@ -781,15 +718,6 @@ export default function FocusMode() {
     window.api.app.setFullscreen(!isFullscreen);
   }
 
-  // Ambience: drive the Web Audio engine from the store. Volume first so the engine
-  // knows the target level before a play ramps to it. Selection starts null, so
-  // nothing plays until the user picks a texture.
-  useEffect(() => { ambienceEngine.setVolume(ambienceVolume); }, [ambienceVolume]);
-  useEffect(() => {
-    if (ambienceActive) ambienceEngine.play(ambienceActive);
-    else ambienceEngine.stop();
-  }, [ambienceActive]);
-
   // Leaving the room also drops out of OS fullscreen, so the app returns windowed.
   // As the sitting ends, dump any parked distractions into a loose note. We read the
   // store fresh via getState() so the Esc-key path (whose closure can be a render or
@@ -814,7 +742,7 @@ export default function FocusMode() {
       });
       clear();
     }
-    stopAmbience(); // silence ambience and reset the selection for next time
+    if (!ambienceWasPlayingOnOpen.current) stopAmbience();
     if (isFullscreen) window.api.app.setFullscreen(false);
     close();
   }, [createNote, isFullscreen, stopAmbience, close]);
@@ -861,6 +789,20 @@ export default function FocusMode() {
     >
       {/* Window controls — quiet, top-right */}
       <div className="absolute right-5 top-5 z-10 flex items-center gap-1">
+        {/* The pill floats above fullscreen windows, so it stays visible over the room —
+            and, more to the point, over whatever app you switch to while it's running. */}
+        <button
+          onClick={miniTimer.toggle}
+          title={miniTimer.isOpen ? 'Close the floating timer' : 'Float the timer above your other windows'}
+          aria-label={miniTimer.isOpen ? 'Close the floating timer' : 'Pop the timer out'}
+          aria-pressed={miniTimer.isOpen}
+          className="rounded-lg p-2 transition-colors hover:bg-white/[0.06]"
+          style={{ color: miniTimer.isOpen ? color : ROOM.muted }}
+          onMouseEnter={e => (e.currentTarget.style.color = miniTimer.isOpen ? color : ROOM.ink)}
+          onMouseLeave={e => (e.currentTarget.style.color = miniTimer.isOpen ? color : ROOM.muted)}
+        >
+          <PictureInPicture2 size={16} />
+        </button>
         <button
           onClick={toggleFullscreen}
           title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
