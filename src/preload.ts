@@ -38,6 +38,8 @@ import type {
   SaveMediaInput,
   ReminderConfig,
   ReminderNavTarget,
+  MiniTimerState,
+  MiniTimerCommand,
 } from './shared/types';
 
 const api: WindowApi = {
@@ -172,6 +174,40 @@ const api: WindowApi = {
       ipcRenderer.on('app:fullscreen-changed', listener);
       return () => ipcRenderer.removeListener('app:fullscreen-changed', listener);
     },
+  },
+
+  // The floating Pomodoro pop-out. Both windows load this same preload, so both halves
+  // of the relay are here; which half a window uses depends on which one it is (the
+  // main window publishes and listens for commands, the pop-out does the reverse).
+  // `send` rather than `invoke` for the two hot paths — neither side has anything to
+  // wait for, and the timer must never block on the relay.
+  miniTimer: {
+    open:    () => ipcRenderer.invoke(IPC.MINI_TIMER.OPEN),
+    close:   () => ipcRenderer.invoke(IPC.MINI_TIMER.CLOSE),
+    toggle:  () => ipcRenderer.invoke(IPC.MINI_TIMER.TOGGLE) as Promise<boolean>,
+    isOpen:  () => ipcRenderer.invoke(IPC.MINI_TIMER.IS_OPEN) as Promise<boolean>,
+    onOpenChanged: (cb: (isOpen: boolean) => void) => {
+      const listener = (_e: IpcRendererEvent, isOpen: boolean) => cb(isOpen);
+      ipcRenderer.on(IPC.MINI_TIMER.OPEN_CHANGED, listener);
+      return () => ipcRenderer.removeListener(IPC.MINI_TIMER.OPEN_CHANGED, listener);
+    },
+
+    publish: (state: MiniTimerState) => ipcRenderer.send(IPC.MINI_TIMER.PUBLISH, state),
+    onCommand: (cb: (command: MiniTimerCommand) => void) => {
+      const listener = (_e: IpcRendererEvent, command: MiniTimerCommand) => cb(command);
+      ipcRenderer.on(IPC.MINI_TIMER.COMMAND, listener);
+      return () => ipcRenderer.removeListener(IPC.MINI_TIMER.COMMAND, listener);
+    },
+
+    getState: () => ipcRenderer.invoke(IPC.MINI_TIMER.GET_STATE) as Promise<MiniTimerState | null>,
+    onState: (cb: (state: MiniTimerState) => void) => {
+      const listener = (_e: IpcRendererEvent, state: MiniTimerState) => cb(state);
+      ipcRenderer.on(IPC.MINI_TIMER.STATE, listener);
+      return () => ipcRenderer.removeListener(IPC.MINI_TIMER.STATE, listener);
+    },
+    command:   (command: MiniTimerCommand) => ipcRenderer.send(IPC.MINI_TIMER.COMMAND, command),
+    closeSelf: () => ipcRenderer.invoke(IPC.MINI_TIMER.CLOSE),
+    showMain:  () => ipcRenderer.invoke(IPC.MINI_TIMER.SHOW_MAIN),
   },
 
   feeds: {

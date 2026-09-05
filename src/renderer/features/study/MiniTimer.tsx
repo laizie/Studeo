@@ -1,0 +1,194 @@
+import { useEffect, useState } from 'react';
+import { Play, Pause, SkipForward, X } from 'lucide-react';
+import {
+  PHASE_LABELS, PHASE_COLORS, CYCLE_LENGTH,
+  formatClock, secondsLeft,
+  type MiniTimerState,
+} from '../../../shared/pomodoro';
+
+/**
+ * The floating Pomodoro pill — the whole contents of the pop-out window.
+ *
+ * Two rules govern this file:
+ *
+ * 1. It must NOT import useTimerStore. This renders in its own window, so importing
+ *    the store would create a second, independent timer here (and its startup recovery
+ *    would log a duplicate study session). Everything it knows arrives as a snapshot
+ *    over IPC; every button sends a command back to the window that owns the timer.
+ *
+ * 2. It doesn't follow the app's theme. This sits on top of the user's desktop, over a
+ *    wallpaper or someone else's white document, not inside Studeo's page — so it's a
+ *    dark glass chip in every theme, with the phase color as its only accent.
+ */
+
+// Dark glass, deliberately fixed (see rule 2 above).
+const CARD_BG     = 'rgba(26, 25, 23, 0.88)';
+const CARD_BORDER = 'rgba(255, 255, 255, 0.10)';
+const INK         = '#f6f4f0';
+const MUTED       = 'rgba(246, 244, 240, 0.55)';
+
+/** A ghost button on the pill: invisible until you want it. */
+function ghostStyle(hovered: boolean): React.CSSProperties {
+  return {
+    color: hovered ? INK : MUTED,
+    background: hovered ? 'rgba(255,255,255,0.10)' : 'transparent',
+    WebkitAppRegion: 'no-drag',
+  } as React.CSSProperties;
+}
+
+function useHover(): [boolean, { onMouseEnter: () => void; onMouseLeave: () => void }] {
+  const [hovered, setHovered] = useState(false);
+  return [hovered, { onMouseEnter: () => setHovered(true), onMouseLeave: () => setHovered(false) }];
+}
+
+export default function MiniTimer() {
+  const [state, setState] = useState<MiniTimerState | null>(null);
+  // Re-render often enough that the seconds never look stuck between snapshots.
+  const [now, setNow] = useState(() => Date.now());
+
+  const [closeHover, closeHandlers] = useHover();
+  const [skipHover,  skipHandlers]  = useHover();
+
+  useEffect(() => {
+    // The cached snapshot first (a paused timer publishes nothing until it moves, so
+    // waiting for a push would leave the pill blank), then live updates.
+    void window.api.miniTimer.getState().then(s => { if (s) setState(s); });
+    return window.api.miniTimer.onState(setState);
+  }, []);
+
+  // The countdown is computed here from `endsAt`, not sent tick by tick: the owner
+  // window only messages us when something really changes, and this stays smooth
+  // (and correct after a sleep/wake) regardless.
+  useEffect(() => {
+    if (!state?.isRunning) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [state?.isRunning]);
+
+  if (!state) {
+    // Only reachable if the owner window is gone; it takes this window with it, so
+    // this is a frame or two at most.
+    return <div style={{ width: '100%', height: '100%' }} />;
+  }
+
+  const secs     = secondsLeft(state, now);
+  const color    = PHASE_COLORS[state.phase];
+  const progress = state.totalSecs > 0 ? 1 - secs / state.totalSecs : 0;
+
+  const send = (command: 'start' | 'pause' | 'skip') => window.api.miniTimer.command(command);
+
+  return (
+    <div
+      // The whole pill is the drag handle — there's no title bar to grab. Controls opt
+      // back out with `no-drag`, or they'd move the window instead of being clicked.
+      style={{
+        WebkitAppRegion: 'drag',
+        background: CARD_BG,
+        border: `1px solid ${CARD_BORDER}`,
+        borderRadius: 16,
+        backdropFilter: 'blur(20px) saturate(140%)',
+        color: INK,
+        position: 'relative',
+        overflow: 'hidden',
+        height: '100%',
+        userSelect: 'none',
+        cursor: 'default',
+      } as React.CSSProperties}
+      onDoubleClick={() => { void window.api.miniTimer.showMain(); }}
+      title="Double-click to open Studeo"
+      className="flex items-center gap-2.5 pl-3.5 pr-2.5"
+    >
+      {/* Phase + clock */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span
+            style={{ background: color, width: 6, height: 6, borderRadius: 999 }}
+            aria-hidden
+          />
+          <span
+            style={{ color: MUTED, fontSize: 9.5, letterSpacing: '0.09em' }}
+            className="font-medium uppercase"
+          >
+            {PHASE_LABELS[state.phase]}
+          </span>
+          {/* Cycle dots: how many focus blocks until the long break. */}
+          <span className="flex items-center gap-1 ml-0.5" aria-hidden>
+            {Array.from({ length: CYCLE_LENGTH }, (_, i) => (
+              <span
+                key={i}
+                style={{
+                  width: 3.5,
+                  height: 3.5,
+                  borderRadius: 999,
+                  background: i < state.focusCount % CYCLE_LENGTH ? color : 'rgba(255,255,255,0.20)',
+                }}
+              />
+            ))}
+          </span>
+        </div>
+        <div
+          style={{ fontSize: 27, lineHeight: 1.05, letterSpacing: '-0.02em' }}
+          className="font-semibold tabular-nums mt-1"
+        >
+          {formatClock(secs)}
+        </div>
+      </div>
+
+      {/* Play / pause — the reason the pop-out has controls at all. */}
+      <button
+        onClick={() => send(state.isRunning ? 'pause' : 'start')}
+        aria-label={state.isRunning ? 'Pause timer' : 'Start timer'}
+        title={state.isRunning ? 'Pause' : 'Start'}
+        style={{
+          WebkitAppRegion: 'no-drag',
+          background: color,
+          color: '#1a1917',
+          width: 38,
+          height: 38,
+        } as React.CSSProperties}
+        className="shrink-0 flex items-center justify-center rounded-full transition-transform active:scale-95 hover:opacity-90"
+      >
+        {state.isRunning
+          ? <Pause size={16} fill="currentColor" strokeWidth={0} />
+          : <Play size={16} fill="currentColor" strokeWidth={0} style={{ marginLeft: 2 }} />}
+      </button>
+
+      {/* Skip — same meaning as on the Study page: bank the minutes, move on. */}
+      <button
+        onClick={() => send('skip')}
+        {...skipHandlers}
+        aria-label={state.phase === 'focus' ? 'Skip to break' : 'Skip break'}
+        title={state.phase === 'focus' ? "Skip to break — keeps the minutes you've put in" : 'Skip the break'}
+        style={{ ...ghostStyle(skipHover), width: 28, height: 28 }}
+        className="shrink-0 flex items-center justify-center rounded-full transition-colors"
+      >
+        <SkipForward size={14} />
+      </button>
+
+      {/* Close the pop-out. The timer keeps running — this hides the window, it
+          doesn't stop anything. */}
+      <button
+        onClick={() => { void window.api.miniTimer.closeSelf(); }}
+        {...closeHandlers}
+        aria-label="Close the pop-out timer"
+        title="Close (the timer keeps running)"
+        style={{ ...ghostStyle(closeHover), position: 'absolute', top: 4, right: 4, width: 18, height: 18 }}
+        className="flex items-center justify-center rounded-full transition-colors"
+      >
+        <X size={11} />
+      </button>
+
+      {/* Progress hairline along the bottom edge. */}
+      <div
+        style={{
+          position: 'absolute', left: 0, bottom: 0, height: 2,
+          width: `${Math.min(100, Math.max(0, progress * 100))}%`,
+          background: color,
+          opacity: 0.9,
+          transition: 'width 250ms linear',
+        }}
+        aria-hidden
+      />
+    </div>
+  );
+}

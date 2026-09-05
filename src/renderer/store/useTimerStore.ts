@@ -6,42 +6,25 @@ import { studySessionKeys } from '../lib/queries/useStudySessions';
 import { readBoolPref, readPref, writePref } from '../lib/prefs';
 import type { SettingKey } from '../../shared/settingsKeys';
 import { SITTING_GAP_MS } from '../../shared/studySittings';
+import { CYCLE_LENGTH, type Phase } from '../../shared/pomodoro';
 
-export type Phase = 'focus' | 'short_break' | 'long_break';
+// Phase names, colors, the clock formatter and the Phase type itself now live in
+// shared/pomodoro.ts — the pop-out window renders all four and must not import this
+// store (that would give it a second, independent timer). Re-exported here so every
+// existing importer keeps its familiar `from '../store/useTimerStore'`.
+export { PHASE_LABELS, PHASE_COLORS, formatClock } from '../../shared/pomodoro';
+export type { Phase } from '../../shared/pomodoro';
 
 export const FOCUS_OPTIONS      = [25, 30, 50, 60, 75, 90] as const;
 export const BREAK_OPTIONS      = [5, 10, 15, 20, 25, 30]  as const;
 export const LONG_BREAK_OPTIONS = [10, 15, 20, 25, 30]     as const;
 
 // Classic Pomodoro: every 4th completed focus session earns a long break.
-const LONG_BREAK_EVERY = 4;
+const LONG_BREAK_EVERY = CYCLE_LENGTH;
 
 // Below this, a focus block isn't study — it's a misclick or a change of mind. Skipping
 // out that early logs nothing rather than littering the history with 8-second blocks.
 const MIN_LOGGED_FOCUS_SECS = 60;
-
-// Phase presentation lives here (not in a component) so the Study page, the
-// sidebar chip, and the window title all agree on names and colors.
-export const PHASE_LABELS: Record<Phase, string> = {
-  focus:       'Focus',
-  short_break: 'Break',
-  long_break:  'Long break',
-};
-
-// Focus is the lamp: Lamplight Amber, the same word on every surface (the old
-// muted red read as the danger family). Breaks stay in the green rest family;
-// Focus Mode's GLOW map carries the brighter on-dark tones of the same hues.
-export const PHASE_COLORS: Record<Phase, string> = {
-  focus:       '#e2a53b',
-  short_break: '#467a59',
-  long_break:  '#34604a',
-};
-
-export function formatClock(totalSeconds: number): string {
-  const s = Math.max(0, totalSeconds);
-  const m = Math.floor(s / 60).toString().padStart(2, '0');
-  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
-}
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 let audioCtx: AudioContext | null = null;

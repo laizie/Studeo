@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, Timer, Music2, Maximize2, Activity } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Timer, Music2, Maximize2, Activity, PictureInPicture2 } from 'lucide-react';
 import {
   useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
   PHASE_LABELS, PHASE_COLORS, formatClock,
@@ -9,6 +9,7 @@ import FocusListPanel from './FocusListPanel';
 import AppleMusicStudyPanel from '../applemusic/AppleMusicStudyPanel';
 import SpotifyStudyPanel from '../spotify/SpotifyStudyPanel';
 import AutoNowPlaying from '../music/AutoNowPlaying';
+import { useMiniTimerWindow } from '../../lib/useMiniTimer';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -127,6 +128,10 @@ export default function StudyPage() {
     customTechnique, setCustomTechnique,
   } = useTimerStore();
 
+  // The floating pop-out. It's a view onto this same store (see lib/useMiniTimer),
+  // so there's nothing to keep in sync here beyond the button's own label.
+  const miniTimer = useMiniTimerWindow();
+
   const totalSecs =
     phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
   const focusMins = focusSecs / 60;
@@ -188,11 +193,29 @@ export default function StudyPage() {
           <div className="bg-surface border border-line rounded-2xl shadow-sm p-6 w-full lg:w-[360px] shrink-0 flex flex-col items-center">
 
             {/* Card header */}
-            <div className="flex items-center gap-2 mb-5 self-start">
+            <div className="flex items-center gap-2 mb-5 self-stretch">
               <Timer size={14} className="text-muted" />
               <h2 className="text-sm font-semibold text-ink-soft tracking-tight">
                 Focus Timer
               </h2>
+              {/* Pop the timer out into a small window that floats over everything else,
+                  for when you're working in another app. */}
+              <button
+                onClick={miniTimer.toggle}
+                title={miniTimer.isOpen
+                  ? 'Close the floating timer'
+                  : 'Float the timer above your other windows'}
+                aria-pressed={miniTimer.isOpen}
+                className={cn(
+                  'ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors',
+                  miniTimer.isOpen
+                    ? 'bg-inset text-ink-soft font-medium'
+                    : 'text-muted hover:bg-inset hover:text-ink-soft'
+                )}
+              >
+                <PictureInPicture2 size={13} />
+                {miniTimer.isOpen ? 'Pop-out on' : 'Pop out'}
+              </button>
             </div>
 
             {/* Technique selector */}

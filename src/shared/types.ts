@@ -1,3 +1,9 @@
+// The pop-out timer's wire types live in shared/pomodoro.ts, beside the phase
+// constants they describe; the window.api contract below needs them, so they're
+// imported and re-exported here rather than duplicated.
+import type { MiniTimerState, MiniTimerCommand } from './pomodoro';
+export type { MiniTimerState, MiniTimerCommand };
+
 // ─── Domain models ────────────────────────────────────────────────────────────
 // These mirror the SQLite table shapes exactly (snake_case column names).
 
@@ -657,6 +663,22 @@ export const IPC = {
   PDF: {
     PICK: 'pdf:pick',
   },
+  // The floating Pomodoro pop-out. OPEN/CLOSE/TOGGLE/IS_OPEN and SHOW_MAIN are window
+  // management (renderer → main). The other three are the state relay: the owner window
+  // PUBLISHes snapshots, main pushes them to the pop-out as STATE (and answers GET_STATE
+  // for a pop-out that just mounted), and the pop-out's buttons travel back as COMMANDs.
+  MINI_TIMER: {
+    OPEN:         'mini_timer:open',
+    CLOSE:        'mini_timer:close',
+    TOGGLE:       'mini_timer:toggle',
+    IS_OPEN:      'mini_timer:is-open',
+    OPEN_CHANGED: 'mini_timer:open-changed',
+    SHOW_MAIN:    'mini_timer:show-main',
+    PUBLISH:      'mini_timer:publish',
+    GET_STATE:    'mini_timer:get-state',
+    STATE:        'mini_timer:state',
+    COMMAND:      'mini_timer:command',
+  },
   APPLE_MUSIC: {
     STATUS:         'apple_music:status',
     PLAYBACK:       'apple_music:playback',
@@ -853,6 +875,45 @@ export interface WindowApi {
     /** Subscribe to fullscreen changes (covers the OS exit gestures: Esc, green button,
      *  Ctrl+Cmd+F), so the UI stays in sync. Returns a cleanup function. */
     onFullscreenChange(cb: (isFullscreen: boolean) => void): () => void;
+  };
+  /**
+   * The floating Pomodoro pop-out: a small always-on-top window that shows the running
+   * timer wherever you are, with play/pause and skip on it.
+   *
+   * The timer itself is NOT duplicated there. The main window owns the store and stays
+   * the single source of truth; this API is the relay in both directions. Which half a
+   * method belongs to is worth knowing when reading it:
+   *   - open/close/toggle/isOpen/onOpenChanged — called by the MAIN window (the UI button)
+   *   - publish/onCommand                      — the MAIN window as state owner
+   *   - getState/onState/command/closeSelf/showMain — called by the POP-OUT
+   */
+  miniTimer: {
+    open(): Promise<void>;
+    close(): Promise<void>;
+    /** Open it if closed, close it if open. Resolves with the state it ended up in. */
+    toggle(): Promise<boolean>;
+    isOpen(): Promise<boolean>;
+    /** Keeps the main window's "Pop out" button honest when the pop-out is closed
+     *  from its own × (or by the app). Returns a cleanup function. */
+    onOpenChanged(cb: (isOpen: boolean) => void): () => void;
+
+    /** Owner → main: the latest timer snapshot, forwarded to the pop-out if it's open
+     *  and cached for one that opens later. */
+    publish(state: MiniTimerState): void;
+    /** Owner: run the pop-out's button presses against the real store. Cleanup fn. */
+    onCommand(cb: (command: MiniTimerCommand) => void): () => void;
+
+    /** Pop-out: the cached snapshot, for the first paint. Null before the owner has
+     *  published anything (only possible if the owner window is gone). */
+    getState(): Promise<MiniTimerState | null>;
+    /** Pop-out: subscribe to snapshots. Returns a cleanup function. */
+    onState(cb: (state: MiniTimerState) => void): () => void;
+    /** Pop-out: ask the owner window to start / pause / skip. */
+    command(command: MiniTimerCommand): void;
+    /** Pop-out: close myself (the × on the pill). */
+    closeSelf(): Promise<void>;
+    /** Pop-out: bring the main Studeo window forward (double-click the pill). */
+    showMain(): Promise<void>;
   };
   feeds: {
     /** Fetch a remote .ics calendar feed by URL (done in main; returns raw text). */

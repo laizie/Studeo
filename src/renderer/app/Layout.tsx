@@ -7,6 +7,7 @@ import FocusMode from '../features/study/FocusMode';
 import Toaster from '../components/Toaster';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useTimerDriver } from '../lib/useTimerDriver';
+import { useMiniTimerBridge } from '../lib/useMiniTimer';
 import { useReminderNavigation } from '../lib/useReminderNavigation';
 import { useToastStore, showToast } from '../store/useToastStore';
 
@@ -17,6 +18,10 @@ export default function Layout() {
 
   // Keep the Pomodoro timer running app-wide, independent of the current route.
   useTimerDriver();
+
+  // This window owns the timer; feed the floating pop-out from it (and run the
+  // pop-out's play/pause/skip against the same store). No-op while it's closed.
+  useMiniTimerBridge();
 
   // Route the app when the user clicks a desktop reminder (main → renderer push).
   useReminderNavigation();

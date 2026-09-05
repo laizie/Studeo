@@ -1,6 +1,5 @@
 import { app, BrowserWindow, protocol, dialog, shell } from 'electron';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import started from 'electron-squirrel-startup';
 import { initDb } from './main/db/connection';
 import { registerCourseHandlers } from './main/ipc/registerCourseHandlers';
@@ -32,6 +31,9 @@ import { setAuthCompletionHandler } from './main/spotify/spotifyAuth';
 import { initAutoUpdater } from './main/updater';
 import { initTray, destroyTray } from './main/tray';
 import { launchedInBackground } from './main/loginItem';
+import { registerMiniTimerHandlers } from './main/ipc/registerMiniTimerHandlers';
+import { initTimerWindow, closeTimerWindow } from './main/timerWindow';
+import { rendererUrl } from './main/rendererUrl';
 
 if (started) {
   app.quit();
@@ -66,6 +68,8 @@ function registerIpcHandlers(): void {
   registerSpotifyHandlers();
   registerAppleMusicHandlers();
   registerAppleRemindersHandlers();
+  // The pop-out needs to reach the main window (to show it) — see showMainWindow.
+  registerMiniTimerHandlers(() => { showMainWindow(); });
 }
 
 /**
@@ -128,15 +132,16 @@ const createWindow = (): BrowserWindow => {
     },
   });
   mainWindow = win;
-  win.on('closed', () => { mainWindow = null; });
+  win.on('closed', () => {
+    mainWindow = null;
+    // The pop-out is a view onto THIS window's timer store — with the owner gone it
+    // would sit there frozen, showing a countdown nothing is counting. Take it with us.
+    closeTimerWindow();
+  });
 
   // Resolve the page URL up front: hardenWindow() needs to know exactly which document
   // this window is allowed to be on, so it can refuse every navigation away from it.
-  const pageUrl = MAIN_WINDOW_VITE_DEV_SERVER_URL
-    ? MAIN_WINDOW_VITE_DEV_SERVER_URL
-    : pathToFileURL(
-        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-      ).href;
+  const pageUrl = rendererUrl();
 
   // Guards attach before the load purely so there's no window in which they're absent.
   // (`will-navigate` fires for renderer-initiated navigation, not for this loadURL.)
@@ -198,6 +203,11 @@ app.on('ready', () => {
 
   // Everything below needs a working database — bail rather than open a broken window.
   if (!tryInitDb()) return;
+
+  // Tell the pop-out module how to find the timer's owner. Registered before any window
+  // exists because it hands over a getter, not a window: the main window can be closed
+  // and recreated (macOS), and this keeps pointing at whichever one is live.
+  initTimerWindow(() => mainWindow);
 
   registerAssetProtocol(); // serves studeo-asset:// note images from the data folder
   registerIpcHandlers();
