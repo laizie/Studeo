@@ -242,6 +242,12 @@ export function openTimerWindow(): void {
     // fullscreen Space, and it doesn't steal activation when you click it.
     ...(isMac ? { type: 'panel' as const } : {}),
     alwaysOnTop: true,
+    // Deliver the FIRST click to the page instead of spending it on activating the
+    // window. Without this the pill is unusable in exactly the situation it's built
+    // for: it appears without focus (showInactive), and as a non-activating panel it
+    // mostly stays that way — so macOS would swallow the click you meant for Play and
+    // you'd have to press it twice, every time.
+    acceptFirstMouse: true,
     // Nothing is painted until the document is ready — a transparent window that shows
     // early flashes an empty rectangle in the corner of the screen.
     show: false,

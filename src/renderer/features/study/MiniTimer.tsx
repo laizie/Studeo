@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { Play, Pause, SkipForward, X } from 'lucide-react';
 import {
   PHASE_LABELS, PHASE_COLORS, CYCLE_LENGTH,
@@ -27,6 +27,23 @@ const CARD_BORDER = 'rgba(255, 255, 255, 0.10)';
 const INK         = '#f6f4f0';
 const MUTED       = 'rgba(246, 244, 240, 0.55)';
 
+/** The pill itself: the whole window is one rounded card, and the whole card is the
+ *  drag handle (there's no title bar to grab). Controls opt back out with `no-drag`,
+ *  or they'd move the window instead of being clicked. */
+const CARD: React.CSSProperties = {
+  WebkitAppRegion: 'drag',
+  background: CARD_BG,
+  border: `1px solid ${CARD_BORDER}`,
+  borderRadius: 16,
+  backdropFilter: 'blur(20px) saturate(140%)',
+  color: INK,
+  position: 'relative',
+  overflow: 'hidden',
+  height: '100%',
+  userSelect: 'none',
+  cursor: 'default',
+} as React.CSSProperties;
+
 /** A ghost button on the pill: invisible until you want it. */
 function ghostStyle(hovered: boolean): React.CSSProperties {
   return {
@@ -43,17 +60,31 @@ function useHover(): [boolean, { onMouseEnter: () => void; onMouseLeave: () => v
 
 export default function MiniTimer() {
   const [state, setState] = useState<MiniTimerState | null>(null);
-  // Re-render often enough that the seconds never look stuck between snapshots.
-  const [now, setNow] = useState(() => Date.now());
+
+  // A counter, not a timestamp. The clock is read live during render (below), and this
+  // exists only to schedule the next paint.
+  //
+  // Holding `Date.now()` in state was a real bug, and it showed up exactly when you
+  // pressed play: while the timer is paused nothing re-renders, so that timestamp goes
+  // stale by however long the pill has been sitting there. The first frame after the
+  // running snapshot arrives then computed `endsAt - <stale now>` — a clock minutes too
+  // high, which snapped back a quarter-second later. Reading the real clock at render
+  // time makes that whole class of staleness impossible.
+  const [, scheduleRepaint] = useReducer((n: number) => n + 1, 0);
 
   const [closeHover, closeHandlers] = useHover();
   const [skipHover,  skipHandlers]  = useHover();
 
   useEffect(() => {
-    // The cached snapshot first (a paused timer publishes nothing until it moves, so
-    // waiting for a push would leave the pill blank), then live updates.
-    void window.api.miniTimer.getState().then(s => { if (s) setState(s); });
-    return window.api.miniTimer.onState(setState);
+    // Subscribe BEFORE asking for the cached snapshot, and let any push win over it.
+    // The other order has two races: a push landing between the ask and the subscribe
+    // is lost, and a slow reply can arrive after a newer push and overwrite it with
+    // older state. (The cached read is still needed — a paused timer publishes nothing
+    // until it moves, so waiting for a push alone would leave the pill blank.)
+    let pushed = false;
+    const off = window.api.miniTimer.onState(s => { pushed = true; setState(s); });
+    void window.api.miniTimer.getState().then(s => { if (s && !pushed) setState(s); });
+    return off;
   }, []);
 
   // The countdown is computed here from `endsAt`, not sent tick by tick: the owner
@@ -61,17 +92,24 @@ export default function MiniTimer() {
   // (and correct after a sleep/wake) regardless.
   useEffect(() => {
     if (!state?.isRunning) return;
-    const id = setInterval(() => setNow(Date.now()), 250);
+    const id = setInterval(scheduleRepaint, 250);
     return () => clearInterval(id);
   }, [state?.isRunning]);
 
+  // Before the first snapshot lands, show the card rather than nothing. The window is
+  // transparent, so an empty render is an INVISIBLE window — you'd click "Pop out" and
+  // watch nothing happen until the state arrived.
   if (!state) {
-    // Only reachable if the owner window is gone; it takes this window with it, so
-    // this is a frame or two at most.
-    return <div style={{ width: '100%', height: '100%' }} />;
+    return (
+      <div style={CARD} className="flex items-center px-3.5">
+        <div style={{ color: MUTED, fontSize: 27, lineHeight: 1.05 }} className="font-semibold tabular-nums">
+          --:--
+        </div>
+      </div>
+    );
   }
 
-  const secs     = secondsLeft(state, now);
+  const secs     = secondsLeft(state);
   const color    = PHASE_COLORS[state.phase];
   const progress = state.totalSecs > 0 ? 1 - secs / state.totalSecs : 0;
 
@@ -79,21 +117,7 @@ export default function MiniTimer() {
 
   return (
     <div
-      // The whole pill is the drag handle — there's no title bar to grab. Controls opt
-      // back out with `no-drag`, or they'd move the window instead of being clicked.
-      style={{
-        WebkitAppRegion: 'drag',
-        background: CARD_BG,
-        border: `1px solid ${CARD_BORDER}`,
-        borderRadius: 16,
-        backdropFilter: 'blur(20px) saturate(140%)',
-        color: INK,
-        position: 'relative',
-        overflow: 'hidden',
-        height: '100%',
-        userSelect: 'none',
-        cursor: 'default',
-      } as React.CSSProperties}
+      style={CARD}
       onDoubleClick={() => { void window.api.miniTimer.showMain(); }}
       title="Double-click to open Studeo"
       className="flex items-center gap-2.5 pl-3.5 pr-2.5"
