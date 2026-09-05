@@ -90,9 +90,13 @@ export default function MiniTimer() {
   // The countdown is computed here from `endsAt`, not sent tick by tick: the owner
   // window only messages us when something really changes, and this stays smooth
   // (and correct after a sleep/wake) regardless.
+  // 100ms, not 250: this window and the main one both flip on the timer's own
+  // boundary (see msUntilClockChange), and this is how closely the pill's repaint
+  // chases that boundary. A quarter-second sample was enough to catch the eye when
+  // the two clocks were side by side; a tenth of a second is not.
   useEffect(() => {
     if (!state?.isRunning) return;
-    const id = setInterval(scheduleRepaint, 250);
+    const id = setInterval(scheduleRepaint, 100);
     return () => clearInterval(id);
   }, [state?.isRunning]);
 

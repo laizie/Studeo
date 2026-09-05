@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useTimerStore, PHASE_LABELS, formatClock } from '../store/useTimerStore';
+import { msUntilClockChange } from '../../shared/pomodoro';
 
 const BASE_TITLE = 'Studeo';
 
@@ -15,15 +16,36 @@ export function useTimerDriver(): void {
   const phase     = useTimerStore(s => s.phase);
   const tick      = useTimerStore(s => s.tick);
 
-  // Tick every second while running, and correct immediately when the window
-  // becomes visible again after the OS may have throttled the interval.
+  // Tick when the CLOCK CHANGES, not every 1000ms, and correct immediately when the
+  // window becomes visible again after the OS may have throttled us.
+  //
+  // A plain `setInterval(1000)` started firing at whatever instant Start was pressed,
+  // which is not when the displayed value changes — the clock is rounded, so it flips
+  // on the timer's own half-second boundaries. The two grids sit up to a full second
+  // apart, and that gap was visible the moment there was a second clock to compare
+  // against: the pop-out (which reads the same end time at render) ran up to a second
+  // ahead of this window's digits, on the same timer. Scheduling each tick onto the
+  // boundary puts every surface's flip at the same instant.
+  //
+  // Self-correcting by construction: the next delay is recomputed from the wall clock
+  // after every fire, so a late tick is absorbed rather than accumulating as drift.
   useEffect(() => {
     if (!isRunning) return;
-    const id = setInterval(() => tick(), 1_000);
+
+    let timer: ReturnType<typeof setTimeout>;
+    const scheduleNext = () => {
+      const { endsAt } = useTimerStore.getState();
+      // No end time is a paused timer mid-teardown; a hair over zero keeps a phase
+      // that has already run out from busy-looping until the tick that ends it lands.
+      const delay = endsAt == null ? 1_000 : Math.max(1, msUntilClockChange(endsAt));
+      timer = setTimeout(() => { tick(); scheduleNext(); }, delay);
+    };
+    scheduleNext();
+
     const onVisible = () => { if (document.visibilityState === 'visible') tick(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      clearInterval(id);
+      clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [isRunning, tick]);

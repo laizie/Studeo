@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { formatClock, secondsLeft, PHASE_LABELS, PHASE_COLORS, type MiniTimerState } from '../pomodoro';
+import {
+  formatClock, secondsLeft, msUntilClockChange, PHASE_LABELS, PHASE_COLORS, type MiniTimerState,
+} from '../pomodoro';
 
 function state(over: Partial<MiniTimerState> = {}): MiniTimerState {
   return {
@@ -60,6 +62,51 @@ describe('phase presentation', () => {
     for (const phase of ['focus', 'short_break', 'long_break'] as const) {
       expect(PHASE_LABELS[phase]).toBeTruthy();
       expect(PHASE_COLORS[phase]).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+});
+
+// Two clocks on one timer (the Study page and the pop-out) drifted a second apart
+// because they sampled the same end time on different 1-second grids. This puts every
+// clock's update on the timer's own boundary instead.
+describe('msUntilClockChange', () => {
+  const now = 1_700_000_000_000;
+  const inMs = (ms: number) => msUntilClockChange(now + ms, now);
+
+  it('waits for the moment the display actually flips', () => {
+    // 25.000s left reads as "25:00" and keeps reading that until 24.5s is PAST —
+    // Math.round breaks the half upward, so the flip is a millisecond after it.
+    expect(inMs(25_000)).toBe(501);
+    // 24.6s still reads as "25:00"; it's a tenth of a second from flipping.
+    expect(inMs(24_600)).toBe(101);
+    // 24.4s already reads as "24:59", so the next change is nearly a second out.
+    expect(inMs(24_400)).toBe(901);
+    // Sitting exactly on the boundary: still reading the old value, flips next ms.
+    expect(inMs(24_500)).toBe(1);
+  });
+
+  it('always schedules within a second, and never zero (which would spin)', () => {
+    for (let ms = 1; ms <= 3_000; ms++) {
+      const d = inMs(ms);
+      expect(d).toBeGreaterThan(0);
+      expect(d).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it('says "now" once the phase is over', () => {
+    expect(inMs(0)).toBe(0);
+    expect(inMs(-5_000)).toBe(0);
+  });
+
+  // The property that matters, checked against Math.round itself: after waiting the
+  // returned delay the displayed value really has changed — and one millisecond
+  // earlier it had not. This is the test that caught the off-by-one above.
+  it('lands exactly on the change, for every offset', () => {
+    const shown = (msLeft: number) => Math.round(msLeft / 1000);
+    for (let ms = 600; ms <= 3_000; ms++) {
+      const delay = inMs(ms);
+      expect(shown(ms - delay)).not.toBe(shown(ms));
+      expect(shown(ms - delay + 1)).toBe(shown(ms));
     }
   });
 });

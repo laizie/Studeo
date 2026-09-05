@@ -73,3 +73,34 @@ export function secondsLeft(state: MiniTimerState, now: number = Date.now()): nu
   }
   return Math.max(0, state.timeLeft);
 }
+
+/**
+ * How long until the displayed clock next changes, in ms.
+ *
+ * A countdown flips when the ROUNDED remaining seconds change, which is on the
+ * half-second boundaries of `endsAt` — not on whole seconds, and definitely not on
+ * whichever arbitrary instant a `setInterval(1000)` happened to be started at. That
+ * distinction is what makes two clocks on the same timer disagree: sample the same
+ * `endsAt` on two different 1-second grids and they sit up to a full second apart,
+ * one visibly "ahead" of the other, though neither is wrong about the time.
+ *
+ * Scheduling each update from this instead of from a fixed interval puts every clock's
+ * flip on the timer's own boundary, so they change together. It also self-corrects:
+ * the next delay is recomputed from the wall clock every time, so a late or throttled
+ * fire is absorbed instead of being carried forward as permanent drift.
+ *
+ * The arithmetic: displayed = round(r / 1000) = floor((r + 500) / 1000), so the value
+ * changes once (r + 500) crosses below a multiple of 1000 — one millisecond PAST the
+ * boundary, not at it, because Math.round breaks the half upward. (24.5s still reads
+ * as "25", 24.499s reads as "24".) A property test in __tests__/pomodoro.test.ts
+ * checks that against Math.round directly for every offset, which is how the missing
+ * millisecond was caught in the first place.
+ *
+ * Returns 0 once the phase is over (update now). Otherwise 1–1000, never 0, so a
+ * caller that reschedules from it can't spin.
+ */
+export function msUntilClockChange(endsAt: number, now: number = Date.now()): number {
+  const remaining = endsAt - now;
+  if (remaining <= 0) return 0;
+  return ((remaining + 500) % 1000) + 1;
+}
