@@ -22,6 +22,8 @@ import {
   listAssignmentSeries,
   getAssignmentSeries,
   createAssignmentSeries,
+  createAssignmentSeriesFromRows,
+  createAssignmentBatch,
   extendAssignmentSeries,
   deleteAssignmentSeries,
 } from '../repositories/assignmentSeriesRepo';
@@ -355,5 +357,151 @@ describe('deleteAssignmentSeries', () => {
 
     expect(getAssignmentSeries(series.id)).toBeNull();
     expect(listAssignments()).toEqual([]);
+  });
+});
+
+describe('createAssignmentSeriesFromRows', () => {
+  it('inserts the occurrences verbatim, in the order given', () => {
+    const { assignments } = createAssignmentSeriesFromRows({
+      courseId,
+      intervalWeeks: 1,
+      occurrences: [
+        { name: 'Lab 1', type: 'Lab', dueDate: '2026-03-06' },
+        { name: 'Lab 2 (rescheduled)', type: 'Lab', dueDate: '2026-03-16' },
+        { name: 'Lab 3', type: 'Lab', dueDate: '2026-03-20' },
+      ],
+    });
+
+    expect(assignments.map(a => a.name)).toEqual([
+      'Lab 1', 'Lab 2 (rescheduled)', 'Lab 3',
+    ]);
+    expect(assignments.map(a => a.due_date)).toEqual([
+      '2026-03-06', '2026-03-16', '2026-03-20',
+    ]);
+    expect(assignments.map(a => a.series_index)).toEqual([1, 2, 3]);
+  });
+
+  it('reads the rule back off the rows rather than regenerating them', () => {
+    const { series } = createAssignmentSeriesFromRows({
+      courseId,
+      intervalWeeks: 2,
+      occurrences: [
+        { name: 'Lab 1', type: 'Lab', dueDate: '2026-03-06' },
+        { name: 'Lab 2', type: 'Lab', dueDate: '2026-03-16' },
+      ],
+    });
+
+    expect(series.name_template).toBe('Lab 1');
+    expect(series.type).toBe('Lab');
+    expect(series.anchor_date).toBe('2026-03-06');
+    expect(series.until_date).toBe('2026-03-16');
+    expect(series.interval_weeks).toBe(2);
+  });
+
+  it("lets an occurrence's own type win over the series default", () => {
+    const { assignments } = createAssignmentSeriesFromRows({
+      courseId,
+      intervalWeeks: 1,
+      occurrences: [
+        { name: 'Homework 1', type: 'Homework', dueDate: '2026-03-06' },
+        { name: 'Quiz instead', type: 'Quiz', dueDate: '2026-03-13' },
+      ],
+    });
+
+    expect(assignments.map(a => a.type)).toEqual(['Homework', 'Quiz']);
+  });
+});
+
+describe('createAssignmentBatch', () => {
+  const grid = () => ({
+    series: [
+      {
+        courseId,
+        intervalWeeks: 1,
+        occurrences: [
+          { name: 'Homework 1', type: 'Homework' as const, dueDate: '2026-03-06' },
+          { name: 'Homework 2', type: 'Homework' as const, dueDate: '2026-03-13' },
+          { name: 'Homework 3', type: 'Homework' as const, dueDate: '2026-03-20' },
+        ],
+      },
+      {
+        courseId,
+        intervalWeeks: 2,
+        occurrences: [
+          { name: 'Lab 1', type: 'Lab' as const, dueDate: '2026-03-07' },
+          { name: 'Lab 2', type: 'Lab' as const, dueDate: '2026-03-21' },
+        ],
+      },
+    ],
+    singles: [
+      { courseId, name: 'Midterm', type: 'Exam' as const, dueDate: '2026-03-10' },
+      { courseId, name: 'Final essay', type: 'Paper' as const, dueDate: '2026-04-30' },
+    ],
+  });
+
+  it('writes every series and every one-off row in one go', () => {
+    const result = createAssignmentBatch(grid());
+
+    expect(result.series).toHaveLength(2);
+    expect(result.assignments).toHaveLength(7);
+    expect(listAssignments({ courseId })).toHaveLength(7);
+  });
+
+  it('keeps the two series apart', () => {
+    const { series } = createAssignmentBatch(grid());
+    const [homework, labs] = series;
+
+    expect(homework.id).not.toBe(labs.id);
+    expect(listBySeries(homework.id).map(a => a.name)).toEqual([
+      'Homework 1', 'Homework 2', 'Homework 3',
+    ]);
+    expect(listBySeries(labs.id).map(a => a.name)).toEqual(['Lab 1', 'Lab 2']);
+  });
+
+  it('leaves the one-off rows unlinked', () => {
+    createAssignmentBatch(grid());
+
+    const singles = listAssignments({ courseId }).filter(a => a.series_id === null);
+    expect(singles.map(a => a.name).sort()).toEqual(['Final essay', 'Midterm']);
+    expect(singles.every(a => a.series_index === null)).toBe(true);
+  });
+
+  it('rolls the WHOLE grid back when any row fails', () => {
+    const bad = grid();
+    // A single pointing at a course that doesn't exist — the FK rejects it only
+    // after both series have already been inserted.
+    bad.singles.push({ courseId: 'no-such-course', name: 'Orphan', type: 'Exam', dueDate: '2026-05-01' });
+
+    expect(() => createAssignmentBatch(bad)).toThrow();
+
+    // This is the promise Day-One Setup makes: a failed save leaves nothing behind,
+    // so you never have to work out which half of a syllabus landed.
+    expect(listAssignments()).toEqual([]);
+    expect(listAssignmentSeries()).toEqual([]);
+  });
+
+  it('accepts a grid of only one-off rows', () => {
+    const result = createAssignmentBatch({ series: [], singles: grid().singles });
+
+    expect(result.series).toEqual([]);
+    expect(result.assignments).toHaveLength(2);
+  });
+
+  it('produces series that shift like any other', () => {
+    // The whole point of the conversion: rows added through the grid can be moved
+    // as a group afterwards, which the old createMany path made impossible.
+    const { series } = createAssignmentBatch(grid());
+    const occurrences = listBySeries(series[0].id);
+
+    const result = shiftAssignments({
+      assignmentId: occurrences[1].id,
+      scope: 'this_and_later',
+      days: 7,
+    });
+
+    expect(result.changed).toHaveLength(2);
+    expect(listBySeries(series[0].id).map(a => a.due_date)).toEqual([
+      '2026-03-06', '2026-03-20', '2026-03-27',
+    ]);
   });
 });

@@ -4,10 +4,15 @@ import { generateRepeats } from '../../../shared/repeat';
 import { createAssignment, listBySeries } from './assignmentRepo';
 import type {
   Assignment,
+  AssignmentBatchResult,
   AssignmentSeries,
   AssignmentSeriesWithOccurrences,
+  AssignmentType,
+  CreateAssignmentBatchInput,
+  CreateAssignmentSeriesFromRowsInput,
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
+  SeriesOccurrenceInput,
 } from '../../../shared/types';
 
 const row = (r: unknown): AssignmentSeries => asRow<AssignmentSeries>(r);
@@ -39,66 +44,94 @@ export function getAssignmentSeries(id: string): AssignmentSeries | null {
  * The only new thing is that each row is stamped with the series id and its
  * 1-based position, so a later "move this and the rest" knows what "the rest" is.
  */
+/**
+ * Write a series row and its occurrences. No transaction of its own, so several
+ * of these can compose into one batch (see createAssignmentBatch) — every caller
+ * is responsible for wrapping it.
+ *
+ * Occurrences go in verbatim, numbered by their position in the array. An
+ * occurrence's own type and time win over the series defaults, because a row the
+ * user edited in the grid is the more specific statement of intent.
+ */
+function insertSeries(
+  rule: {
+    courseId: string;
+    nameTemplate: string;
+    type: AssignmentType;
+    intervalWeeks: number;
+    anchorDate: string;
+    untilDate: string;
+    dueTime: string | null;
+  },
+  occurrences: SeriesOccurrenceInput[],
+): AssignmentSeriesWithOccurrences {
+  const id = crypto.randomUUID();
+  getDb()
+    .prepare(
+      `INSERT INTO assignment_series
+         (id, course_id, name_template, type, interval_weeks, anchor_date, until_date, due_time, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      id,
+      rule.courseId,
+      rule.nameTemplate,
+      rule.type,
+      rule.intervalWeeks,
+      rule.anchorDate,
+      rule.untilDate,
+      rule.dueTime,
+      new Date().toISOString(),
+    );
+
+  const assignments = occurrences.map((occurrence, i) =>
+    createAssignment({
+      courseId: rule.courseId,
+      name: occurrence.name,
+      type: occurrence.type ?? rule.type,
+      dueDate: occurrence.dueDate,
+      dueTime: occurrence.dueTime ?? rule.dueTime,
+      seriesId: id,
+      // 1-based, so it reads like "occurrence 3 of 12".
+      seriesIndex: i + 1,
+    }),
+  );
+
+  return { series: getAssignmentSeries(id)!, assignments };
+}
+
 export function createAssignmentSeries(
   input: CreateAssignmentSeriesInput,
 ): AssignmentSeriesWithOccurrences {
   const db = getDb();
-  const id = crypto.randomUUID();
-  const now = new Date().toISOString();
   const type = input.type ?? 'Assignment';
   const dueTime = input.dueTime ?? null;
-  const followUps = generateRepeats(
-    input.name,
-    input.anchorDate,
-    input.untilDate,
-    input.intervalWeeks,
-  );
+
+  // The first occurrence is the one the user typed; generateRepeats continues its
+  // numbering from there.
+  const occurrences: SeriesOccurrenceInput[] = [
+    { name: input.name, type, dueDate: input.anchorDate, dueTime },
+    ...generateRepeats(input.name, input.anchorDate, input.untilDate, input.intervalWeeks).map(
+      o => ({ name: o.name, type, dueDate: o.dueDate, dueTime }),
+    ),
+  ];
 
   db.exec('BEGIN');
   try {
-    db.prepare(
-      `INSERT INTO assignment_series
-         (id, course_id, name_template, type, interval_weeks, anchor_date, until_date, due_time, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      input.courseId,
-      input.name,
-      type,
-      input.intervalWeeks,
-      input.anchorDate,
-      input.untilDate,
-      dueTime,
-      now,
-    );
-
-    // The first occurrence is the one the user typed; the generated follow-ups
-    // continue its numbering. Index is 1-based so it reads like "occurrence 3 of 12".
-    const assignments: Assignment[] = [
-      createAssignment({
+    const result = insertSeries(
+      {
         courseId: input.courseId,
-        name: input.name,
+        nameTemplate: input.name,
         type,
-        dueDate: input.anchorDate,
+        intervalWeeks: input.intervalWeeks,
+        anchorDate: input.anchorDate,
+        untilDate: input.untilDate,
         dueTime,
-        seriesId: id,
-        seriesIndex: 1,
-      }),
-      ...followUps.map((occurrence, i) =>
-        createAssignment({
-          courseId: input.courseId,
-          name: occurrence.name,
-          type,
-          dueDate: occurrence.dueDate,
-          dueTime,
-          seriesId: id,
-          seriesIndex: i + 2,
-        }),
-      ),
-    ];
-
+      },
+      occurrences,
+    );
     db.exec('COMMIT');
-    return { series: getAssignmentSeries(id)!, assignments };
+    return result;
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
@@ -174,6 +207,85 @@ export function deleteAssignmentSeries(id: string): void {
     db.prepare('UPDATE assignments SET series_id = NULL, series_index = NULL WHERE series_id = ?').run(id);
     db.prepare('DELETE FROM assignment_series WHERE id = ?').run(id);
     db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+/**
+ * Turn occurrences that already exist on screen into a real series.
+ *
+ * The rule fields are read back off the rows rather than taken on trust: the
+ * first row is the template and the anchor, the last row's date is the end. By
+ * the time Day-One Setup's grid is saved the user may have renamed, re-dated or
+ * deleted any of the generated rows, so the rows are the only honest account of
+ * what the series actually is.
+ */
+export function createAssignmentSeriesFromRows(
+  input: CreateAssignmentSeriesFromRowsInput,
+): AssignmentSeriesWithOccurrences {
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const result = insertSeriesFromRows(input);
+    db.exec('COMMIT');
+    return result;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+/** The transaction-free half, so the batch below can run many of these at once. */
+function insertSeriesFromRows(
+  input: CreateAssignmentSeriesFromRowsInput,
+): AssignmentSeriesWithOccurrences {
+  const first = input.occurrences[0];
+  const last = input.occurrences[input.occurrences.length - 1];
+
+  return insertSeries(
+    {
+      courseId: input.courseId,
+      nameTemplate: first.name,
+      type: first.type ?? 'Assignment',
+      intervalWeeks: input.intervalWeeks,
+      anchorDate: first.dueDate,
+      untilDate: last.dueDate,
+      dueTime: first.dueTime ?? null,
+    },
+    input.occurrences,
+  );
+}
+
+/**
+ * Save a whole grid at once: every repeating group and every one-off row, in a
+ * single transaction.
+ *
+ * Day-One Setup's promise has always been that a failed save leaves nothing
+ * behind — the point of absorbing a syllabus in one sitting is not having to
+ * work out afterwards which half of it landed. Series and singles therefore
+ * cannot go as two calls, however tempting; one bad row anywhere has to take the
+ * whole grid down with it.
+ */
+export function createAssignmentBatch(input: CreateAssignmentBatchInput): AssignmentBatchResult {
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const series: AssignmentSeries[] = [];
+    const assignments: Assignment[] = [];
+
+    for (const group of input.series) {
+      const created = insertSeriesFromRows(group);
+      series.push(created.series);
+      assignments.push(...created.assignments);
+    }
+    for (const single of input.singles) {
+      assignments.push(createAssignment(single));
+    }
+
+    db.exec('COMMIT');
+    return { series, assignments };
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;

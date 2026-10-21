@@ -434,6 +434,46 @@ export interface AssignmentSeriesWithOccurrences {
   assignments: Assignment[];
 }
 
+export interface SeriesOccurrenceInput {
+  name: string;
+  type?: AssignmentType;
+  dueDate: string;
+  dueTime?: string | null;
+}
+
+/**
+ * A series built from occurrences that already exist on screen, rather than from
+ * a rule to expand.
+ *
+ * Day-One Setup's grid fills itself with the repeats up front so they can be
+ * edited before saving — renamed, re-dated, deleted, interleaved with other
+ * rows. By the time Save runs, the rows ARE the series, so re-deriving them from
+ * a rule would throw away whatever the user changed. The rule fields are read
+ * back off the occurrences instead.
+ */
+export interface CreateAssignmentSeriesFromRowsInput {
+  courseId: string;
+  intervalWeeks: number;
+  /** In series order — position here becomes series_index. At least two. */
+  occurrences: SeriesOccurrenceInput[];
+}
+
+/**
+ * One grid's worth of saving: its repeating groups and its one-off rows, written
+ * together or not at all. Day-One Setup has always promised that a failed save
+ * leaves nothing behind, and splitting series and singles across two calls would
+ * quietly break that.
+ */
+export interface CreateAssignmentBatchInput {
+  series: CreateAssignmentSeriesFromRowsInput[];
+  singles: CreateAssignmentInput[];
+}
+
+export interface AssignmentBatchResult {
+  series: AssignmentSeries[];
+  assignments: Assignment[];
+}
+
 export interface ExtendAssignmentSeriesInput {
   seriesId: string;
   /** New inclusive end date; must be after the current one. */
@@ -664,6 +704,7 @@ export const IPC = {
     RESTORE:     'assignments:restore',
     SHIFT:       'assignments:shift',
     SET_DATES:   'assignments:set-dates',
+    CREATE_BATCH:'assignments:create-batch',
   },
   ASSIGNMENT_SERIES: {
     LIST:   'assignment_series:list',
@@ -858,6 +899,8 @@ export interface WindowApi {
     /** Transactional multi-row date write — all rows land or none do. Also how
      *  Undo replays a shift, by passing each row's original date back. */
     setDates(items: AssignmentDateSet[]): Promise<number>;
+    /** Save a whole grid — repeating groups and one-off rows — in one transaction. */
+    createBatch(input: CreateAssignmentBatchInput): Promise<AssignmentBatchResult>;
   };
   assignmentSeries: {
     list(filters?: { courseId?: string }): Promise<AssignmentSeries[]>;

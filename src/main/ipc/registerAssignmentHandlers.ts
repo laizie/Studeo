@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES, SERIES_SCOPES } from '../../shared/types';
 import type {
   AssignmentDateSet,
+  CreateAssignmentBatchInput,
   AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
@@ -19,6 +20,7 @@ import {
   shiftAssignments,
   setDates,
 } from '../db/repositories/assignmentRepo';
+import { createAssignmentBatch } from '../db/repositories/assignmentSeriesRepo';
 import { notifyAssignmentsChanged } from '../applereminders';
 
 // score/pointsPossible: absent or null = "no grade recorded"; otherwise both
@@ -151,5 +153,52 @@ export function registerAssignmentHandlers(): void {
     const count = setDates(items);
     notifyAssignmentsChanged();
     return count;
+  });
+
+  // Day-One Setup's save: repeating groups and one-off rows together, in one
+  // transaction. Everything is validated before any of it is written, because the
+  // whole promise of this screen is that a failed save leaves nothing behind —
+  // finding out on row 38 that row 12 was bad has to cost you nothing.
+  ipcMain.handle(IPC.ASSIGNMENTS.CREATE_BATCH, (_event, input: CreateAssignmentBatchInput) => {
+    if (!Array.isArray(input?.series) || !Array.isArray(input?.singles)) {
+      throw new Error('series and singles must both be arrays');
+    }
+
+    const total =
+      input.singles.length +
+      input.series.reduce((n, group) => n + (group?.occurrences?.length ?? 0), 0);
+    if (total === 0) throw new Error('Nothing to save');
+    if (total > 500) throw new Error('Too many assignments in one batch (max 500)');
+
+    for (const group of input.series) {
+      if (!group?.courseId) throw new Error('courseId is required on every series');
+      if (!Number.isInteger(group.intervalWeeks) || group.intervalWeeks < 1) {
+        throw new Error('intervalWeeks must be a whole number of weeks, at least 1');
+      }
+      // One occurrence is a plain assignment wearing a rule — the renderer already
+      // demotes those, so one arriving here means something upstream is confused.
+      if (!Array.isArray(group.occurrences) || group.occurrences.length < 2) {
+        throw new Error('A series needs at least two occurrences');
+      }
+      for (const occurrence of group.occurrences) {
+        if (!occurrence?.name?.trim()) throw new Error('Assignment name is required on every row');
+        assertIsoDate(occurrence.dueDate, 'dueDate');
+        validateDueTime(occurrence);
+        validateEnums(occurrence);
+      }
+    }
+
+    for (const single of input.singles) {
+      if (!single?.courseId)     throw new Error('courseId is required on every row');
+      if (!single.name?.trim())  throw new Error('Assignment name is required on every row');
+      assertIsoDate(single.dueDate, 'dueDate');
+      validateDueTime(single);
+      validateEnums(single);
+      validateGradeFields(single);
+    }
+
+    const created = createAssignmentBatch(input);
+    notifyAssignmentsChanged();
+    return created;
   });
 }

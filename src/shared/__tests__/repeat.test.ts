@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { generateRepeats, MAX_REPEAT_OCCURRENCES, shiftDate, shiftSkipReason } from '../repeat';
+import {
+  generateRepeats,
+  groupIntoSeries,
+  MAX_REPEAT_OCCURRENCES,
+  shiftDate,
+  shiftSkipReason,
+} from '../repeat';
+import type { GroupableRow } from '../repeat';
 
 describe('generateRepeats', () => {
   it('generates weekly occurrences up to and including the until date', () => {
@@ -142,5 +149,101 @@ describe('shiftSkipReason', () => {
 
   it('treats a zero score as a real grade', () => {
     expect(shiftSkipReason({ status: 'in_progress', score: 0 })).toBe('graded');
+  });
+});
+
+describe('groupIntoSeries', () => {
+  const row = (
+    name: string,
+    dueDate: string,
+    seriesSeed: string | null = null,
+    seriesWeeks: number | null = null,
+  ): GroupableRow => ({ name, dueDate, seriesSeed, seriesWeeks, type: 'Homework' });
+
+  it('treats untagged rows as one-offs', () => {
+    const out = groupIntoSeries([row('Essay', '2026-03-06'), row('Midterm', '2026-03-13')]);
+
+    expect(out.series).toEqual([]);
+    expect(out.singles.map(s => s.name)).toEqual(['Essay', 'Midterm']);
+  });
+
+  it('collects rows sharing a tag into one series', () => {
+    const out = groupIntoSeries([
+      row('Homework 1', '2026-03-06', 'seed-a', 1),
+      row('Homework 2', '2026-03-13', 'seed-a', 1),
+      row('Homework 3', '2026-03-20', 'seed-a', 1),
+    ]);
+
+    expect(out.singles).toEqual([]);
+    expect(out.series).toHaveLength(1);
+    expect(out.series[0].intervalWeeks).toBe(1);
+    expect(out.series[0].occurrences.map(o => o.dueDate)).toEqual([
+      '2026-03-06', '2026-03-13', '2026-03-20',
+    ]);
+  });
+
+  it('keeps separate tags as separate series', () => {
+    const out = groupIntoSeries([
+      row('Homework 1', '2026-03-06', 'seed-a', 1),
+      row('Homework 2', '2026-03-13', 'seed-a', 1),
+      row('Lab 1', '2026-03-07', 'seed-b', 2),
+      row('Lab 2', '2026-03-21', 'seed-b', 2),
+    ]);
+
+    expect(out.series).toHaveLength(2);
+    expect(out.series[0].occurrences.map(o => o.name)).toEqual(['Homework 1', 'Homework 2']);
+    expect(out.series[1].intervalWeeks).toBe(2);
+  });
+
+  it('groups a tag whose rows were split apart in the grid', () => {
+    // The user typed an unrelated row into the middle of a generated group.
+    const out = groupIntoSeries([
+      row('Homework 1', '2026-03-06', 'seed-a', 1),
+      row('Reading', '2026-03-09'),
+      row('Homework 2', '2026-03-13', 'seed-a', 1),
+    ]);
+
+    expect(out.series[0].occurrences.map(o => o.name)).toEqual(['Homework 1', 'Homework 2']);
+    expect(out.singles.map(s => s.name)).toEqual(['Reading']);
+  });
+
+  it('demotes a group worn down to a single row', () => {
+    // Every other occurrence was deleted before saving — what's left is just an
+    // assignment, and a series of one is bookkeeping with nothing to book.
+    const out = groupIntoSeries([row('Homework 1', '2026-03-06', 'seed-a', 1)]);
+
+    expect(out.series).toEqual([]);
+    expect(out.singles.map(s => s.name)).toEqual(['Homework 1']);
+  });
+
+  it('keeps edits the user made to generated rows', () => {
+    const out = groupIntoSeries([
+      row('Homework 1', '2026-03-06', 'seed-a', 1),
+      { ...row('Homework 2 (moved)', '2026-03-16', 'seed-a', 1), type: 'Quiz' },
+    ]);
+
+    expect(out.series[0].occurrences[1]).toEqual({
+      name: 'Homework 2 (moved)',
+      type: 'Quiz',
+      dueDate: '2026-03-16',
+    });
+  });
+
+  it('trims whitespace off names', () => {
+    const out = groupIntoSeries([row('  Essay  ', '2026-03-06')]);
+    expect(out.singles[0].name).toBe('Essay');
+  });
+
+  it('falls back to weekly when a group has no recorded interval', () => {
+    const out = groupIntoSeries([
+      row('Homework 1', '2026-03-06', 'seed-a', null),
+      row('Homework 2', '2026-03-13', 'seed-a', null),
+    ]);
+
+    expect(out.series[0].intervalWeeks).toBe(1);
+  });
+
+  it('handles an empty grid', () => {
+    expect(groupIntoSeries([])).toEqual({ series: [], singles: [] });
   });
 });

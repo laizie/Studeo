@@ -38,6 +38,7 @@ import type {
   SaveMediaInput,
   ReminderConfig,
   AssignmentDateSet,
+  CreateAssignmentBatchInput,
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
   ShiftAssignmentsInput,
@@ -66,6 +67,7 @@ const api: WindowApi = {
     restore: (snapshot: AssignmentSnapshot)     => ipcRenderer.invoke(IPC.ASSIGNMENTS.RESTORE, snapshot),
     shift:    (input: ShiftAssignmentsInput)    => ipcRenderer.invoke(IPC.ASSIGNMENTS.SHIFT, input),
     setDates: (items: AssignmentDateSet[])      => ipcRenderer.invoke(IPC.ASSIGNMENTS.SET_DATES, items),
+    createBatch: (input: CreateAssignmentBatchInput) => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE_BATCH, input),
   },
 
   assignmentSeries: {

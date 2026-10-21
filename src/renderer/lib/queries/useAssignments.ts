@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
   AssignmentDateSet,
+  CreateAssignmentBatchInput,
   AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
@@ -93,5 +94,20 @@ export function useSetAssignmentDates() {
   return useMutation({
     mutationFn: (items: AssignmentDateSet[]) => window.api.assignments.setDates(items),
     onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
+  });
+}
+
+/**
+ * Save a whole Day-One Setup grid — repeating groups and one-off rows — in one
+ * transactional call. Invalidates broadly: it creates assignments AND series.
+ */
+export function useCreateAssignmentBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateAssignmentBatchInput) => window.api.assignments.createBatch(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: assignmentKeys.all });
+      qc.invalidateQueries({ queryKey: ['assignmentSeries'] });
+    },
   });
 }
