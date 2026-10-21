@@ -1,9 +1,15 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
+import { shiftDate, shiftSkipReason } from '../../../shared/repeat';
 import type {
   Assignment,
+  AssignmentDateChange,
+  AssignmentDateSet,
   AssignmentSnapshot,
   AssignmentStatus,
+  SeriesScope,
+  ShiftAssignmentsInput,
+  ShiftAssignmentsResult,
   Subtask,
   StudyBlock,
   NoteLink,
@@ -48,7 +54,7 @@ export function createAssignment(input: CreateAssignmentInput): Assignment {
   const completedAt = status === 'completed' ? now : null;
   getDb()
     .prepare(
-      'INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, series_id, series_index, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
     .run(
       id,
@@ -62,6 +68,8 @@ export function createAssignment(input: CreateAssignmentInput): Assignment {
       input.score ?? null,
       input.pointsPossible ?? null,
       completedAt,
+      input.seriesId ?? null,
+      input.seriesIndex ?? null,
       now,
     );
   return getAssignment(id)!;
@@ -169,11 +177,12 @@ export function restoreAssignment(snap: AssignmentSnapshot): Assignment {
   db.exec('BEGIN');
   try {
     db.prepare(
-      `INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, series_id, series_index, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       a.id, a.course_id, a.name, a.type, a.status, a.due_date, a.due_time,
-      a.notes, a.score, a.points_possible, a.completed_at, a.created_at,
+      a.notes, a.score, a.points_possible, a.completed_at,
+      a.series_id, a.series_index, a.created_at,
     );
 
     const insertSubtask = db.prepare(
@@ -208,4 +217,103 @@ export function restoreAssignment(snap: AssignmentSnapshot): Assignment {
   }
 
   return getAssignment(a.id)!;
+}
+
+// ─── Moving dates in bulk ─────────────────────────────────────────────────────
+
+/** Every occurrence of a series, in series order (not date order — see series_index). */
+export function listBySeries(seriesId: string): Assignment[] {
+  return (
+    getDb()
+      .prepare('SELECT * FROM assignments WHERE series_id = ? ORDER BY series_index ASC')
+      .all(seriesId) as unknown[]
+  ).map(row);
+}
+
+/**
+ * Write new due dates for several rows in one transaction — every row lands or
+ * none do.
+ *
+ * useRescheduleItems fans out to per-row update() calls and its own comment
+ * named this as the cue to add a real bulk channel: "If this ever needs to be
+ * atomic — all-or-nothing across rows — that's the cue to add a real updateMany
+ * IPC handler wrapped in a DB transaction." A twelve-row series shift is that
+ * case, because a half-applied shift leaves a schedule nobody can reason about.
+ *
+ * Only due_date, deliberately: this is the bulk path for the one field bulk
+ * edits are actually about, so it can't become a general-purpose back door
+ * around updateAssignment's completed_at bookkeeping.
+ */
+export function setDates(items: AssignmentDateSet[]): number {
+  if (items.length === 0) return 0;
+
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const stmt = db.prepare('UPDATE assignments SET due_date = ? WHERE id = ?');
+    for (const item of items) stmt.run(item.dueDate, item.id);
+    db.exec('COMMIT');
+    return items.length;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+/** Which rows a scope reaches. 'this_and_later' leans on series_index rather than
+ *  due_date so an occurrence already dragged out of order still counts as "later
+ *  in the series". A row with no series only ever means itself. */
+function scopeTargets(anchor: Assignment, scope: SeriesScope): Assignment[] {
+  if (scope === 'one' || !anchor.series_id || anchor.series_index == null) return [anchor];
+
+  const db = getDb();
+  const rows =
+    scope === 'all'
+      ? db
+          .prepare('SELECT * FROM assignments WHERE series_id = ? ORDER BY series_index ASC')
+          .all(anchor.series_id)
+      : db
+          .prepare(
+            'SELECT * FROM assignments WHERE series_id = ? AND series_index >= ? ORDER BY series_index ASC'
+          )
+          .all(anchor.series_id, anchor.series_index);
+
+  return (rows as unknown[]).map(row);
+}
+
+/**
+ * Move an occurrence — and optionally the rest of its series — by a number of days.
+ *
+ * The anchor row always moves: the user pointed at it and asked. The *other*
+ * rows the scope swept up are collateral, so finished work among them is left
+ * alone and reported back (shiftSkipReason). Sliding a graded assignment because
+ * the rest of the series moved would rewrite history the user never asked about.
+ *
+ * Returns before/after for every row it touched, which is exactly what Undo
+ * needs: replay it through setDates with the `from` dates and each row goes back
+ * to the different date it personally had.
+ */
+export function shiftAssignments(input: ShiftAssignmentsInput): ShiftAssignmentsResult {
+  const anchor = getAssignment(input.assignmentId);
+  if (!anchor) throw new Error('Assignment not found');
+
+  const changed: AssignmentDateChange[] = [];
+  const skipped: ShiftAssignmentsResult['skipped'] = [];
+
+  for (const occurrence of scopeTargets(anchor, input.scope)) {
+    const isAnchor = occurrence.id === anchor.id;
+    const reason = isAnchor ? null : shiftSkipReason(occurrence);
+    if (reason) {
+      skipped.push({ id: occurrence.id, name: occurrence.name, reason });
+      continue;
+    }
+
+    const to = shiftDate(occurrence.due_date, input.days);
+    // '' means the stored date didn't parse; a no-op date isn't worth a write.
+    if (!to || to === occurrence.due_date) continue;
+    changed.push({ id: occurrence.id, from: occurrence.due_date, to });
+  }
+
+  setDates(changed.map(c => ({ id: c.id, dueDate: c.to })));
+  return { changed, skipped };
 }

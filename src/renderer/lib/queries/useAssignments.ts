@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
+  AssignmentDateSet,
   AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
+  ShiftAssignmentsInput,
   UpdateAssignmentInput,
 } from '../../../shared/types';
 
@@ -67,5 +69,29 @@ export function useRestoreAssignment() {
   return useMutation({
     mutationFn: (snapshot: AssignmentSnapshot) => window.api.assignments.restore(snapshot),
     onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/**
+ * Move an occurrence, or it and the rest of its series, by a number of days.
+ *
+ * Resolves to the list of rows that actually moved (with their old dates) plus
+ * the finished ones it refused to touch — so the caller can both report honestly
+ * and hand the before-dates to useSetAssignmentDates as an Undo.
+ */
+export function useShiftAssignments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ShiftAssignmentsInput) => window.api.assignments.shift(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
+  });
+}
+
+/** Write exact dates to many rows in one transaction — the Undo half of a shift. */
+export function useSetAssignmentDates() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: AssignmentDateSet[]) => window.api.assignments.setDates(items),
+    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
   });
 }

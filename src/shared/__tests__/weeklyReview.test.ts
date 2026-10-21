@@ -20,7 +20,8 @@ function assign(
   return {
     id, course_id: 'c1', name: id, type: 'Homework', status,
     due_date: dueDate, due_time: null, notes: null, score: null,
-    points_possible: null, completed_at: completedAt, created_at: '2026-01-01',
+    points_possible: null, completed_at: completedAt,
+    series_id: null, series_index: null, created_at: '2026-01-01',
   };
 }
 

@@ -19,7 +19,8 @@ function assign(
   return {
     id, course_id: 'c1', name: `Task ${id}`, type: 'Homework' as AssignmentType,
     status: 'not_started', due_date: dueDate, due_time: null, notes: null,
-    score: null, points_possible: null, completed_at: null, created_at: '2026-08-01',
+    score: null, points_possible: null, completed_at: null,
+    series_id: null, series_index: null, created_at: '2026-08-01',
     ...overrides,
   };
 }

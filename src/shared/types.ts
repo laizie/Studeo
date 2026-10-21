@@ -80,8 +80,53 @@ export interface Assignment {
    *  Set/cleared by the repo on status transitions — never authored directly.
    *  Powers time-windowed views like the Weekly Review's "what got done". */
   completed_at: string | null;
+  /** The repeating series this occurrence came from, or null for a one-off.
+   *  Nulled (not deleted) when the series is dropped — see AssignmentSeries. */
+  series_id: string | null;
+  /** 1-based position within the series; null for a one-off. Deliberately NOT
+   *  derived from due_date: dates are exactly what gets shifted around, so
+   *  "this and later" has to mean "later in the series", not "later on the
+   *  calendar". Moving occurrence 5 past 6 doesn't renumber anything. */
+  series_index: number | null;
   created_at: string;
 }
+
+/**
+ * A repeating assignment ("Homework, every week until May 1"). The series row
+ * records what was *asked for*; the occurrences are ordinary `assignments` rows
+ * that carry their own status, score, subtasks and study blocks.
+ *
+ * It is bookkeeping, not a constraint. Moving one occurrence doesn't update the
+ * rule and nothing re-syncs — so the rule is a record of intent, and the rows
+ * stay the truth. That asymmetry is what keeps this simple.
+ *
+ * Contrast class_meetings/meeting_exceptions, where the rule IS the truth and
+ * exceptions override it per date. A class occurrence carries no state of its
+ * own; an assignment occurrence carries all of it, so it has to be a real row.
+ */
+export interface AssignmentSeries {
+  id: string;
+  course_id: string;
+  /** The first occurrence's name as typed ("Homework 1"); later ones are
+   *  numbered from it by shared/repeat.ts. */
+  name_template: string;
+  type: AssignmentType;
+  /** 1 = weekly, 2 = every two weeks. */
+  interval_weeks: number;
+  anchor_date: string; // YYYY-MM-DD of the first occurrence
+  until_date: string;  // last date an occurrence may land on (inclusive)
+  due_time: string | null;
+  created_at: string;
+}
+
+/**
+ * How far an edit to one occurrence reaches. 'one' is always the default —
+ * silently rewriting a whole semester because the user edited one row is the
+ * mistake every calendar app makes once.
+ */
+export type SeriesScope = 'one' | 'this_and_later' | 'all';
+
+export const SERIES_SCOPES: SeriesScope[] = ['one', 'this_and_later', 'all'];
 
 // A checklist step inside an assignment ("Essay" → outline, draft, revise).
 export interface Subtask {
@@ -353,6 +398,10 @@ export interface CreateAssignmentInput {
   notes?: string;
   score?: number | null;
   pointsPossible?: number | null;
+  /** Set only by createAssignmentSeries when it expands a rule into rows.
+   *  Nothing in the UI passes these directly. */
+  seriesId?: string | null;
+  seriesIndex?: number | null;
 }
 
 export interface UpdateAssignmentInput {
@@ -365,6 +414,58 @@ export interface UpdateAssignmentInput {
   notes?: string | null;
   score?: number | null;
   pointsPossible?: number | null;
+}
+
+export interface CreateAssignmentSeriesInput {
+  courseId: string;
+  /** The first occurrence's name, as typed. Later ones are numbered from it. */
+  name: string;
+  type?: AssignmentType;
+  anchorDate: string; // first occurrence, YYYY-MM-DD
+  untilDate: string;  // inclusive end of the series
+  intervalWeeks: number;
+  /** "HH:MM" (24h) applied to every occurrence; omit/null for all-day. */
+  dueTime?: string | null;
+}
+
+/** A series plus the rows it just created — what the UI needs to show the result. */
+export interface AssignmentSeriesWithOccurrences {
+  series: AssignmentSeries;
+  assignments: Assignment[];
+}
+
+export interface ExtendAssignmentSeriesInput {
+  seriesId: string;
+  /** New inclusive end date; must be after the current one. */
+  untilDate: string;
+}
+
+export interface ShiftAssignmentsInput {
+  /** The occurrence the user acted on — the anchor for 'one' and 'this_and_later'. */
+  assignmentId: string;
+  scope: SeriesScope;
+  /** Whole days to add; negative pulls the dates earlier. */
+  days: number;
+}
+
+/** One row's due date before and after a move. The list of these IS the Undo. */
+export interface AssignmentDateChange {
+  id: string;
+  from: string;
+  to: string;
+}
+
+/** {id, dueDate} pairs for a transactional multi-row date write. */
+export interface AssignmentDateSet {
+  id: string;
+  dueDate: string;
+}
+
+export interface ShiftAssignmentsResult {
+  changed: AssignmentDateChange[];
+  /** Occurrences deliberately left alone, so the UI can say "moved 7, left 2
+   *  already-graded ones alone" instead of quietly rewriting finished history. */
+  skipped: { id: string; name: string; reason: 'completed' | 'graded' }[];
 }
 
 export interface CreateSubtaskInput {
@@ -561,6 +662,14 @@ export const IPC = {
     UPDATE:      'assignments:update',
     DELETE:      'assignments:delete',
     RESTORE:     'assignments:restore',
+    SHIFT:       'assignments:shift',
+    SET_DATES:   'assignments:set-dates',
+  },
+  ASSIGNMENT_SERIES: {
+    LIST:   'assignment_series:list',
+    CREATE: 'assignment_series:create',
+    EXTEND: 'assignment_series:extend',
+    DELETE: 'assignment_series:delete',
   },
   SUBTASKS: {
     LIST:   'subtasks:list',
@@ -743,6 +852,22 @@ export interface WindowApi {
     /** Returns everything it removed, so Undo can restore it exactly. Null if the id was already gone. */
     delete(id: string): Promise<AssignmentSnapshot | null>;
     restore(snapshot: AssignmentSnapshot): Promise<Assignment>;
+    /** Move one occurrence, or it and the rest of its series, by a number of days.
+     *  Completed and graded occurrences are skipped and reported back. */
+    shift(input: ShiftAssignmentsInput): Promise<ShiftAssignmentsResult>;
+    /** Transactional multi-row date write — all rows land or none do. Also how
+     *  Undo replays a shift, by passing each row's original date back. */
+    setDates(items: AssignmentDateSet[]): Promise<number>;
+  };
+  assignmentSeries: {
+    list(filters?: { courseId?: string }): Promise<AssignmentSeries[]>;
+    /** Creates the series and expands it into occurrences in one transaction. */
+    create(input: CreateAssignmentSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
+    /** Push the end date out and append the occurrences that fit ("prof added two more"). */
+    extend(input: ExtendAssignmentSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
+    /** "Stop repeating": drops the rule only. Every occurrence survives as a
+     *  standalone assignment, grades and all. */
+    delete(id: string): Promise<void>;
   };
   subtasks: {
     list(filters?: { assignmentId?: string }): Promise<Subtask[]>;

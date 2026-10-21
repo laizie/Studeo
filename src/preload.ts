@@ -37,6 +37,10 @@ import type {
   NoteLinkEntity,
   SaveMediaInput,
   ReminderConfig,
+  AssignmentDateSet,
+  CreateAssignmentSeriesInput,
+  ExtendAssignmentSeriesInput,
+  ShiftAssignmentsInput,
   ReminderNavTarget,
   MiniTimerState,
   MiniTimerCommand,
@@ -60,6 +64,15 @@ const api: WindowApi = {
     update:     (id, input: UpdateAssignmentInput)  => ipcRenderer.invoke(IPC.ASSIGNMENTS.UPDATE, id, input),
     delete:  (id)                               => ipcRenderer.invoke(IPC.ASSIGNMENTS.DELETE, id),
     restore: (snapshot: AssignmentSnapshot)     => ipcRenderer.invoke(IPC.ASSIGNMENTS.RESTORE, snapshot),
+    shift:    (input: ShiftAssignmentsInput)    => ipcRenderer.invoke(IPC.ASSIGNMENTS.SHIFT, input),
+    setDates: (items: AssignmentDateSet[])      => ipcRenderer.invoke(IPC.ASSIGNMENTS.SET_DATES, items),
+  },
+
+  assignmentSeries: {
+    list:   (filters?: { courseId?: string })            => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.LIST, filters),
+    create: (input: CreateAssignmentSeriesInput)         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.CREATE, input),
+    extend: (input: ExtendAssignmentSeriesInput)         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.EXTEND, input),
+    delete: (id)                                         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.DELETE, id),
   },
 
   tasks: {

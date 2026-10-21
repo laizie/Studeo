@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateRepeats, MAX_REPEAT_OCCURRENCES } from '../repeat';
+import { generateRepeats, MAX_REPEAT_OCCURRENCES, shiftDate, shiftSkipReason } from '../repeat';
 
 describe('generateRepeats', () => {
   it('generates weekly occurrences up to and including the until date', () => {
@@ -73,5 +73,74 @@ describe('generateRepeats', () => {
   it('caps runaway series at MAX_REPEAT_OCCURRENCES', () => {
     const out = generateRepeats('HW 1', '2026-01-01', '2099-01-01', 1);
     expect(out.length).toBe(MAX_REPEAT_OCCURRENCES);
+  });
+});
+
+describe('shiftDate', () => {
+  it('moves a date forward by whole days', () => {
+    expect(shiftDate('2026-03-05', 7)).toBe('2026-03-12');
+  });
+
+  it('moves a date backward for a negative shift', () => {
+    expect(shiftDate('2026-03-12', -7)).toBe('2026-03-05');
+  });
+
+  it('rolls over a month boundary', () => {
+    expect(shiftDate('2026-01-28', 7)).toBe('2026-02-04');
+  });
+
+  it('rolls over a year boundary', () => {
+    expect(shiftDate('2026-12-28', 7)).toBe('2027-01-04');
+  });
+
+  it('handles a leap day', () => {
+    expect(shiftDate('2028-02-28', 1)).toBe('2028-02-29');
+  });
+
+  // The DST cases are why this goes through local-midnight Dates instead of
+  // UTC arithmetic: a naive +7*86400e3 lands on the 23- or 25-hour day and
+  // comes back off by one.
+  it('keeps the same weekday across a spring-forward boundary', () => {
+    // US DST starts 2026-03-08. Sunday the 1st + 7 is still a Sunday.
+    expect(shiftDate('2026-03-01', 7)).toBe('2026-03-08');
+    expect(shiftDate('2026-03-06', 7)).toBe('2026-03-13');
+  });
+
+  it('keeps the same weekday across a fall-back boundary', () => {
+    // US DST ends 2026-11-01.
+    expect(shiftDate('2026-10-30', 7)).toBe('2026-11-06');
+  });
+
+  it('is a no-op for a zero shift', () => {
+    expect(shiftDate('2026-03-05', 0)).toBe('2026-03-05');
+  });
+
+  it('returns empty for unusable input rather than throwing', () => {
+    expect(shiftDate('', 7)).toBe('');
+    expect(shiftDate('not-a-date', 7)).toBe('');
+    expect(shiftDate('2026-03-05', 1.5)).toBe('');
+  });
+});
+
+describe('shiftSkipReason', () => {
+  it('leaves an untouched occurrence alone', () => {
+    expect(shiftSkipReason({ status: 'not_started', score: null })).toBeNull();
+    expect(shiftSkipReason({ status: 'in_progress', score: null })).toBeNull();
+  });
+
+  it('protects a completed occurrence', () => {
+    expect(shiftSkipReason({ status: 'completed', score: null })).toBe('completed');
+  });
+
+  it('protects a graded occurrence even if it was never marked done', () => {
+    expect(shiftSkipReason({ status: 'not_started', score: 18 })).toBe('graded');
+  });
+
+  it('reports completion first when an occurrence is both', () => {
+    expect(shiftSkipReason({ status: 'completed', score: 18 })).toBe('completed');
+  });
+
+  it('treats a zero score as a real grade', () => {
+    expect(shiftSkipReason({ status: 'in_progress', score: 0 })).toBe('graded');
   });
 });

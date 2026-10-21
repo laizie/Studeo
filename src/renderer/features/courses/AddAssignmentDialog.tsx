@@ -5,7 +5,8 @@ import { ASSIGNMENT_TYPES } from '../../../shared/types';
 import type { Assignment, AssignmentType } from '../../../shared/types';
 import { plainTextToBlocks } from '../../../shared/notes';
 import { generateRepeats } from '../../../shared/repeat';
-import { useCreateAssignment, useCreateAssignments, useUpdateAssignment } from '../../lib/queries/useAssignments';
+import { useCreateAssignment, useUpdateAssignment } from '../../lib/queries/useAssignments';
+import { useCreateAssignmentSeries } from '../../lib/queries/useAssignmentSeries';
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import EntityNotesList from '../notes/EntityNotesList';
@@ -42,7 +43,7 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const [legacyImported, setLegacyImported] = useState(false);
 
   const createAssignment  = useCreateAssignment();
-  const createAssignments = useCreateAssignments();
+  const createSeries = useCreateAssignmentSeries();
   const updateAssignment  = useUpdateAssignment();
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
@@ -98,14 +99,21 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
     try {
       if (repeating) {
-        // Expand into independent, numbered copies and insert them atomically —
-        // either the whole series saves or none of it does (createMany).
-        const series = [
-          { courseId, name: name.trim(), type, dueDate, dueTime: dueTimeValue },
-          ...followUps.map(o => ({ courseId, name: o.name, type, dueDate: o.dueDate, dueTime: dueTimeValue })),
-        ];
-        await createAssignments.mutateAsync(series);
-        showToast(`Added ${series.length} assignments`);
+        // Save the repeat RULE alongside the rows it expands to, so the series
+        // still knows it's a series afterwards. That's what makes "move this and
+        // everything after it" possible later — the previous version inserted the
+        // same rows with createMany and they came out as strangers to each other,
+        // which is why a shifted syllabus meant editing every row by hand.
+        const { assignments } = await createSeries.mutateAsync({
+          courseId,
+          name: name.trim(),
+          type,
+          anchorDate: dueDate,
+          untilDate: repeatUntil,
+          intervalWeeks: repeatWeeks,
+          dueTime: dueTimeValue,
+        });
+        showToast(`Added ${assignments.length} assignments`);
         onClose();
         return;
       }
@@ -164,9 +172,9 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
   const hasLegacyNote = isEditing && !legacyImported && !!assignment?.notes?.trim();
 
-  const isPending = createAssignment.isPending || createAssignments.isPending || updateAssignment.isPending;
-  const isError   = createAssignment.isError   || createAssignments.isError   || updateAssignment.isError;
-  const mutationError = createAssignment.error ?? createAssignments.error ?? updateAssignment.error;
+  const isPending = createAssignment.isPending || createSeries.isPending || updateAssignment.isPending;
+  const isError   = createAssignment.isError   || createSeries.isError   || updateAssignment.isError;
+  const mutationError = createAssignment.error ?? createSeries.error ?? updateAssignment.error;
 
   return (
     <DialogShell

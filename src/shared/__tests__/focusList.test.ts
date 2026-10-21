@@ -13,7 +13,8 @@ function assignment(over: Partial<Assignment> = {}): Assignment {
   return {
     id: 'a1', course_id: 'c1', name: 'Problem set 4', type: 'Homework',
     status: 'not_started', due_date: '2026-09-10', due_time: null, notes: null,
-    score: null, points_possible: null, completed_at: null, created_at: '', ...over,
+    score: null, points_possible: null, completed_at: null,
+    series_id: null, series_index: null, created_at: '', ...over,
   };
 }
 

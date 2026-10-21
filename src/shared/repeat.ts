@@ -5,6 +5,7 @@
 // expands into Homework 2, Homework 3, … with the dates filled in.
 
 import { parseDateLocal } from './deadlines';
+import type { AssignmentStatus } from './types';
 
 export interface RepeatOccurrence {
   name: string;
@@ -72,4 +73,47 @@ export function generateRepeats(
     out.push({ name: numberedName(name, step), dueDate: toDateStrLocal(cursor) });
   }
   return out;
+}
+
+// ─── Moving a series around ───────────────────────────────────────────────────
+// The repeat rule above is only half the story. Once a semester is underway the
+// dates move — the prof falls behind, a class gets cancelled, a quiz slides a
+// week — so the other half is shifting occurrences that already exist.
+
+/**
+ * Add (or subtract, for a negative `days`) whole days to a YYYY-MM-DD date.
+ *
+ * Stays in local time throughout: parseDateLocal gives local midnight, setDate
+ * handles month/year rollover, and toDateStrLocal reads the local components
+ * back. Going via toISOString instead would shift the date by a day during
+ * evening hours, which is the classic way a "+7 days" button loses a day.
+ *
+ * Returns '' for input it can't parse, matching generateRepeats' habit of
+ * treating bad input as "nothing to do" rather than throwing.
+ */
+export function shiftDate(date: string, days: number): string {
+  if (!date || !Number.isInteger(days)) return '';
+  const d = parseDateLocal(date);
+  if (isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + days);
+  return toDateStrLocal(d);
+}
+
+/**
+ * Why a bulk shift should leave this occurrence alone — or null if it's fair game.
+ *
+ * Finished work is history: its due date is the date it was actually due, and a
+ * score is a fact about a specific graded thing. Sliding either because the
+ * REST of the series moved would quietly rewrite the past, so a bulk move skips
+ * them and reports what it skipped instead.
+ *
+ * Checked in order: a completed-and-graded row reports as 'completed', the more
+ * obvious of the two reasons to a reader.
+ */
+export function shiftSkipReason(
+  occurrence: { status: AssignmentStatus; score: number | null },
+): 'completed' | 'graded' | null {
+  if (occurrence.status === 'completed') return 'completed';
+  if (occurrence.score != null) return 'graded';
+  return null;
 }

@@ -19,7 +19,7 @@ function assign(
   return {
     id, course_id: courseId, name: id, type, status, due_date: dueDate,
     due_time: null, notes: null, score: null, points_possible: null,
-    completed_at: null, created_at: '2026-01-01',
+    completed_at: null, series_id: null, series_index: null, created_at: '2026-01-01',
   };
 }
 

@@ -49,3 +49,22 @@ export function assertHexColor(value: unknown, label = 'color'): void {
     throw new Error(`${label} must be a hex color like #6393e1`);
   }
 }
+
+// A stored date is always a plain YYYY-MM-DD day (times live in their own column),
+// and a bulk date write is the one place a malformed one would spread across many
+// rows at once — so the shape is checked before any of them land.
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function assertIsoDate(value: unknown, label = 'date'): void {
+  if (typeof value !== 'string' || !ISO_DATE_RE.test(value)) {
+    throw new Error(`${label} must be a date like 2026-03-09`);
+  }
+  // Shape alone would accept 2026-02-31. Round-trip it through Date to confirm
+  // the day actually exists, rather than letting SQLite store a date that no
+  // calendar has and every comparison then treats as real.
+  const [y, m, d] = value.split('-').map(Number);
+  const probe = new Date(y, m - 1, d);
+  if (probe.getFullYear() !== y || probe.getMonth() !== m - 1 || probe.getDate() !== d) {
+    throw new Error(`${label} is not a real calendar date`);
+  }
+}

@@ -4,6 +4,7 @@ import started from 'electron-squirrel-startup';
 import { initDb } from './main/db/connection';
 import { registerCourseHandlers } from './main/ipc/registerCourseHandlers';
 import { registerAssignmentHandlers } from './main/ipc/registerAssignmentHandlers';
+import { registerAssignmentSeriesHandlers } from './main/ipc/registerAssignmentSeriesHandlers';
 import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
 import { registerSubtaskHandlers } from './main/ipc/registerSubtaskHandlers';
 import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
@@ -51,6 +52,7 @@ protocol.registerSchemesAsPrivileged([
 function registerIpcHandlers(): void {
   registerCourseHandlers();
   registerAssignmentHandlers();
+  registerAssignmentSeriesHandlers();
   registerTaskHandlers();
   registerSubtaskHandlers();
   registerClassMeetingHandlers();

@@ -1,12 +1,14 @@
 import { ipcMain } from 'electron';
-import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES } from '../../shared/types';
+import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES, SERIES_SCOPES } from '../../shared/types';
 import type {
+  AssignmentDateSet,
   AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
+  ShiftAssignmentsInput,
   UpdateAssignmentInput,
 } from '../../shared/types';
-import { assertOptionalOneOf } from '../../shared/validate';
+import { assertIsoDate, assertOneOf, assertOptionalOneOf } from '../../shared/validate';
 import {
   listAssignments,
   createAssignment,
@@ -14,6 +16,8 @@ import {
   updateAssignment,
   deleteAssignment,
   restoreAssignment,
+  shiftAssignments,
+  setDates,
 } from '../db/repositories/assignmentRepo';
 import { notifyAssignmentsChanged } from '../applereminders';
 
@@ -116,5 +120,36 @@ export function registerAssignmentHandlers(): void {
     // Undo puts the assignment back, so the reminder should come back with it.
     notifyAssignmentsChanged();
     return restored;
+  });
+
+  // Move one occurrence, or it and the rest of its series, by a number of days.
+  // A whole year either way is far more than any syllabus slip and still well
+  // inside what the date math handles; the bound is here so a runaway caller
+  // can't walk a semester into 2140.
+  ipcMain.handle(IPC.ASSIGNMENTS.SHIFT, (_event, input: ShiftAssignmentsInput) => {
+    if (!input?.assignmentId) throw new Error('assignmentId is required');
+    assertOneOf(input.scope, SERIES_SCOPES, 'scope');
+    if (!Number.isInteger(input.days)) throw new Error('days must be a whole number');
+    if (input.days === 0) throw new Error('days must not be zero');
+    if (Math.abs(input.days) > 365) throw new Error('days must be within a year either way');
+    const result = shiftAssignments(input);
+    // Every moved row is a reminder that should now fire on a different day.
+    notifyAssignmentsChanged();
+    return result;
+  });
+
+  // The bulk date write behind a shift and its Undo. Dates are validated for the
+  // whole batch before any of it lands, matching the repo's all-or-nothing write:
+  // a bad date in row nine shouldn't leave rows one to eight moved.
+  ipcMain.handle(IPC.ASSIGNMENTS.SET_DATES, (_event, items: AssignmentDateSet[]) => {
+    if (!Array.isArray(items) || items.length === 0) throw new Error('items must be a non-empty array');
+    if (items.length > 500) throw new Error('Too many assignments in one batch (max 500)');
+    for (const item of items) {
+      if (!item?.id) throw new Error('id is required on every row');
+      assertIsoDate(item.dueDate, 'dueDate');
+    }
+    const count = setDates(items);
+    notifyAssignmentsChanged();
+    return count;
   });
 }

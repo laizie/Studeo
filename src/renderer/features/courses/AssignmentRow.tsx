@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo, CalendarPlus } from 'lucide-react';
+import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo, CalendarPlus, CalendarClock, Repeat } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SubtaskChecklist from './SubtaskChecklist';
+import MoveDatesDialog from './MoveDatesDialog';
 import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../shared/deadlines';
@@ -43,6 +44,8 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const inSeries = assignment.series_index != null;
 
   // Selects only this assignment's steps out of the shared query, so a change to some
   // other row's checklist doesn't re-render this one (see useSubtasksFor).
@@ -143,6 +146,18 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
         {assignment.name}
       </button>
 
+      {/* Repeating-series marker. Quiet by design: it explains why "Move dates"
+          offers to move more than this row, and nothing else depends on it. */}
+      {inSeries && (
+        <span
+          className="shrink-0 text-muted"
+          title={`Part of a repeating series — occurrence ${assignment.series_index}`}
+          aria-label={`Occurrence ${assignment.series_index} of a repeating series`}
+        >
+          <Repeat size={12} />
+        </span>
+      )}
+
       {/* Type badge */}
       <span className="shrink-0 hidden sm:inline-block px-2 py-0.5 rounded text-xs text-muted bg-inset">
         {assignment.type}
@@ -195,6 +210,16 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
           <CalendarPlus size={13} />
         </button>
       )}
+
+      {/* Move dates — a nudge for a one-off, and the series shift for a repeat */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setMoveOpen(true); }}
+        aria-label={inSeries ? `Move dates for ${assignment.name} or its series` : `Move the due date for ${assignment.name}`}
+        title={inSeries ? 'Move dates' : 'Move due date'}
+        className="shrink-0 p-1 rounded text-muted hover:text-accent-text transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        <CalendarClock size={13} />
+      </button>
 
       {/* Focus list toggle */}
       <button
@@ -251,6 +276,12 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
     {planOpen && (
       <PlanStudyDialog assignment={assignment} course={course} onClose={() => setPlanOpen(false)} />
     )}
+
+    <MoveDatesDialog
+      assignment={assignment}
+      isOpen={moveOpen}
+      onClose={() => setMoveOpen(false)}
+    />
     </div>
   );
 }
