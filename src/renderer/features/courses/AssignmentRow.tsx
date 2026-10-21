@@ -147,10 +147,12 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
       </button>
 
       {/* Repeating-series marker. Quiet by design: it explains why "Move dates"
-          offers to move more than this row, and nothing else depends on it. */}
+          offers to move more than this row, and nothing else depends on it —
+          so it hides at the same width the due date does, rather than taking
+          room from the assignment's name, which is the thing you're reading. */}
       {inSeries && (
         <span
-          className="shrink-0 text-muted"
+          className="shrink-0 hidden md:inline-flex text-muted"
           title={`Part of a repeating series — occurrence ${assignment.series_index}`}
           aria-label={`Occurrence ${assignment.series_index} of a repeating series`}
         >
@@ -211,16 +213,6 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
         </button>
       )}
 
-      {/* Move dates — a nudge for a one-off, and the series shift for a repeat */}
-      <button
-        onClick={(e) => { e.stopPropagation(); setMoveOpen(true); }}
-        aria-label={inSeries ? `Move dates for ${assignment.name} or its series` : `Move the due date for ${assignment.name}`}
-        title={inSeries ? 'Move dates' : 'Move due date'}
-        className="shrink-0 p-1 rounded text-muted hover:text-accent-text transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-      >
-        <CalendarClock size={13} />
-      </button>
-
       {/* Focus list toggle */}
       <button
         onClick={handleFocusToggle}
@@ -237,8 +229,19 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
         <Target size={13} />
       </button>
 
-      {/* Edit + delete — revealed on row hover or keyboard focus */}
+      {/* Move dates, edit, delete — revealed on row hover or keyboard focus.
+          Move dates sits in this cluster rather than beside the other row icons
+          so the three actions share one tight gap instead of three wide ones;
+          every pixel here comes out of the name. */}
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => { e.stopPropagation(); setMoveOpen(true); }}
+          aria-label={inSeries ? `Move dates for ${assignment.name} or its series` : `Move the due date for ${assignment.name}`}
+          className="p-1 text-muted hover:text-accent-text rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          title={inSeries ? 'Move dates' : 'Move due date'}
+        >
+          <CalendarClock size={13} />
+        </button>
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(assignment); }}
           aria-label={`Edit ${assignment.name}`}
