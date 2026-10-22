@@ -498,6 +498,23 @@ export interface AssignmentBatchResult {
   assignments: Assignment[];
 }
 
+/**
+ * Link assignments that already exist into a series they were always meant to
+ * be — the escape hatch for everything added before series existed, and for
+ * anything an importer creates as unrelated rows.
+ *
+ * Purely additive: it stamps the rows with a series and writes the rule, and
+ * changes nothing else. Names are left exactly as they are, because linking is
+ * a statement about what these rows ARE, not a request to rewrite them. A
+ * scoped rename afterwards is a separate decision.
+ */
+export interface LinkIntoSeriesInput {
+  courseId: string;
+  intervalWeeks: number;
+  /** Existing, unlinked ids in the order they should be numbered. */
+  assignmentIds: string[];
+}
+
 export interface ExtendAssignmentSeriesInput {
   seriesId: string;
   /** New inclusive end date; must be after the current one. */
@@ -826,6 +843,7 @@ export const IPC = {
   ASSIGNMENT_SERIES: {
     LIST:   'assignment_series:list',
     CREATE: 'assignment_series:create',
+    LINK:   'assignment_series:link',
     EXTEND: 'assignment_series:extend',
     DELETE: 'assignment_series:delete',
   },
@@ -1040,6 +1058,8 @@ export interface WindowApi {
     create(input: CreateAssignmentSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
     /** Push the end date out and append the occurrences that fit ("prof added two more"). */
     extend(input: ExtendAssignmentSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
+    /** Bind existing unlinked rows into a series, leaving their names alone. */
+    link(input: LinkIntoSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
     /** "Stop repeating": drops the rule only. Every occurrence survives as a
      *  standalone assignment, grades and all. */
     delete(id: string): Promise<void>;

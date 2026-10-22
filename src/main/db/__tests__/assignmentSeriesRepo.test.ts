@@ -26,6 +26,7 @@ import {
   createAssignmentSeries,
   createAssignmentSeriesFromRows,
   createAssignmentBatch,
+  linkIntoSeries,
   extendAssignmentSeries,
   deleteAssignmentSeries,
 } from '../repositories/assignmentSeriesRepo';
@@ -644,5 +645,142 @@ describe('applyToSeries', () => {
     expect(() => applyToSeries({ assignmentId: 'nope', scope: 'all', name: 'X' })).toThrow(
       /not found/i,
     );
+  });
+});
+
+describe('linkIntoSeries', () => {
+  /** Three weekly assignments the old way — unrelated rows, as everything was. */
+  function looseRows() {
+    return [
+      createAssignment({ courseId, name: 'Homework 1', type: 'Homework', dueDate: '2026-03-06' }),
+      createAssignment({ courseId, name: 'Homework 2', type: 'Homework', dueDate: '2026-03-13' }),
+      createAssignment({ courseId, name: 'Homework 3', type: 'Homework', dueDate: '2026-03-20' }),
+    ];
+  }
+
+  it('binds the rows into a series, in the order given', () => {
+    const rows = looseRows();
+
+    const { series, assignments } = linkIntoSeries({
+      courseId,
+      intervalWeeks: 1,
+      assignmentIds: rows.map(r => r.id),
+    });
+
+    expect(assignments.map(a => a.id)).toEqual(rows.map(r => r.id));
+    expect(assignments.map(a => a.series_index)).toEqual([1, 2, 3]);
+    expect(assignments.every(a => a.series_id === series.id)).toBe(true);
+  });
+
+  it('reads the rule off the rows', () => {
+    const rows = looseRows();
+
+    const { series } = linkIntoSeries({
+      courseId,
+      intervalWeeks: 1,
+      assignmentIds: rows.map(r => r.id),
+    });
+
+    expect(series.name_template).toBe('Homework 1');
+    expect(series.type).toBe('Homework');
+    expect(series.anchor_date).toBe('2026-03-06');
+    expect(series.until_date).toBe('2026-03-20');
+    expect(series.interval_weeks).toBe(1);
+  });
+
+  it('leaves names, dates and grades exactly as they were', () => {
+    const rows = looseRows();
+    updateAssignment(rows[1].id, { status: 'completed', score: 18, pointsPossible: 20 });
+    const before = rows.map(r => getAssignment(r.id)!);
+
+    linkIntoSeries({ courseId, intervalWeeks: 1, assignmentIds: rows.map(r => r.id) });
+
+    for (const original of before) {
+      const after = getAssignment(original.id)!;
+      expect(after.name).toBe(original.name);
+      expect(after.due_date).toBe(original.due_date);
+      expect(after.score).toBe(original.score);
+      expect(after.status).toBe(original.status);
+      expect(after.created_at).toBe(original.created_at);
+    }
+  });
+
+  it('produces a series that shifts like any other', () => {
+    // The whole point: rows that predate the feature become movable as a group.
+    const rows = looseRows();
+    const { series } = linkIntoSeries({
+      courseId,
+      intervalWeeks: 1,
+      assignmentIds: rows.map(r => r.id),
+    });
+
+    shiftAssignments({ assignmentId: rows[1].id, scope: 'this_and_later', days: 7 });
+
+    expect(listBySeries(series.id).map(a => a.due_date)).toEqual([
+      '2026-03-06', '2026-03-20', '2026-03-27',
+    ]);
+  });
+
+  it('is undone cleanly by dropping the series', () => {
+    const rows = looseRows();
+    const { series } = linkIntoSeries({
+      courseId,
+      intervalWeeks: 1,
+      assignmentIds: rows.map(r => r.id),
+    });
+
+    deleteAssignmentSeries(series.id);
+
+    const after = rows.map(r => getAssignment(r.id)!);
+    expect(after.every(a => a.series_id === null && a.series_index === null)).toBe(true);
+    expect(after.map(a => a.name)).toEqual(['Homework 1', 'Homework 2', 'Homework 3']);
+  });
+
+  it('refuses a row that is already in a series', () => {
+    const { assignments } = weeklySeries();
+    const loose = createAssignment({ courseId, name: 'Essay', dueDate: '2026-03-06' });
+
+    expect(() =>
+      linkIntoSeries({ courseId, intervalWeeks: 1, assignmentIds: [loose.id, assignments[0].id] }),
+    ).toThrow(/already part of a series/i);
+  });
+
+  it('refuses a row from another course', () => {
+    const other = createCourse({ name: 'BIO 181', abbreviation: 'BIO', color: '#def' }).id;
+    const mine = looseRows();
+    const theirs = createAssignment({ courseId: other, name: 'Homework 4', dueDate: '2026-03-27' });
+
+    expect(() =>
+      linkIntoSeries({ courseId, intervalWeeks: 1, assignmentIds: [mine[0].id, theirs.id] }),
+    ).toThrow(/different course/i);
+  });
+
+  it('refuses a row that no longer exists', () => {
+    const rows = looseRows();
+
+    expect(() =>
+      linkIntoSeries({ courseId, intervalWeeks: 1, assignmentIds: [rows[0].id, 'gone'] }),
+    ).toThrow(/no longer exists/i);
+  });
+
+  it('refuses fewer than two rows', () => {
+    const rows = looseRows();
+
+    expect(() =>
+      linkIntoSeries({ courseId, intervalWeeks: 1, assignmentIds: [rows[0].id] }),
+    ).toThrow(/at least two/i);
+  });
+
+  it('leaves everything untouched when it refuses', () => {
+    const rows = looseRows();
+
+    expect(() =>
+      linkIntoSeries({ courseId, intervalWeeks: 1, assignmentIds: [rows[0].id, rows[1].id, 'gone'] }),
+    ).toThrow();
+
+    // The check runs before the transaction opens, so not even the first row
+    // was stamped on the way to finding the bad one.
+    expect(listAssignments({ courseId }).every(a => a.series_id === null)).toBe(true);
+    expect(listAssignmentSeries({ courseId })).toEqual([]);
   });
 });

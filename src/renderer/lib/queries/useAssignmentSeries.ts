@@ -3,6 +3,7 @@ import { assignmentKeys } from './useAssignments';
 import type {
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
+  LinkIntoSeriesInput,
 } from '../../../shared/types';
 
 export const assignmentSeriesKeys = {
@@ -45,6 +46,11 @@ export function useExtendAssignmentSeries() {
   return useSeriesMutation((input: ExtendAssignmentSeriesInput) =>
     window.api.assignmentSeries.extend(input),
   );
+}
+
+/** Bind rows that already exist into a series, leaving their names alone. */
+export function useLinkIntoSeries() {
+  return useSeriesMutation((input: LinkIntoSeriesInput) => window.api.assignmentSeries.link(input));
 }
 
 /** "Stop repeating": drops the rule, keeps every occurrence as a standalone row. */

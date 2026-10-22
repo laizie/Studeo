@@ -239,3 +239,104 @@ export function seriesRenames(
 
   return indices.map(index => ({ index, name: `${stem} ${first + index - 1}` }));
 }
+
+// ─── Spotting series that were never linked ───────────────────────────────────
+// Everything added before series existed — and anything an importer creates —
+// lands as unrelated rows. They often ARE a series, and the evidence is right
+// there in the data: the same name stem, evenly spaced a whole number of weeks
+// apart. This finds those so the UI can offer to link them. It only ever
+// proposes; nothing is linked without the user saying so.
+
+/** A row as the detector needs it. */
+export interface DetectableRow {
+  id: string;
+  name: string;
+  dueDate: string;
+}
+
+export interface LinkCandidate {
+  /** The shared name stem ("Homework"), for describing the group to the user. */
+  stem: string;
+  intervalWeeks: number;
+  /** In date order, which is the order they would be numbered in. */
+  members: DetectableRow[];
+}
+
+/**
+ * Three, not two. Any two dates are "evenly spaced", so a pair proves nothing —
+ * two essays that happen to be a week apart would be offered as a series. Three
+ * in a row at the same interval is a pattern.
+ */
+export const MIN_LINK_CANDIDATES = 3;
+
+/** Beyond a month apart it isn't a repeating schedule, it's a coincidence. */
+export const MAX_LINK_INTERVAL_WEEKS = 4;
+
+/** Whole days between two YYYY-MM-DD dates. Rounded, because a DST boundary
+ *  makes one of the days 23 or 25 hours long and the raw division 6.96. */
+function daysBetween(from: string, to: string): number {
+  const ms = parseDateLocal(to).getTime() - parseDateLocal(from).getTime();
+  return Math.round(ms / 86_400_000);
+}
+
+/** The name with any trailing number stripped: "Homework 7" → "Homework". */
+function nameStem(name: string): string {
+  const match = name.trim().match(/^(.*?)(\d+)\s*$/);
+  return (match ? match[1] : name).trim();
+}
+
+/**
+ * Find groups of unlinked rows that look like they were meant to be a series.
+ *
+ * Rows are grouped by name stem, sorted by date, and scanned for the longest
+ * runs at a single weekly interval. A run is only proposed once it reaches
+ * MIN_LINK_CANDIDATES, and a row never appears in two candidates — linking it
+ * twice is not a thing that can happen, so offering it twice would be a lie.
+ *
+ * Callers pass only rows that have no series yet; this does not check.
+ */
+export function detectSeriesCandidates(rows: DetectableRow[]): LinkCandidate[] {
+  const byStem = new Map<string, DetectableRow[]>();
+  for (const row of rows) {
+    const stem = nameStem(row.name);
+    // A name that is only a number has no stem to group on.
+    if (!stem) continue;
+    const existing = byStem.get(stem);
+    if (existing) existing.push(row);
+    else byStem.set(stem, [row]);
+  }
+
+  const candidates: LinkCandidate[] = [];
+  for (const [stem, group] of byStem) {
+    if (group.length < MIN_LINK_CANDIDATES) continue;
+    // YYYY-MM-DD sorts correctly as text.
+    const items = [...group].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+    let start = 0;
+    while (start < items.length - 1) {
+      const gap = daysBetween(items[start].dueDate, items[start + 1].dueDate);
+      const weeks = gap / 7;
+      if (gap <= 0 || !Number.isInteger(weeks) || weeks > MAX_LINK_INTERVAL_WEEKS) {
+        start++;
+        continue;
+      }
+
+      let end = start + 1;
+      while (end + 1 < items.length && daysBetween(items[end].dueDate, items[end + 1].dueDate) === gap) {
+        end++;
+      }
+
+      const run = items.slice(start, end + 1);
+      if (run.length >= MIN_LINK_CANDIDATES) {
+        candidates.push({ stem, intervalWeeks: weeks, members: run });
+        // Consumed — the next run starts after it, so no row is offered twice.
+        start = end + 1;
+      } else {
+        // Too short to propose; the row that ended it may still start the next run.
+        start = end;
+      }
+    }
+  }
+
+  return candidates.sort((a, b) => a.members[0].dueDate.localeCompare(b.members[0].dueDate));
+}

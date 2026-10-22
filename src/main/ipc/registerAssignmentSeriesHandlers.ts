@@ -3,12 +3,14 @@ import { IPC, ASSIGNMENT_TYPES } from '../../shared/types';
 import type {
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
+  LinkIntoSeriesInput,
 } from '../../shared/types';
 import { assertIsoDate, assertOptionalOneOf } from '../../shared/validate';
 import {
   listAssignmentSeries,
   getAssignmentSeries,
   createAssignmentSeries,
+  linkIntoSeries,
   extendAssignmentSeries,
   deleteAssignmentSeries,
 } from '../db/repositories/assignmentSeriesRepo';
@@ -58,6 +60,27 @@ export function registerAssignmentSeriesHandlers(): void {
     // A dozen new rows, each wanting a reminder.
     notifyAssignmentsChanged();
     return created;
+  });
+
+  // Bind rows that already exist. The repo re-checks every id — the suggestion
+  // the user clicked may have been on screen a while — so this only has to see
+  // that the shape is sane before handing it over.
+  ipcMain.handle(IPC.ASSIGNMENT_SERIES.LINK, (_event, input: LinkIntoSeriesInput) => {
+    if (!input?.courseId) throw new Error('courseId is required');
+    if (!Array.isArray(input.assignmentIds) || input.assignmentIds.length < 2) {
+      throw new Error('A series needs at least two assignments');
+    }
+    if (input.assignmentIds.length > 500) throw new Error('Too many assignments in one series (max 500)');
+    if (new Set(input.assignmentIds).size !== input.assignmentIds.length) {
+      throw new Error('The same assignment was listed twice');
+    }
+    validateInterval(input.intervalWeeks);
+
+    const linked = linkIntoSeries(input);
+    // Nothing about the rows changed that a reminder cares about, but the mirror
+    // keys off the assignment list as a whole, so keep it honest.
+    notifyAssignmentsChanged();
+    return linked;
   });
 
   ipcMain.handle(IPC.ASSIGNMENT_SERIES.EXTEND, (_event, input: ExtendAssignmentSeriesInput) => {

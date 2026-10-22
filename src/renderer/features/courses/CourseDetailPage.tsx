@@ -10,6 +10,7 @@ import type { Assignment, ClassMeeting } from '../../../shared/types';
 import { courseInk, coursePillBg } from '../../lib/colors';
 import { cn } from '../../lib/utils';
 import AssignmentRow from './AssignmentRow';
+import SeriesSuggestionBanner from './SeriesSuggestionBanner';
 import AddAssignmentDialog from './AddAssignmentDialog';
 import CourseDialog from './CourseDialog';
 import GradeSectionsCard from './GradeSectionsCard';
@@ -322,6 +323,11 @@ export default function CourseDetailPage() {
               </button>
             ))}
           </div>
+
+          {/* Offers to link rows that look like a series but predate the feature.
+              Reads the full list, not the filtered one: a series that straddles
+              the "next 7 days" cutoff is still a series. */}
+          {id && <SeriesSuggestionBanner courseId={id} assignments={allAssignments} />}
 
           {filtered.length === 0 ? (
             <div className="bg-surface border border-line rounded-xl shadow-sm py-12 text-center">

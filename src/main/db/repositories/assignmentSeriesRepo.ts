@@ -1,7 +1,7 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
 import { generateRepeats } from '../../../shared/repeat';
-import { createAssignment, listBySeries } from './assignmentRepo';
+import { createAssignment, getAssignment, listBySeries } from './assignmentRepo';
 import type {
   Assignment,
   AssignmentBatchResult,
@@ -12,6 +12,7 @@ import type {
   CreateAssignmentSeriesFromRowsInput,
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
+  LinkIntoSeriesInput,
   SeriesOccurrenceInput,
 } from '../../../shared/types';
 
@@ -286,6 +287,73 @@ export function createAssignmentBatch(input: CreateAssignmentBatchInput): Assign
 
     db.exec('COMMIT');
     return { series, assignments };
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+/**
+ * Bind assignments that already exist into a series.
+ *
+ * The escape hatch for rows created before series existed — a semester of
+ * homework added one at a time, or anything the ICS importer produced. The rows
+ * are already right; all they lack is the knowledge that they belong together.
+ *
+ * So this writes the rule and stamps the rows, and touches nothing else. Names
+ * in particular are left exactly as they are: linking says what these rows ARE,
+ * and rewriting a dozen names as a side effect of that would be a second,
+ * larger decision taken on the user's behalf. A scoped rename afterwards is one
+ * click away and visibly their choice.
+ *
+ * Every id is re-checked here rather than trusted from the caller: the list came
+ * from a suggestion the user may have been looking at for a while, and a row
+ * could have been deleted, moved to another course, or linked elsewhere since.
+ */
+export function linkIntoSeries(input: LinkIntoSeriesInput): AssignmentSeriesWithOccurrences {
+  const db = getDb();
+
+  const rows = input.assignmentIds.map(id => {
+    const assignment = getAssignment(id);
+    if (!assignment) throw new Error('One of those assignments no longer exists');
+    if (assignment.course_id !== input.courseId) {
+      throw new Error('One of those assignments belongs to a different course');
+    }
+    if (assignment.series_id !== null) {
+      throw new Error('One of those assignments is already part of a series');
+    }
+    return assignment;
+  });
+
+  if (rows.length < 2) throw new Error('A series needs at least two assignments');
+
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  const id = crypto.randomUUID();
+
+  db.exec('BEGIN');
+  try {
+    db.prepare(
+      `INSERT INTO assignment_series
+         (id, course_id, name_template, type, interval_weeks, anchor_date, until_date, due_time, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      id,
+      input.courseId,
+      first.name,
+      first.type,
+      input.intervalWeeks,
+      first.due_date,
+      last.due_date,
+      first.due_time,
+      new Date().toISOString(),
+    );
+
+    const stamp = db.prepare('UPDATE assignments SET series_id = ?, series_index = ? WHERE id = ?');
+    rows.forEach((assignment, i) => stamp.run(id, i + 1, assignment.id));
+
+    db.exec('COMMIT');
+    return { series: getAssignmentSeries(id)!, assignments: listBySeries(id) };
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;

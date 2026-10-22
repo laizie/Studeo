@@ -47,6 +47,7 @@ import type {
   CreateTaskSeriesInput,
   ExtendAssignmentSeriesInput,
   ExtendTaskSeriesInput,
+  LinkIntoSeriesInput,
   ShiftTasksInput,
   ShiftAssignmentsInput,
   ReminderNavTarget,
@@ -83,6 +84,7 @@ const api: WindowApi = {
     list:   (filters?: { courseId?: string })            => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.LIST, filters),
     create: (input: CreateAssignmentSeriesInput)         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.CREATE, input),
     extend: (input: ExtendAssignmentSeriesInput)         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.EXTEND, input),
+    link:   (input: LinkIntoSeriesInput)                 => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.LINK, input),
     delete: (id)                                         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.DELETE, id),
   },
 
