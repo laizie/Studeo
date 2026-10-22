@@ -4,6 +4,8 @@ import type {
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
   LinkIntoSeriesInput,
+  RestoreOccurrencesInput,
+  StopRepeatingInput,
 } from '../../../shared/types';
 
 export const assignmentSeriesKeys = {
@@ -51,6 +53,33 @@ export function useExtendAssignmentSeries() {
 /** Bind rows that already exist into a series, leaving their names alone. */
 export function useLinkIntoSeries() {
   return useSeriesMutation((input: LinkIntoSeriesInput) => window.api.assignmentSeries.link(input));
+}
+
+/**
+ * Drop the untouched tail of a series. Resolves to full snapshots of what went,
+ * which useRestoreOccurrences replays as the Undo.
+ *
+ * Invalidates broadly rather than just the assignment lists: a removed
+ * occurrence could have been on the calendar, in a study plan or in the focus
+ * list, and this is rare enough that one full refetch is simpler than chasing
+ * every key and always right.
+ */
+export function useStopRepeatingFrom() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: StopRepeatingInput) => window.api.assignmentSeries.stopFrom(input),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/** The Undo: puts the removed occurrences back and restores the series' end date. */
+export function useRestoreOccurrences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RestoreOccurrencesInput) =>
+      window.api.assignmentSeries.restoreOccurrences(input),
+    onSuccess: () => qc.invalidateQueries(),
+  });
 }
 
 /** "Stop repeating": drops the rule, keeps every occurrence as a standalone row. */

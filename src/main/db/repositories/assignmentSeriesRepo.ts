@@ -1,10 +1,11 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
 import { generateRepeats } from '../../../shared/repeat';
-import { createAssignment, getAssignment, listBySeries } from './assignmentRepo';
+import { createAssignment, getAssignment, listBySeries, writeSnapshot } from './assignmentRepo';
 import type {
   Assignment,
   AssignmentBatchResult,
+  AssignmentSnapshot,
   AssignmentSeries,
   AssignmentSeriesWithOccurrences,
   AssignmentType,
@@ -12,8 +13,12 @@ import type {
   CreateAssignmentSeriesFromRowsInput,
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
+  KeptReason,
   LinkIntoSeriesInput,
+  RestoreOccurrencesInput,
   SeriesOccurrenceInput,
+  StopRepeatingInput,
+  StopRepeatingResult,
 } from '../../../shared/types';
 
 const row = (r: unknown): AssignmentSeries => asRow<AssignmentSeries>(r);
@@ -354,6 +359,118 @@ export function linkIntoSeries(input: LinkIntoSeriesInput): AssignmentSeriesWith
 
     db.exec('COMMIT');
     return { series: getAssignmentSeries(id)!, assignments: listBySeries(id) };
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+// ─── Cutting a series short ───────────────────────────────────────────────────
+
+/**
+ * Why this occurrence is not a placeholder, or null if it is.
+ *
+ * The bar is deliberately higher than the one a date shift uses. A shift that
+ * skips an occurrence leaves it sitting there; a cut deletes it. So anything
+ * with a grade, a tick, a step, a planned study block or a linked note counts
+ * as work somebody did, and work somebody did is not swept up by a scheduling
+ * decision — whatever the status column happens to say.
+ */
+function keptReason(assignment: Assignment): KeptReason | null {
+  if (assignment.status === 'completed') return 'completed';
+  if (assignment.score != null) return 'graded';
+  if (assignment.status === 'in_progress') return 'in_progress';
+
+  const db = getDb();
+  const hasWork =
+    db.prepare('SELECT 1 FROM subtasks WHERE assignment_id = ? LIMIT 1').get(assignment.id) ??
+    db.prepare('SELECT 1 FROM study_blocks WHERE assignment_id = ? LIMIT 1').get(assignment.id) ??
+    db
+      .prepare("SELECT 1 FROM note_links WHERE entity_type = 'assignment' AND entity_id = ? LIMIT 1")
+      .get(assignment.id);
+
+  return hasWork ? 'has_work' : null;
+}
+
+/**
+ * "The rest of these aren't happening" — drop this occurrence and the later ones
+ * that are still untouched, and pull the series' end date back to match.
+ *
+ * Cutting from the FIRST occurrence is refused. That isn't shortening a series,
+ * it's deleting one, and it would leave a rule with nothing under it — plus an
+ * Undo that has to resurrect the series row as well as its rows. "Stop
+ * repeating" (deleteAssignmentSeries) already covers that case properly, so this
+ * action stays the simple one it looks like.
+ *
+ * Everything it removes comes back as a full snapshot, so Undo restores the rows
+ * under their original ids and the end date with them.
+ */
+export function stopRepeatingFrom(input: StopRepeatingInput): StopRepeatingResult {
+  const db = getDb();
+  const anchor = getAssignment(input.assignmentId);
+  if (!anchor) throw new Error('Assignment not found');
+  if (!anchor.series_id || anchor.series_index == null) {
+    throw new Error('That assignment is not part of a series');
+  }
+
+  const series = getAssignmentSeries(anchor.series_id);
+  if (!series) throw new Error('Series not found');
+
+  const all = listBySeries(series.id);
+  const cutFrom = anchor.series_index;
+  if (!all.some(a => (a.series_index ?? 0) < cutFrom)) {
+    throw new Error('Nothing would be left — use “stop repeating” to drop the series instead');
+  }
+
+  const removed: AssignmentSnapshot[] = [];
+  const kept: StopRepeatingResult['kept'] = [];
+  for (const occurrence of all) {
+    if ((occurrence.series_index ?? 0) < cutFrom) continue;
+    const reason = keptReason(occurrence);
+    if (reason) {
+      kept.push({ id: occurrence.id, name: occurrence.name, reason });
+      continue;
+    }
+    // Droppable means nothing hangs off it, so the snapshot's child lists are
+    // empty by construction — which is also why this can delete the rows with a
+    // plain DELETE rather than going through deleteAssignment's own transaction.
+    removed.push({ assignment: occurrence, subtasks: [], studyBlocks: [], noteLinks: [] });
+  }
+
+  const removedIds = new Set(removed.map(r => r.assignment.id));
+  const remaining = all.filter(a => !removedIds.has(a.id));
+  // The end date follows the rows: whatever is still standing, latest first.
+  const untilDate = remaining.reduce(
+    (latest, a) => (a.due_date > latest ? a.due_date : latest),
+    remaining[0].due_date,
+  );
+
+  db.exec('BEGIN');
+  try {
+    const del = db.prepare('DELETE FROM assignments WHERE id = ?');
+    for (const snapshot of removed) del.run(snapshot.assignment.id);
+    db.prepare('UPDATE assignment_series SET until_date = ? WHERE id = ?').run(untilDate, series.id);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+
+  return { seriesId: series.id, removed, kept, previousUntilDate: series.until_date };
+}
+
+/** The Undo for the above: the rows come back under their own ids, and the
+ *  series' end date comes back with them, in one transaction. */
+export function restoreOccurrences(input: RestoreOccurrencesInput): void {
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    for (const snapshot of input.snapshots) writeSnapshot(snapshot);
+    db.prepare('UPDATE assignment_series SET until_date = ? WHERE id = ?').run(
+      input.untilDate,
+      input.seriesId,
+    );
+    db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;

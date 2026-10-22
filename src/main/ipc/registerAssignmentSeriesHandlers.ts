@@ -4,6 +4,8 @@ import type {
   CreateAssignmentSeriesInput,
   ExtendAssignmentSeriesInput,
   LinkIntoSeriesInput,
+  RestoreOccurrencesInput,
+  StopRepeatingInput,
 } from '../../shared/types';
 import { assertIsoDate, assertOptionalOneOf } from '../../shared/validate';
 import {
@@ -11,6 +13,8 @@ import {
   getAssignmentSeries,
   createAssignmentSeries,
   linkIntoSeries,
+  stopRepeatingFrom,
+  restoreOccurrences,
   extendAssignmentSeries,
   deleteAssignmentSeries,
 } from '../db/repositories/assignmentSeriesRepo';
@@ -103,6 +107,32 @@ export function registerAssignmentSeriesHandlers(): void {
 
   // Drops the rule only — every occurrence stays as a standalone assignment, so
   // nothing about the reminder mirror changes and there's nothing to notify.
+  // "The rest of these aren't happening." Removes the untouched tail of a series
+  // and pulls its end date back; anything with work in it is kept and named.
+  ipcMain.handle(IPC.ASSIGNMENT_SERIES.STOP_FROM, (_event, input: StopRepeatingInput) => {
+    if (!input?.assignmentId) throw new Error('assignmentId is required');
+    const result = stopRepeatingFrom(input);
+    // Rows went away, so their reminders should too.
+    notifyAssignmentsChanged();
+    return result;
+  });
+
+  ipcMain.handle(IPC.ASSIGNMENT_SERIES.RESTORE_OCCURRENCES, (_event, input: RestoreOccurrencesInput) => {
+    if (!input?.seriesId) throw new Error('seriesId is required');
+    assertIsoDate(input.untilDate, 'untilDate');
+    if (!Array.isArray(input.snapshots) || input.snapshots.length === 0) {
+      throw new Error('Nothing to restore');
+    }
+    for (const snapshot of input.snapshots) {
+      if (!snapshot?.assignment?.id) throw new Error('Nothing to restore');
+      for (const key of ['subtasks', 'studyBlocks', 'noteLinks'] as const) {
+        if (!Array.isArray(snapshot[key])) throw new Error('Nothing to restore');
+      }
+    }
+    restoreOccurrences(input);
+    notifyAssignmentsChanged();
+  });
+
   ipcMain.handle(IPC.ASSIGNMENT_SERIES.DELETE, (_event, id: string) => {
     if (!id) throw new Error('Series id is required');
     deleteAssignmentSeries(id);

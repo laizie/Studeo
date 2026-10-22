@@ -173,54 +173,67 @@ export function deleteAssignment(id: string): AssignmentSnapshot | null {
   return snapshot;
 }
 
-/** The inverse of deleteAssignment — same ids everywhere, so linked notes resolve again. */
-export function restoreAssignment(snap: AssignmentSnapshot): Assignment {
+/**
+ * Write a snapshot back, WITHOUT a transaction of its own.
+ *
+ * Exported so callers that are already inside a transaction can restore several
+ * rows together — SQLite has no nested BEGIN, so restoreAssignment's own
+ * transaction can't be reused. Anything calling this directly is responsible for
+ * wrapping it.
+ */
+export function writeSnapshot(snap: AssignmentSnapshot): Assignment {
   const db = getDb();
   const a = snap.assignment;
 
+  db.prepare(
+    `INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, series_id, series_index, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    a.id, a.course_id, a.name, a.type, a.status, a.due_date, a.due_time,
+    a.notes, a.score, a.points_possible, a.completed_at,
+    a.series_id, a.series_index, a.created_at,
+  );
+
+  const insertSubtask = db.prepare(
+    'INSERT INTO subtasks (id, assignment_id, name, completed, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  );
+  for (const s of snap.subtasks) {
+    insertSubtask.run(s.id, s.assignment_id, s.name, s.completed, s.sort_order, s.created_at);
+  }
+
+  const insertBlock = db.prepare(
+    `INSERT INTO study_blocks (id, assignment_id, course_id, title, scheduled_date, duration_minutes, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  for (const b of snap.studyBlocks) {
+    insertBlock.run(b.id, b.assignment_id, b.course_id, b.title, b.scheduled_date, b.duration_minutes, b.status, b.created_at);
+  }
+
+  // OR IGNORE: if an identical link was somehow recreated inside the undo window,
+  // restoring shouldn't fail over it.
+  const insertLink = db.prepare(
+    `INSERT OR IGNORE INTO note_links (id, note_id, entity_type, entity_id, occurrence_date, is_pinned, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
+  for (const l of snap.noteLinks) {
+  insertLink.run(l.id, l.note_id, l.entity_type, l.entity_id, l.occurrence_date, l.is_pinned, l.created_at);
+  }
+
+  return getAssignment(a.id)!;
+}
+
+/** The inverse of deleteAssignment — same ids everywhere, so linked notes resolve again. */
+export function restoreAssignment(snap: AssignmentSnapshot): Assignment {
+  const db = getDb();
   db.exec('BEGIN');
   try {
-    db.prepare(
-      `INSERT INTO assignments (id, course_id, name, type, status, due_date, due_time, notes, score, points_possible, completed_at, series_id, series_index, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      a.id, a.course_id, a.name, a.type, a.status, a.due_date, a.due_time,
-      a.notes, a.score, a.points_possible, a.completed_at,
-      a.series_id, a.series_index, a.created_at,
-    );
-
-    const insertSubtask = db.prepare(
-      'INSERT INTO subtasks (id, assignment_id, name, completed, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-    );
-    for (const s of snap.subtasks) {
-      insertSubtask.run(s.id, s.assignment_id, s.name, s.completed, s.sort_order, s.created_at);
-    }
-
-    const insertBlock = db.prepare(
-      `INSERT INTO study_blocks (id, assignment_id, course_id, title, scheduled_date, duration_minutes, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    for (const b of snap.studyBlocks) {
-      insertBlock.run(b.id, b.assignment_id, b.course_id, b.title, b.scheduled_date, b.duration_minutes, b.status, b.created_at);
-    }
-
-    // OR IGNORE: if an identical link was somehow recreated inside the undo window,
-    // restoring shouldn't fail over it.
-    const insertLink = db.prepare(
-      `INSERT OR IGNORE INTO note_links (id, note_id, entity_type, entity_id, occurrence_date, is_pinned, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    );
-    for (const l of snap.noteLinks) {
-      insertLink.run(l.id, l.note_id, l.entity_type, l.entity_id, l.occurrence_date, l.is_pinned, l.created_at);
-    }
-
+    const restored = writeSnapshot(snap);
     db.exec('COMMIT');
+    return restored;
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
   }
-
-  return getAssignment(a.id)!;
 }
 
 // ─── Moving dates in bulk ─────────────────────────────────────────────────────

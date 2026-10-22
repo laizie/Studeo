@@ -508,6 +508,36 @@ export interface AssignmentBatchResult {
  * a statement about what these rows ARE, not a request to rewrite them. A
  * scoped rename afterwards is a separate decision.
  */
+/**
+ * Why an occurrence survived a "stop repeating from here".
+ *
+ * The cut only removes placeholders. Anything with work in it is kept and named
+ * back to the user, because the one thing this action must never do is quietly
+ * delete something they'd started.
+ */
+export type KeptReason = 'completed' | 'graded' | 'in_progress' | 'has_work';
+
+export interface StopRepeatingInput {
+  /** Cut from this occurrence: it and everything after it are considered. */
+  assignmentId: string;
+}
+
+export interface StopRepeatingResult {
+  seriesId: string;
+  /** Full snapshots of what was removed, so Undo can put it back under the same ids. */
+  removed: AssignmentSnapshot[];
+  /** Occurrences the cut deliberately spared, and why. */
+  kept: { id: string; name: string; reason: KeptReason }[];
+  /** The series' end date before the cut; Undo restores it with the rows. */
+  previousUntilDate: string;
+}
+
+export interface RestoreOccurrencesInput {
+  seriesId: string;
+  untilDate: string;
+  snapshots: AssignmentSnapshot[];
+}
+
 export interface LinkIntoSeriesInput {
   courseId: string;
   intervalWeeks: number;
@@ -844,6 +874,8 @@ export const IPC = {
     LIST:   'assignment_series:list',
     CREATE: 'assignment_series:create',
     LINK:   'assignment_series:link',
+    STOP_FROM: 'assignment_series:stop-from',
+    RESTORE_OCCURRENCES: 'assignment_series:restore-occurrences',
     EXTEND: 'assignment_series:extend',
     DELETE: 'assignment_series:delete',
   },
@@ -1060,6 +1092,11 @@ export interface WindowApi {
     extend(input: ExtendAssignmentSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
     /** Bind existing unlinked rows into a series, leaving their names alone. */
     link(input: LinkIntoSeriesInput): Promise<AssignmentSeriesWithOccurrences>;
+    /** Drop this occurrence and the later ones that are still untouched, and pull
+     *  the series' end date back. Anything with work in it is kept and reported. */
+    stopFrom(input: StopRepeatingInput): Promise<StopRepeatingResult>;
+    /** The Undo: puts the removed occurrences back and restores the end date. */
+    restoreOccurrences(input: RestoreOccurrencesInput): Promise<void>;
     /** "Stop repeating": drops the rule only. Every occurrence survives as a
      *  standalone assignment, grades and all. */
     delete(id: string): Promise<void>;

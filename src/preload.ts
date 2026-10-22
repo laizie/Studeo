@@ -48,6 +48,8 @@ import type {
   ExtendAssignmentSeriesInput,
   ExtendTaskSeriesInput,
   LinkIntoSeriesInput,
+  RestoreOccurrencesInput,
+  StopRepeatingInput,
   ShiftTasksInput,
   ShiftAssignmentsInput,
   ReminderNavTarget,
@@ -85,6 +87,8 @@ const api: WindowApi = {
     create: (input: CreateAssignmentSeriesInput)         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.CREATE, input),
     extend: (input: ExtendAssignmentSeriesInput)         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.EXTEND, input),
     link:   (input: LinkIntoSeriesInput)                 => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.LINK, input),
+    stopFrom: (input: StopRepeatingInput)                => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.STOP_FROM, input),
+    restoreOccurrences: (input: RestoreOccurrencesInput) => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.RESTORE_OCCURRENCES, input),
     delete: (id)                                         => ipcRenderer.invoke(IPC.ASSIGNMENT_SERIES.DELETE, id),
   },
 

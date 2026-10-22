@@ -27,10 +27,15 @@ import {
   createAssignmentSeriesFromRows,
   createAssignmentBatch,
   linkIntoSeries,
+  stopRepeatingFrom,
+  restoreOccurrences,
   extendAssignmentSeries,
   deleteAssignmentSeries,
 } from '../repositories/assignmentSeriesRepo';
 import { createSubtask, listSubtasks } from '../repositories/subtaskRepo';
+import { createStudyBlocks } from '../repositories/studyBlockRepo';
+import { createNote } from '../repositories/noteRepo';
+import { createNoteLink } from '../repositories/noteLinkRepo';
 
 let courseId: string;
 
@@ -782,5 +787,170 @@ describe('linkIntoSeries', () => {
     // was stamped on the way to finding the bad one.
     expect(listAssignments({ courseId }).every(a => a.series_id === null)).toBe(true);
     expect(listAssignmentSeries({ courseId })).toEqual([]);
+  });
+});
+
+describe('stopRepeatingFrom', () => {
+  it('removes the anchor and every untouched occurrence after it', () => {
+    const { series, assignments } = weeklySeries();
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.removed).toHaveLength(2);
+    expect(result.kept).toEqual([]);
+    expect(listBySeries(series.id).map(a => a.name)).toEqual(['Homework 1', 'Homework 2']);
+  });
+
+  it('pulls the series end date back to the last one left', () => {
+    const { series, assignments } = weeklySeries();
+
+    stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(getAssignmentSeries(series.id)!.until_date).toBe('2026-03-13');
+  });
+
+  it('keeps a completed occurrence and says so', () => {
+    const { series, assignments } = weeklySeries();
+    updateAssignment(assignments[3].id, { status: 'completed' });
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.removed.map(r => r.assignment.id)).toEqual([assignments[2].id]);
+    expect(result.kept).toEqual([
+      { id: assignments[3].id, name: 'Homework 4', reason: 'completed' },
+    ]);
+    expect(getAssignment(assignments[3].id)).not.toBeNull();
+  });
+
+  it('keeps a graded occurrence', () => {
+    const { assignments } = weeklySeries();
+    updateAssignment(assignments[3].id, { score: 18, pointsPossible: 20 });
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.kept[0].reason).toBe('graded');
+  });
+
+  it('keeps one that is merely in progress', () => {
+    const { assignments } = weeklySeries();
+    updateAssignment(assignments[3].id, { status: 'in_progress' });
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.kept[0].reason).toBe('in_progress');
+  });
+
+  it('keeps one with steps on it, however untouched it looks', () => {
+    // Status says not_started, but someone sat down and broke it into steps.
+    // That's work, and a scheduling decision doesn't get to throw it away.
+    const { assignments } = weeklySeries();
+    createSubtask({ assignmentId: assignments[3].id, name: 'Outline' });
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.kept).toEqual([
+      { id: assignments[3].id, name: 'Homework 4', reason: 'has_work' },
+    ]);
+    expect(listSubtasks({ assignmentId: assignments[3].id })).toHaveLength(1);
+  });
+
+  it('keeps one with a planned study block', () => {
+    const { assignments } = weeklySeries();
+    createStudyBlocks([
+      {
+        assignmentId: assignments[3].id,
+        courseId,
+        title: 'Review',
+        scheduledDate: '2026-03-18',
+        durationMinutes: 45,
+      },
+    ]);
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.kept[0].reason).toBe('has_work');
+  });
+
+  it('keeps one with a linked note', () => {
+    const { assignments } = weeklySeries();
+    const note = createNote({ title: 'Working notes' });
+    createNoteLink({ noteId: note.id, entityType: 'assignment', entityId: assignments[3].id });
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.kept[0].reason).toBe('has_work');
+  });
+
+  it('leaves everything before the cut alone', () => {
+    const { assignments } = weeklySeries();
+
+    stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(getAssignment(assignments[0].id)).not.toBeNull();
+    expect(getAssignment(assignments[1].id)).not.toBeNull();
+  });
+
+  it('refuses to cut from the first occurrence', () => {
+    const { assignments } = weeklySeries();
+
+    expect(() => stopRepeatingFrom({ assignmentId: assignments[0].id })).toThrow(
+      /stop repeating/i,
+    );
+  });
+
+  it('refuses an assignment that is not in a series', () => {
+    const solo = createAssignment({ courseId, name: 'Essay', dueDate: '2026-03-06' });
+
+    expect(() => stopRepeatingFrom({ assignmentId: solo.id })).toThrow(/not part of a series/i);
+  });
+
+  it('removes nothing when the whole tail has work in it', () => {
+    const { series, assignments } = weeklySeries();
+    updateAssignment(assignments[2].id, { status: 'completed' });
+    updateAssignment(assignments[3].id, { status: 'completed' });
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+
+    expect(result.removed).toEqual([]);
+    expect(result.kept).toHaveLength(2);
+    // Nothing went, so the end date shouldn't move either.
+    expect(getAssignmentSeries(series.id)!.until_date).toBe('2026-03-27');
+  });
+
+  it('is put back exactly by restoreOccurrences', () => {
+    const { series, assignments } = weeklySeries();
+    const before = listBySeries(series.id).map(a => ({ id: a.id, name: a.name, due: a.due_date, idx: a.series_index }));
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+    restoreOccurrences({
+      seriesId: result.seriesId,
+      untilDate: result.previousUntilDate,
+      snapshots: result.removed,
+    });
+
+    expect(
+      listBySeries(series.id).map(a => ({ id: a.id, name: a.name, due: a.due_date, idx: a.series_index })),
+    ).toEqual(before);
+    expect(getAssignmentSeries(series.id)!.until_date).toBe('2026-03-27');
+  });
+
+  it('restores under the original ids, so the series is whole again', () => {
+    const { series, assignments } = weeklySeries();
+
+    const result = stopRepeatingFrom({ assignmentId: assignments[2].id });
+    restoreOccurrences({
+      seriesId: result.seriesId,
+      untilDate: result.previousUntilDate,
+      snapshots: result.removed,
+    });
+
+    // The point of restoring by id: a later "this and later" still reaches them.
+    const shift = shiftAssignments({
+      assignmentId: assignments[1].id,
+      scope: 'this_and_later',
+      days: 7,
+    });
+    expect(shift.changed).toHaveLength(3);
+    expect(listBySeries(series.id)).toHaveLength(4);
   });
 });

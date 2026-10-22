@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useId } from 'react';
 import { NotebookPen, Repeat } from 'lucide-react';
 import DialogShell from '../../components/DialogShell';
 import SeriesScopeField from '../../components/SeriesScopeField';
+import StopRepeatingAction from './StopRepeatingAction';
 import { ASSIGNMENT_TYPES } from '../../../shared/types';
 import type { Assignment, AssignmentType, SeriesScope } from '../../../shared/types';
 import { plainTextToBlocks } from '../../../shared/notes';
@@ -305,6 +306,13 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
                     : 'Every occurrence, renumbered from this one. Finished ones included — a name isn’t a date.'
               }
             />
+          )}
+
+          {/* Cutting the series short. Sits under the scope control because both
+              are about the series rather than this row, and apart from the fields
+              above because it's the destructive one. */}
+          {isEditing && assignment && (
+            <StopRepeatingAction assignment={assignment} onDone={onClose} />
           )}
 
           {/* Repeat — add mode only. Expands into a numbered weekly/biweekly series. */}
