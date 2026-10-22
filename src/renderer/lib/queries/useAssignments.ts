@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
+  ApplyToSeriesInput,
   DateSet,
+  FieldSet,
   CreateAssignmentBatchInput,
   AssignmentSnapshot,
   AssignmentStatus,
@@ -109,5 +111,28 @@ export function useCreateAssignmentBatch() {
       qc.invalidateQueries({ queryKey: assignmentKeys.all });
       qc.invalidateQueries({ queryKey: ['assignmentSeries'] });
     },
+  });
+}
+
+/**
+ * Apply a rename and/or a due time across a series.
+ *
+ * Resolves to every row it changed, with the old values — which is what the
+ * caller hands to useSetAssignmentFields to offer a real Undo.
+ */
+export function useApplyToAssignmentSeries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ApplyToSeriesInput) => window.api.assignments.applyToSeries(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
+  });
+}
+
+/** Write exact names and times to many rows — the Undo half of a scoped edit. */
+export function useSetAssignmentFields() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: FieldSet[]) => window.api.assignments.setFields(items),
+    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
   });
 }

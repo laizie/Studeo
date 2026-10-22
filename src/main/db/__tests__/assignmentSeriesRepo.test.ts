@@ -16,7 +16,9 @@ import {
   updateAssignment,
   listBySeries,
   setDates,
+  setFields,
   shiftAssignments,
+  applyToSeries,
 } from '../repositories/assignmentRepo';
 import {
   listAssignmentSeries,
@@ -503,5 +505,144 @@ describe('createAssignmentBatch', () => {
     expect(listBySeries(series[0].id).map(a => a.due_date)).toEqual([
       '2026-03-06', '2026-03-20', '2026-03-27',
     ]);
+  });
+});
+
+describe('applyToSeries', () => {
+  it('renames the whole series, renumbering from the anchor', () => {
+    const { series, assignments } = weeklySeries();
+
+    applyToSeries({ assignmentId: assignments[2].id, scope: 'all', name: 'Problem Set 3' });
+
+    expect(listBySeries(series.id).map(a => a.name)).toEqual([
+      'Problem Set 1', 'Problem Set 2', 'Problem Set 3', 'Problem Set 4',
+    ]);
+  });
+
+  it('renames only this one and later under "this_and_later"', () => {
+    const { series, assignments } = weeklySeries();
+
+    applyToSeries({
+      assignmentId: assignments[2].id,
+      scope: 'this_and_later',
+      name: 'Problem Set 3',
+    });
+
+    expect(listBySeries(series.id).map(a => a.name)).toEqual([
+      'Homework 1', 'Homework 2', 'Problem Set 3', 'Problem Set 4',
+    ]);
+  });
+
+  it('renames a finished occurrence along with the rest', () => {
+    // Deliberately unlike a date shift: a name is a label, not a record of when
+    // something was due, so a handed-in row should follow the course's renaming.
+    const { series, assignments } = weeklySeries();
+    updateAssignment(assignments[1].id, { status: 'completed', score: 18, pointsPossible: 20 });
+
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', name: 'Problem Set 1' });
+
+    expect(listBySeries(series.id)[1].name).toBe('Problem Set 2');
+    // And the grade it carries is untouched by the rename.
+    expect(getAssignment(assignments[1].id)!.score).toBe(18);
+    expect(getAssignment(assignments[1].id)!.status).toBe('completed');
+  });
+
+  it('sets a due time across the series', () => {
+    const { series, assignments } = weeklySeries();
+
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', dueTime: '23:59' });
+
+    expect(listBySeries(series.id).every(a => a.due_time === '23:59')).toBe(true);
+  });
+
+  it('clears a due time back to all-day', () => {
+    const { series, assignments } = weeklySeries();
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', dueTime: '23:59' });
+
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', dueTime: null });
+
+    expect(listBySeries(series.id).every(a => a.due_time === null)).toBe(true);
+  });
+
+  it('leaves times alone when only a name is given', () => {
+    const { series, assignments } = weeklySeries();
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', dueTime: '09:00' });
+
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', name: 'Problem Set 1' });
+
+    expect(listBySeries(series.id).every(a => a.due_time === '09:00')).toBe(true);
+  });
+
+  it('never touches due dates', () => {
+    const { series, assignments } = weeklySeries();
+    const before = listBySeries(series.id).map(a => a.due_date);
+
+    applyToSeries({ assignmentId: assignments[0].id, scope: 'all', name: 'Problem Set 1' });
+
+    expect(listBySeries(series.id).map(a => a.due_date)).toEqual(before);
+  });
+
+  it('reports what changed, with the old values for Undo', () => {
+    const { assignments } = weeklySeries();
+
+    const result = applyToSeries({
+      assignmentId: assignments[0].id,
+      scope: 'all',
+      name: 'Problem Set 1',
+      dueTime: '23:59',
+    });
+
+    expect(result.changed).toHaveLength(4);
+    expect(result.changed[0]).toEqual({
+      id: assignments[0].id,
+      fromName: 'Homework 1',
+      toName: 'Problem Set 1',
+      fromDueTime: null,
+      toDueTime: '23:59',
+    });
+  });
+
+  it('round-trips through setFields, which is how Undo works', () => {
+    const { series, assignments } = weeklySeries();
+    // One occurrence renamed by hand first, so a blanket re-rename would NOT
+    // restore it.
+    updateAssignment(assignments[2].id, { name: 'Homework 3 (take-home)' });
+    const before = listBySeries(series.id).map(a => a.name);
+
+    const result = applyToSeries({
+      assignmentId: assignments[0].id,
+      scope: 'all',
+      name: 'Problem Set 1',
+    });
+    setFields(result.changed.map(c => ({ id: c.id, name: c.fromName, dueTime: c.fromDueTime })));
+
+    expect(listBySeries(series.id).map(a => a.name)).toEqual(before);
+  });
+
+  it('skips rows it would not actually change', () => {
+    const { assignments } = weeklySeries();
+
+    // Same name, same (absent) time — nothing to write.
+    const result = applyToSeries({
+      assignmentId: assignments[0].id,
+      scope: 'one',
+      name: 'Homework 1',
+    });
+
+    expect(result.changed).toEqual([]);
+  });
+
+  it('renames a one-off assignment to exactly what was typed', () => {
+    const solo = createAssignment({ courseId, name: 'Essay', dueDate: '2026-03-06' });
+
+    applyToSeries({ assignmentId: solo.id, scope: 'all', name: 'Final essay' });
+
+    expect(getAssignment(solo.id)!.name).toBe('Final essay');
+  });
+
+  it('throws for an assignment that does not exist', () => {
+    expect(() => applyToSeries({ assignmentId: 'nope', scope: 'all', name: 'X' })).toThrow(
+      /not found/i,
+    );
   });
 });

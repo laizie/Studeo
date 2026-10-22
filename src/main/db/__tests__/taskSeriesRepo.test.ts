@@ -15,7 +15,9 @@ import {
   updateTask,
   listBySeries,
   setDates,
+  setNames,
   shiftTasks,
+  applyToSeries,
 } from '../repositories/taskRepo';
 import {
   listTaskSeries,
@@ -248,5 +250,69 @@ describe('deleteTaskSeries', () => {
     const survivor = getTask(tasks[0].id)!;
     expect(survivor.status).toBe('completed');
     expect(survivor.completed_at).not.toBeNull();
+  });
+});
+
+describe('applyToSeries', () => {
+  it('renames the whole series, renumbering from the anchor', () => {
+    const { series, tasks } = weeklySeries();
+
+    applyToSeries({ taskId: tasks[2].id, scope: 'all', name: 'Feed the cat 3' });
+
+    expect(listBySeries(series.id).map(t => t.name)).toEqual([
+      'Feed the cat 1', 'Feed the cat 2', 'Feed the cat 3', 'Feed the cat 4',
+    ]);
+  });
+
+  it('renames only this one and later under "this_and_later"', () => {
+    const { series, tasks } = weeklySeries();
+
+    applyToSeries({ taskId: tasks[2].id, scope: 'this_and_later', name: 'Feed the cat 3' });
+
+    expect(listBySeries(series.id).map(t => t.name)).toEqual([
+      'Water the plants 1', 'Water the plants 2', 'Feed the cat 3', 'Feed the cat 4',
+    ]);
+  });
+
+  it('renames a finished occurrence along with the rest', () => {
+    const { series, tasks } = weeklySeries();
+    updateTask(tasks[1].id, { status: 'completed' });
+
+    applyToSeries({ taskId: tasks[0].id, scope: 'all', name: 'Feed the cat 1' });
+
+    expect(listBySeries(series.id)[1].name).toBe('Feed the cat 2');
+    expect(getTask(tasks[1].id)!.status).toBe('completed');
+  });
+
+  it('never touches due dates', () => {
+    const { series, tasks } = weeklySeries();
+    const before = listBySeries(series.id).map(t => t.due_date);
+
+    applyToSeries({ taskId: tasks[0].id, scope: 'all', name: 'Feed the cat 1' });
+
+    expect(listBySeries(series.id).map(t => t.due_date)).toEqual(before);
+  });
+
+  it('round-trips through setNames, which is how Undo works', () => {
+    const { series, tasks } = weeklySeries();
+    updateTask(tasks[2].id, { name: 'Water the plants 3 (holiday)' });
+    const before = listBySeries(series.id).map(t => t.name);
+
+    const result = applyToSeries({ taskId: tasks[0].id, scope: 'all', name: 'Feed the cat 1' });
+    setNames(result.changed.map(c => ({ id: c.id, name: c.from })));
+
+    expect(listBySeries(series.id).map(t => t.name)).toEqual(before);
+  });
+
+  it('renames a one-off task to exactly what was typed', () => {
+    const solo = createTask({ name: 'Email the TA', dueDate: '2026-03-06' });
+
+    applyToSeries({ taskId: solo.id, scope: 'all', name: 'Email the professor' });
+
+    expect(getTask(solo.id)!.name).toBe('Email the professor');
+  });
+
+  it('throws for a task that does not exist', () => {
+    expect(() => applyToSeries({ taskId: 'nope', scope: 'all', name: 'X' })).toThrow(/not found/i);
   });
 });

@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
+  ApplyToTaskSeriesInput,
   CreateTaskInput,
   DateSet,
+  NameSet,
   ShiftTasksInput,
   UpdateTaskInput,
 } from '../../../shared/types';
@@ -63,6 +65,24 @@ export function useSetTaskDates() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (items: DateSet[]) => window.api.tasks.setDates(items),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
+/** Apply a rename across a task series, renumbering from the anchor's new name. */
+export function useApplyToTaskSeries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ApplyToTaskSeriesInput) => window.api.tasks.applyToSeries(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
+/** Write exact names to many tasks — the Undo half of a scoped rename. */
+export function useSetTaskNames() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: NameSet[]) => window.api.tasks.setNames(items),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
   });
 }

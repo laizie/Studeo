@@ -3,6 +3,7 @@ import {
   generateRepeats,
   groupIntoSeries,
   MAX_REPEAT_OCCURRENCES,
+  seriesRenames,
   shiftDate,
   shiftSkipReason,
 } from '../repeat';
@@ -245,5 +246,67 @@ describe('groupIntoSeries', () => {
 
   it('handles an empty grid', () => {
     expect(groupIntoSeries([])).toEqual({ series: [], singles: [] });
+  });
+});
+
+describe('seriesRenames', () => {
+  const all = [1, 2, 3, 4, 5];
+
+  it('renames by stem, keeping each occurrence its own number', () => {
+    const out = seriesRenames('Problem Set 3', 3, all);
+
+    expect(out.map(r => r.name)).toEqual([
+      'Problem Set 1', 'Problem Set 2', 'Problem Set 3', 'Problem Set 4', 'Problem Set 5',
+    ]);
+  });
+
+  it('gives the anchor exactly the name that was typed', () => {
+    const out = seriesRenames('Problem Set 3', 3, all);
+    expect(out.find(r => r.index === 3)!.name).toBe('Problem Set 3');
+  });
+
+  it('numbers from the anchor position when no number was typed', () => {
+    const out = seriesRenames('Problem Set', 3, all);
+
+    expect(out.map(r => r.name)).toEqual([
+      'Problem Set 1', 'Problem Set 2', 'Problem Set 3', 'Problem Set 4', 'Problem Set 5',
+    ]);
+  });
+
+  it('shifts the whole sequence when the typed number is higher', () => {
+    // "Homework 10" typed on the first occurrence continues a series that
+    // started mid-semester.
+    const out = seriesRenames('Homework 10', 1, [1, 2, 3]);
+    expect(out.map(r => r.name)).toEqual(['Homework 10', 'Homework 11', 'Homework 12']);
+  });
+
+  it('clamps rather than running below 1', () => {
+    const out = seriesRenames('HW 1', 5, all);
+    expect(out.map(r => r.name)).toEqual(['HW 1', 'HW 2', 'HW 3', 'HW 4', 'HW 5']);
+  });
+
+  it('renames only the occurrences it is given', () => {
+    // "This and later" from occurrence 3 — the first two keep their old names.
+    const out = seriesRenames('Problem Set 3', 3, [3, 4, 5]);
+    expect(out.map(r => r.name)).toEqual(['Problem Set 3', 'Problem Set 4', 'Problem Set 5']);
+  });
+
+  it('handles a single occurrence', () => {
+    expect(seriesRenames('Essay 2', 2, [2])).toEqual([{ index: 2, name: 'Essay 2' }]);
+  });
+
+  it('trims the stem so the number never doubles up its spacing', () => {
+    const out = seriesRenames('Lab   4', 4, [4, 5]);
+    expect(out.map(r => r.name)).toEqual(['Lab 4', 'Lab 5']);
+  });
+
+  it('keeps a multi-word stem whole', () => {
+    const out = seriesRenames('Reading response 2', 2, [1, 2]);
+    expect(out.map(r => r.name)).toEqual(['Reading response 1', 'Reading response 2']);
+  });
+
+  it('falls back to the typed text when there is no stem to number', () => {
+    expect(seriesRenames('42', 1, [1, 2]).map(r => r.name)).toEqual(['42', '42']);
+    expect(seriesRenames('   ', 1, [1, 2]).map(r => r.name)).toEqual(['', '']);
   });
 });

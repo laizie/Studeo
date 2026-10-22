@@ -1,8 +1,10 @@
 import { ipcMain } from 'electron';
 import { IPC, ASSIGNMENT_STATUSES, SERIES_SCOPES } from '../../shared/types';
 import type {
+  ApplyToTaskSeriesInput,
   CreateTaskInput,
   DateSet,
+  NameSet,
   ShiftTasksInput,
   UpdateTaskInput,
 } from '../../shared/types';
@@ -15,6 +17,8 @@ import {
   deleteTask,
   shiftTasks,
   setDates,
+  applyToSeries,
+  setNames,
 } from '../db/repositories/taskRepo';
 
 // Tasks share the assignment status enum (PRD §7). Same reasoning as the assignment
@@ -77,5 +81,25 @@ export function registerTaskHandlers(): void {
       assertIsoDate(item.dueDate, 'dueDate');
     }
     return setDates(items);
+  });
+
+  // A rename applied across a scope. Mirrors assignments:apply-series, minus the
+  // time of day a task doesn't have.
+  ipcMain.handle(IPC.TASKS.APPLY_SERIES, (_event, input: ApplyToTaskSeriesInput) => {
+    if (!input?.taskId) throw new Error('taskId is required');
+    assertOneOf(input.scope, SERIES_SCOPES, 'scope');
+    if (!input.name?.trim()) throw new Error('Task name is required');
+    return applyToSeries(input);
+  });
+
+  // The bulk name write behind the above and its Undo.
+  ipcMain.handle(IPC.TASKS.SET_NAMES, (_event, items: NameSet[]) => {
+    if (!Array.isArray(items) || items.length === 0) throw new Error('items must be a non-empty array');
+    if (items.length > 500) throw new Error('Too many tasks in one batch (max 500)');
+    for (const item of items) {
+      if (!item?.id) throw new Error('id is required on every row');
+      if (!item.name?.trim()) throw new Error('Task name is required on every row');
+    }
+    return setNames(items);
   });
 }

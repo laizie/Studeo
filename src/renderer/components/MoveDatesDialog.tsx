@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import DialogShell from './DialogShell';
+import SeriesScopeField from './SeriesScopeField';
 import type { AssignmentStatus, DateSet, SeriesScope, ShiftResult } from '../../shared/types';
 import { formatDueDate } from '../../shared/deadlines';
 import { shiftDate, shiftSkipReason } from '../../shared/repeat';
@@ -49,12 +50,6 @@ const QUICK_MOVES: { days: number; label: string }[] = [
   { days: 1, label: '+1 day' },
   { days: 7, label: '+1 week' },
 ];
-
-const SCOPE_LABELS: Record<SeriesScope, string> = {
-  one: 'This one',
-  this_and_later: 'This and later',
-  all: 'All of them',
-};
 
 /**
  * Move a row's due date — and, when it's part of a repeating series, optionally
@@ -162,33 +157,20 @@ export default function MoveDatesDialog({
 
       {inSeries && (
         <div className="mb-4">
-          <span className="mb-1.5 block text-sm font-medium text-ink-soft">What moves</span>
-          <div className="flex gap-1.5">
-            {(Object.keys(SCOPE_LABELS) as SeriesScope[]).map(option => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setScope(option)}
-                aria-pressed={scope === option}
-                className={cn(
-                  'flex-1 rounded-lg border px-2 py-1.5 text-xs transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-                  scope === option
-                    ? 'border-accent bg-accent text-accent-ink'
-                    : 'border-line text-ink-soft hover:bg-surface-hi',
-                )}
-              >
-                {SCOPE_LABELS[option]}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            {movingCount === 1
-              ? `Moves this ${noun} only.`
-              : `Moves ${movingCount} of ${siblings.length} occurrences.`}
-            {protectedCount > 0 &&
-              ` ${protectedCount} already finished — ${protectedCount === 1 ? 'it stays' : 'they stay'} put.`}
-          </p>
+          <SeriesScopeField
+            value={scope}
+            onChange={setScope}
+            label="What moves"
+            hint={
+              <>
+                {movingCount === 1
+                  ? `Moves this ${noun} only.`
+                  : `Moves ${movingCount} of ${siblings.length} occurrences.`}
+                {protectedCount > 0 &&
+                  ` ${protectedCount} already finished — ${protectedCount === 1 ? 'it stays' : 'they stay'} put.`}
+              </>
+            }
+          />
         </div>
       )}
 

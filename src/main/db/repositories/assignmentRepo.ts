@@ -1,9 +1,13 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
-import { shiftDate, shiftSkipReason } from '../../../shared/repeat';
+import { seriesRenames, shiftDate, shiftSkipReason } from '../../../shared/repeat';
 import type {
+  ApplySeriesResult,
+  ApplyToSeriesInput,
   Assignment,
   DateChange,
+  FieldChange,
+  FieldSet,
   DateSet,
   AssignmentSnapshot,
   AssignmentStatus,
@@ -316,4 +320,81 @@ export function shiftAssignments(input: ShiftAssignmentsInput): ShiftResult {
 
   setDates(changed.map(c => ({ id: c.id, dueDate: c.to })));
   return { changed, skipped };
+}
+
+// ─── Scoped edits to the fields that aren't dates ─────────────────────────────
+
+/**
+ * Write names and times for several rows in one transaction.
+ *
+ * The counterpart to setDates, and like it, deliberately narrow: only the two
+ * fields a scoped edit touches, so it can't become a back door around
+ * updateAssignment's completed_at bookkeeping.
+ */
+export function setFields(items: FieldSet[]): number {
+  if (items.length === 0) return 0;
+
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const stmt = db.prepare('UPDATE assignments SET name = ?, due_time = ? WHERE id = ?');
+    for (const item of items) stmt.run(item.name, item.dueTime, item.id);
+    db.exec('COMMIT');
+    return items.length;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+/**
+ * Apply a rename and/or a due time across a series.
+ *
+ * Unlike a shift, this does NOT skip finished occurrences. The guard on moving
+ * dates exists because a completed assignment's due date records when it was
+ * actually due, and sliding it rewrites history. A name records no such thing —
+ * when a course renames "Problem Set" to "Homework", the ones already handed in
+ * should say so too, or the list reads as two different assignments.
+ *
+ * Renaming renumbers rather than copying the text: see seriesRenames.
+ */
+export function applyToSeries(input: ApplyToSeriesInput): ApplySeriesResult {
+  const anchor = getAssignment(input.assignmentId);
+  if (!anchor) throw new Error('Assignment not found');
+
+  const targets = scopeTargets(anchor, input.scope);
+  const renames =
+    input.name === undefined
+      ? null
+      : new Map(
+          seriesRenames(
+            input.name,
+            anchor.series_index ?? 1,
+            targets.map(t => t.series_index ?? 1),
+          ).map(r => [r.index, r.name]),
+        );
+
+  const changed: FieldChange[] = [];
+  for (const occurrence of targets) {
+    // A row with no series index can only be the anchor itself (a one-off, or
+    // scope 'one'), so it takes the typed name as it stands.
+    const toName =
+      renames === null
+        ? occurrence.name
+        : (occurrence.series_index != null ? renames.get(occurrence.series_index) : undefined) ??
+          input.name!.trim();
+    const toDueTime = input.dueTime === undefined ? occurrence.due_time : input.dueTime;
+
+    if (toName === occurrence.name && toDueTime === occurrence.due_time) continue;
+    changed.push({
+      id: occurrence.id,
+      fromName: occurrence.name,
+      toName,
+      fromDueTime: occurrence.due_time,
+      toDueTime,
+    });
+  }
+
+  setFields(changed.map(c => ({ id: c.id, name: c.toName, dueTime: c.toDueTime })));
+  return { changed };
 }

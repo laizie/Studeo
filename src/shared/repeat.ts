@@ -193,3 +193,49 @@ export function groupIntoSeries(rows: GroupableRow[]): GroupedRows {
 
   return { series, singles };
 }
+
+// ─── Renaming a series ────────────────────────────────────────────────────────
+
+export interface SeriesRename {
+  index: number;
+  name: string;
+}
+
+/**
+ * Work out what every occurrence should be called after a rename applied across
+ * a series.
+ *
+ * A rename is not a find-and-replace: occurrences are numbered, so setting all
+ * seven to the literal text typed into the third one would produce seven rows
+ * called "Problem Set 3". What the user means is "the stem changed" — so the
+ * stem is taken from what they typed and each occurrence keeps a number of its
+ * own, counted in series order.
+ *
+ * The number they typed anchors the sequence. Renaming occurrence 3 to
+ * "Problem Set 3" numbers the series 1…7, and so does typing "Problem Set" with
+ * no number at all, since the anchor then stands in for its own position. Typing
+ * a number low enough to push the first occurrence below 1 (say "HW 1" on
+ * occurrence 5) clamps the sequence to start at 1 rather than running negative;
+ * the series comes out cleanly numbered, which is the likely intent anyway.
+ *
+ * Numbering follows the same convention as generateRepeats, so a series renamed
+ * here and then extended continues where it left off.
+ */
+export function seriesRenames(
+  typedName: string,
+  anchorIndex: number,
+  indices: number[],
+): SeriesRename[] {
+  const typed = typedName.trim();
+  const match = typed.match(/^(.*?)(\d+)\s*$/);
+  const stem = (match ? match[1] : typed).trimEnd();
+
+  // Nothing to hang a number on — a name that is only digits, or empty. Give
+  // every occurrence the text as typed rather than inventing " 1", " 2".
+  if (!stem) return indices.map(index => ({ index, name: typed }));
+
+  const base = match ? parseInt(match[2], 10) : anchorIndex;
+  const first = Math.max(1, base - (anchorIndex - 1));
+
+  return indices.map(index => ({ index, name: `${stem} ${first + index - 1}` }));
+}

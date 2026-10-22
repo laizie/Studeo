@@ -1,7 +1,11 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
-import { shiftDate, shiftSkipReason } from '../../../shared/repeat';
+import { seriesRenames, shiftDate, shiftSkipReason } from '../../../shared/repeat';
 import type {
+  ApplyTaskSeriesResult,
+  ApplyToTaskSeriesInput,
+  NameChange,
+  NameSet,
   Task,
   CreateTaskInput,
   DateChange,
@@ -170,4 +174,56 @@ export function shiftTasks(input: ShiftTasksInput): ShiftResult {
 
   setDates(changed.map(c => ({ id: c.id, dueDate: c.to })));
   return { changed, skipped };
+}
+
+/** Write names for several tasks in one transaction — the counterpart to setDates. */
+export function setNames(items: NameSet[]): number {
+  if (items.length === 0) return 0;
+
+  const db = getDb();
+  db.exec('BEGIN');
+  try {
+    const stmt = db.prepare('UPDATE tasks SET name = ? WHERE id = ?');
+    for (const item of items) stmt.run(item.name, item.id);
+    db.exec('COMMIT');
+    return items.length;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+/**
+ * Apply a rename across a series, renumbering from the anchor's new name.
+ *
+ * Mirrors assignmentRepo.applyToSeries, minus the time of day a task doesn't
+ * have — and, like it, does not skip finished occurrences: a name is a label,
+ * not a record of when something happened.
+ */
+export function applyToSeries(input: ApplyToTaskSeriesInput): ApplyTaskSeriesResult {
+  const anchor = getTask(input.taskId);
+  if (!anchor) throw new Error('Task not found');
+
+  const targets = scopeTargets(anchor, input.scope);
+  const renames = new Map(
+    seriesRenames(
+      input.name,
+      anchor.series_index ?? 1,
+      targets.map(t => t.series_index ?? 1),
+    ).map(r => [r.index, r.name]),
+  );
+
+  const changed: NameChange[] = [];
+  for (const occurrence of targets) {
+    // A row with no series index can only be the anchor itself (a one-off, or
+    // scope 'one'), so it takes the typed name as it stands.
+    const to =
+      (occurrence.series_index != null ? renames.get(occurrence.series_index) : undefined) ??
+      input.name.trim();
+    if (to === occurrence.name) continue;
+    changed.push({ id: occurrence.id, from: occurrence.name, to });
+  }
+
+  setNames(changed.map(c => ({ id: c.id, name: c.to })));
+  return { changed };
 }

@@ -37,6 +37,10 @@ import type {
   NoteLinkEntity,
   SaveMediaInput,
   ReminderConfig,
+  ApplyToSeriesInput,
+  ApplyToTaskSeriesInput,
+  FieldSet,
+  NameSet,
   DateSet,
   CreateAssignmentBatchInput,
   CreateAssignmentSeriesInput,
@@ -71,6 +75,8 @@ const api: WindowApi = {
     shift:    (input: ShiftAssignmentsInput)    => ipcRenderer.invoke(IPC.ASSIGNMENTS.SHIFT, input),
     setDates: (items: DateSet[])      => ipcRenderer.invoke(IPC.ASSIGNMENTS.SET_DATES, items),
     createBatch: (input: CreateAssignmentBatchInput) => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE_BATCH, input),
+    applyToSeries: (input: ApplyToSeriesInput) => ipcRenderer.invoke(IPC.ASSIGNMENTS.APPLY_SERIES, input),
+    setFields:  (items: FieldSet[])             => ipcRenderer.invoke(IPC.ASSIGNMENTS.SET_FIELDS, items),
   },
 
   assignmentSeries: {
@@ -88,6 +94,8 @@ const api: WindowApi = {
     delete:     (id)                           => ipcRenderer.invoke(IPC.TASKS.DELETE, id),
     shift:      (input: ShiftTasksInput)       => ipcRenderer.invoke(IPC.TASKS.SHIFT, input),
     setDates:   (items: DateSet[])             => ipcRenderer.invoke(IPC.TASKS.SET_DATES, items),
+    applyToSeries: (input: ApplyToTaskSeriesInput) => ipcRenderer.invoke(IPC.TASKS.APPLY_SERIES, input),
+    setNames:   (items: NameSet[])             => ipcRenderer.invoke(IPC.TASKS.SET_NAMES, items),
   },
 
   taskSeries: {

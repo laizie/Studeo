@@ -1,18 +1,24 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { NotebookPen, Repeat } from 'lucide-react';
 import DialogShell from '../../components/DialogShell';
+import SeriesScopeField from '../../components/SeriesScopeField';
 import { ASSIGNMENT_TYPES } from '../../../shared/types';
-import type { Assignment, AssignmentType } from '../../../shared/types';
+import type { Assignment, AssignmentType, SeriesScope } from '../../../shared/types';
 import { plainTextToBlocks } from '../../../shared/notes';
 import { generateRepeats } from '../../../shared/repeat';
-import { useCreateAssignment, useUpdateAssignment } from '../../lib/queries/useAssignments';
+import {
+  useCreateAssignment,
+  useUpdateAssignment,
+  useApplyToAssignmentSeries,
+  useSetAssignmentFields,
+} from '../../lib/queries/useAssignments';
 import { useCreateAssignmentSeries } from '../../lib/queries/useAssignmentSeries';
 import { useCreateNote } from '../../lib/queries/useNotes';
 import { useCreateNoteLink } from '../../lib/queries/useNoteLinks';
 import EntityNotesList from '../notes/EntityNotesList';
 import { INPUT_CLASS } from '../../lib/inputClass';
 import { errorReason } from '../../lib/errors';
-import { showToast } from '../../store/useToastStore';
+import { showToast, showUndoToast } from '../../store/useToastStore';
 
 interface Props {
   courseId: string;
@@ -36,6 +42,10 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
   const [pointsPossible, setPointsPossible] = useState('');
   // Recurring: when on, the assignment expands into a weekly/biweekly series
   // (numbered copies) up to an end date. Add mode only.
+  // How far an edit to a series occurrence reaches. Name and time only — the
+  // date has its own surface (Move dates), where the protections for finished
+  // work live, and a grade is about one occurrence by definition.
+  const [seriesScope, setSeriesScope] = useState<SeriesScope>('one');
   const [repeat, setRepeat]           = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(1); // 1 = weekly, 2 = every 2 weeks
   const [repeatUntil, setRepeatUntil] = useState('');
@@ -44,6 +54,8 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
   const createAssignment  = useCreateAssignment();
   const createSeries = useCreateAssignmentSeries();
+  const applyToSeries = useApplyToAssignmentSeries();
+  const setFields = useSetAssignmentFields();
   const updateAssignment  = useUpdateAssignment();
   const createNote = useCreateNote();
   const linkNote = useCreateNoteLink();
@@ -73,11 +85,15 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
     setRepeat(false);
     setRepeatWeeks(1);
     setRepeatUntil('');
+    // So is the scope: a remembered "all of them" would turn the next small
+    // correction into a silent rewrite of the whole series.
+    setSeriesScope('one');
     setTimeout(() => nameRef.current?.focus(), 50);
   }, [isOpen, assignment]);
 
   // Recurring is add-mode only; a grade doesn't make sense on a future series.
   const repeating = !isEditing && repeat;
+  const inSeries = isEditing && assignment.series_id != null;
 
   // A grade needs both halves ("18 out of 20"); one half alone is ignored.
   // Ignored entirely when creating a recurring series.
@@ -124,10 +140,46 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
       };
 
       if (isEditing) {
+        // The anchor takes the fields a scope never carries: the date is Move
+        // dates' job (that's where finished work is protected), and a grade is
+        // about one occurrence by definition.
+        //
+        // The name and the time go through applyToSeries instead whenever a
+        // wider scope is in play — including for the anchor. Writing them here
+        // first would leave the anchor already correct by the time applyToSeries
+        // looked, so it would drop out of the change list: the toast would
+        // undercount by one, and Undo would put every occurrence back EXCEPT the
+        // one the user actually edited.
+        const scoped = inSeries && seriesScope !== 'one';
         await updateAssignment.mutateAsync({
           id: assignment.id,
-          input: { name: name.trim(), type, dueDate, dueTime: dueTimeValue, ...gradeFields },
+          input: {
+            type,
+            dueDate,
+            ...gradeFields,
+            ...(scoped ? {} : { name: name.trim(), dueTime: dueTimeValue }),
+          },
         });
+
+        if (scoped) {
+          const { changed } = await applyToSeries.mutateAsync({
+            assignmentId: assignment.id,
+            scope: seriesScope,
+            name: name.trim(),
+            dueTime: dueTimeValue,
+          });
+          if (changed.length > 0) {
+            const label = changed.length === 1 ? '1 assignment' : `${changed.length} assignments`;
+            showUndoToast(`Updated ${label}`, () =>
+              setFields.mutate(
+                changed.map(c => ({ id: c.id, name: c.fromName, dueTime: c.fromDueTime })),
+              ),
+            );
+            onClose();
+            return;
+          }
+        }
+
         showToast(`Saved “${name.trim()}”`);
       } else {
         await createAssignment.mutateAsync({
@@ -172,7 +224,8 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
 
   const hasLegacyNote = isEditing && !legacyImported && !!assignment?.notes?.trim();
 
-  const isPending = createAssignment.isPending || createSeries.isPending || updateAssignment.isPending;
+  const isPending =
+    createAssignment.isPending || createSeries.isPending || updateAssignment.isPending || applyToSeries.isPending;
   const isError   = createAssignment.isError   || createSeries.isError   || updateAssignment.isError;
   const mutationError = createAssignment.error ?? createSeries.error ?? updateAssignment.error;
 
@@ -236,6 +289,23 @@ export default function AddAssignmentDialog({ courseId, assignment, isOpen, onCl
               />
             </div>
           </div>
+
+          {/* Scope — edit mode, series occurrences only. Governs the name and the
+              time; the date has its own surface, and a grade is per-occurrence. */}
+          {inSeries && (
+            <SeriesScopeField
+              value={seriesScope}
+              onChange={setSeriesScope}
+              label="Apply the name and time to"
+              hint={
+                seriesScope === 'one'
+                  ? 'Only this occurrence changes.'
+                  : seriesScope === 'this_and_later'
+                    ? 'This occurrence and the ones after it, renumbered from this one. Finished ones included — a name isn’t a date.'
+                    : 'Every occurrence, renumbered from this one. Finished ones included — a name isn’t a date.'
+              }
+            />
+          )}
 
           {/* Repeat — add mode only. Expands into a numbered weekly/biweekly series. */}
           {!isEditing && (

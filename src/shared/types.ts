@@ -526,6 +526,67 @@ export interface DateSet {
   dueDate: string;
 }
 
+/**
+ * A scoped edit to the fields that aren't dates: the name, and (assignments
+ * only) the time of day. Separate from a shift because the rules differ — a
+ * rename renumbers itself across the series, and finished occurrences are NOT
+ * protected from it. A past due date is a fact about when something was due; a
+ * name is only a label, and when a course renames "Problem Set" to "Homework"
+ * the rows you already handed in should say so too.
+ */
+export interface ApplyToSeriesInput {
+  /** The occurrence the user edited — anchors both the scope and the numbering. */
+  assignmentId: string;
+  scope: SeriesScope;
+  /** New name as typed on the anchor; other occurrences are renumbered from it. */
+  name?: string;
+  /** "HH:MM" to set, null to clear back to all-day. Omit to leave times alone. */
+  dueTime?: string | null;
+}
+
+/** One row's name and time before and after a scoped edit. The list is the Undo. */
+export interface FieldChange {
+  id: string;
+  fromName: string;
+  toName: string;
+  fromDueTime: string | null;
+  toDueTime: string | null;
+}
+
+export interface ApplySeriesResult {
+  changed: FieldChange[];
+}
+
+/** {id, name, dueTime} for a transactional multi-row field write. */
+export interface FieldSet {
+  id: string;
+  name: string;
+  dueTime: string | null;
+}
+
+/** The task equivalents. Tasks have no time of day, so a scoped edit to one is
+ *  only ever a rename — and the types say so rather than carrying a dead field. */
+export interface ApplyToTaskSeriesInput {
+  taskId: string;
+  scope: SeriesScope;
+  name: string;
+}
+
+export interface NameChange {
+  id: string;
+  from: string;
+  to: string;
+}
+
+export interface ApplyTaskSeriesResult {
+  changed: NameChange[];
+}
+
+export interface NameSet {
+  id: string;
+  name: string;
+}
+
 export interface ShiftResult {
   changed: DateChange[];
   /** Occurrences deliberately left alone, so the UI can say "moved 7, left 2
@@ -759,6 +820,8 @@ export const IPC = {
     SHIFT:       'assignments:shift',
     SET_DATES:   'assignments:set-dates',
     CREATE_BATCH:'assignments:create-batch',
+    APPLY_SERIES:'assignments:apply-series',
+    SET_FIELDS:  'assignments:set-fields',
   },
   ASSIGNMENT_SERIES: {
     LIST:   'assignment_series:list',
@@ -780,6 +843,8 @@ export const IPC = {
     DELETE:      'tasks:delete',
     SHIFT:       'tasks:shift',
     SET_DATES:   'tasks:set-dates',
+    APPLY_SERIES:'tasks:apply-series',
+    SET_NAMES:   'tasks:set-names',
   },
   TASK_SERIES: {
     LIST:   'task_series:list',
@@ -963,6 +1028,11 @@ export interface WindowApi {
     setDates(items: DateSet[]): Promise<number>;
     /** Save a whole grid — repeating groups and one-off rows — in one transaction. */
     createBatch(input: CreateAssignmentBatchInput): Promise<AssignmentBatchResult>;
+    /** Apply a rename and/or a due time across a series. Occurrences are
+     *  renumbered from the anchor's new name; finished ones are included. */
+    applyToSeries(input: ApplyToSeriesInput): Promise<ApplySeriesResult>;
+    /** Transactional multi-row name/time write — how Undo replays the above. */
+    setFields(items: FieldSet[]): Promise<number>;
   };
   assignmentSeries: {
     list(filters?: { courseId?: string }): Promise<AssignmentSeries[]>;
@@ -992,6 +1062,10 @@ export interface WindowApi {
     shift(input: ShiftTasksInput): Promise<ShiftResult>;
     /** Transactional multi-row date write — also how Undo replays a shift. */
     setDates(items: DateSet[]): Promise<number>;
+    /** Apply a rename across a series, renumbering from the anchor's new name. */
+    applyToSeries(input: ApplyToTaskSeriesInput): Promise<ApplyTaskSeriesResult>;
+    /** Transactional multi-row name write — how Undo replays the above. */
+    setNames(items: NameSet[]): Promise<number>;
   };
   taskSeries: {
     list(): Promise<TaskSeries[]>;

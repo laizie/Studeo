@@ -1,7 +1,9 @@
 import { ipcMain } from 'electron';
 import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES, SERIES_SCOPES } from '../../shared/types';
 import type {
+  ApplyToSeriesInput,
   DateSet,
+  FieldSet,
   CreateAssignmentBatchInput,
   AssignmentSnapshot,
   AssignmentStatus,
@@ -19,6 +21,8 @@ import {
   restoreAssignment,
   shiftAssignments,
   setDates,
+  applyToSeries,
+  setFields,
 } from '../db/repositories/assignmentRepo';
 import { createAssignmentBatch } from '../db/repositories/assignmentSeriesRepo';
 import { notifyAssignmentsChanged } from '../applereminders';
@@ -200,5 +204,38 @@ export function registerAssignmentHandlers(): void {
     const created = createAssignmentBatch(input);
     notifyAssignmentsChanged();
     return created;
+  });
+
+  // A rename and/or a due time, applied across a scope. Nothing here is a date,
+  // so there's no skip guard — see applyToSeries for why a finished occurrence
+  // is renamed along with the rest.
+  ipcMain.handle(IPC.ASSIGNMENTS.APPLY_SERIES, (_event, input: ApplyToSeriesInput) => {
+    if (!input?.assignmentId) throw new Error('assignmentId is required');
+    assertOneOf(input.scope, SERIES_SCOPES, 'scope');
+    if (input.name === undefined && input.dueTime === undefined) {
+      throw new Error('Nothing to apply — pass a name, a dueTime, or both');
+    }
+    if (input.name !== undefined && !input.name.trim()) {
+      throw new Error('Assignment name is required');
+    }
+    validateDueTime(input);
+    const result = applyToSeries(input);
+    // A renamed or re-timed assignment is a changed reminder.
+    notifyAssignmentsChanged();
+    return result;
+  });
+
+  // The bulk name/time write behind the above and its Undo.
+  ipcMain.handle(IPC.ASSIGNMENTS.SET_FIELDS, (_event, items: FieldSet[]) => {
+    if (!Array.isArray(items) || items.length === 0) throw new Error('items must be a non-empty array');
+    if (items.length > 500) throw new Error('Too many assignments in one batch (max 500)');
+    for (const item of items) {
+      if (!item?.id) throw new Error('id is required on every row');
+      if (!item.name?.trim()) throw new Error('Assignment name is required on every row');
+      validateDueTime(item);
+    }
+    const count = setFields(items);
+    notifyAssignmentsChanged();
+    return count;
   });
 }
