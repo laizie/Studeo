@@ -24,6 +24,7 @@ import migration015 from './migrations/015_indexes.sql?raw';
 import migration016 from './migrations/016_status_checks.sql?raw';
 import migration017 from './migrations/017_apple_reminder_links.sql?raw';
 import migration018 from './migrations/018_assignment_series.sql?raw';
+import migration019 from './migrations/019_task_series.sql?raw';
 
 let db: DatabaseSync | null = null;
 let dbPath: string | null = null;
@@ -163,6 +164,7 @@ const MIGRATIONS: Migration[] = [
   { name: '016_status_checks.sql', sql: migration016, foreignKeysOff: true },
   { name: '017_apple_reminder_links.sql', sql: migration017 },
   { name: '018_assignment_series.sql', sql: migration018 },
+  { name: '019_task_series.sql', sql: migration019 },
 ];
 
 /**

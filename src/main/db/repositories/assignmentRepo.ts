@@ -3,13 +3,13 @@ import { asRow } from '../rows';
 import { shiftDate, shiftSkipReason } from '../../../shared/repeat';
 import type {
   Assignment,
-  AssignmentDateChange,
-  AssignmentDateSet,
+  DateChange,
+  DateSet,
   AssignmentSnapshot,
   AssignmentStatus,
   SeriesScope,
   ShiftAssignmentsInput,
-  ShiftAssignmentsResult,
+  ShiftResult,
   Subtask,
   StudyBlock,
   NoteLink,
@@ -244,7 +244,7 @@ export function listBySeries(seriesId: string): Assignment[] {
  * edits are actually about, so it can't become a general-purpose back door
  * around updateAssignment's completed_at bookkeeping.
  */
-export function setDates(items: AssignmentDateSet[]): number {
+export function setDates(items: DateSet[]): number {
   if (items.length === 0) return 0;
 
   const db = getDb();
@@ -293,12 +293,12 @@ function scopeTargets(anchor: Assignment, scope: SeriesScope): Assignment[] {
  * needs: replay it through setDates with the `from` dates and each row goes back
  * to the different date it personally had.
  */
-export function shiftAssignments(input: ShiftAssignmentsInput): ShiftAssignmentsResult {
+export function shiftAssignments(input: ShiftAssignmentsInput): ShiftResult {
   const anchor = getAssignment(input.assignmentId);
   if (!anchor) throw new Error('Assignment not found');
 
-  const changed: AssignmentDateChange[] = [];
-  const skipped: ShiftAssignmentsResult['skipped'] = [];
+  const changed: DateChange[] = [];
+  const skipped: ShiftResult['skipped'] = [];
 
   for (const occurrence of scopeTargets(anchor, input.scope)) {
     const isAnchor = occurrence.id === anchor.id;

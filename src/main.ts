@@ -6,6 +6,7 @@ import { registerCourseHandlers } from './main/ipc/registerCourseHandlers';
 import { registerAssignmentHandlers } from './main/ipc/registerAssignmentHandlers';
 import { registerAssignmentSeriesHandlers } from './main/ipc/registerAssignmentSeriesHandlers';
 import { registerTaskHandlers } from './main/ipc/registerTaskHandlers';
+import { registerTaskSeriesHandlers } from './main/ipc/registerTaskSeriesHandlers';
 import { registerSubtaskHandlers } from './main/ipc/registerSubtaskHandlers';
 import { registerClassMeetingHandlers } from './main/ipc/registerClassMeetingHandlers';
 import { registerMeetingExceptionHandlers } from './main/ipc/registerMeetingExceptionHandlers';
@@ -54,6 +55,7 @@ function registerIpcHandlers(): void {
   registerAssignmentHandlers();
   registerAssignmentSeriesHandlers();
   registerTaskHandlers();
+  registerTaskSeriesHandlers();
   registerSubtaskHandlers();
   registerClassMeetingHandlers();
   registerMeetingExceptionHandlers();

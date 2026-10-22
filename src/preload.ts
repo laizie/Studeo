@@ -37,10 +37,13 @@ import type {
   NoteLinkEntity,
   SaveMediaInput,
   ReminderConfig,
-  AssignmentDateSet,
+  DateSet,
   CreateAssignmentBatchInput,
   CreateAssignmentSeriesInput,
+  CreateTaskSeriesInput,
   ExtendAssignmentSeriesInput,
+  ExtendTaskSeriesInput,
+  ShiftTasksInput,
   ShiftAssignmentsInput,
   ReminderNavTarget,
   MiniTimerState,
@@ -66,7 +69,7 @@ const api: WindowApi = {
     delete:  (id)                               => ipcRenderer.invoke(IPC.ASSIGNMENTS.DELETE, id),
     restore: (snapshot: AssignmentSnapshot)     => ipcRenderer.invoke(IPC.ASSIGNMENTS.RESTORE, snapshot),
     shift:    (input: ShiftAssignmentsInput)    => ipcRenderer.invoke(IPC.ASSIGNMENTS.SHIFT, input),
-    setDates: (items: AssignmentDateSet[])      => ipcRenderer.invoke(IPC.ASSIGNMENTS.SET_DATES, items),
+    setDates: (items: DateSet[])      => ipcRenderer.invoke(IPC.ASSIGNMENTS.SET_DATES, items),
     createBatch: (input: CreateAssignmentBatchInput) => ipcRenderer.invoke(IPC.ASSIGNMENTS.CREATE_BATCH, input),
   },
 
@@ -83,6 +86,15 @@ const api: WindowApi = {
     createMany: (inputs: CreateTaskInput[])    => ipcRenderer.invoke(IPC.TASKS.CREATE_MANY, inputs),
     update:     (id, input: UpdateTaskInput)   => ipcRenderer.invoke(IPC.TASKS.UPDATE, id, input),
     delete:     (id)                           => ipcRenderer.invoke(IPC.TASKS.DELETE, id),
+    shift:      (input: ShiftTasksInput)       => ipcRenderer.invoke(IPC.TASKS.SHIFT, input),
+    setDates:   (items: DateSet[])             => ipcRenderer.invoke(IPC.TASKS.SET_DATES, items),
+  },
+
+  taskSeries: {
+    list:   ()                                 => ipcRenderer.invoke(IPC.TASK_SERIES.LIST),
+    create: (input: CreateTaskSeriesInput)     => ipcRenderer.invoke(IPC.TASK_SERIES.CREATE, input),
+    extend: (input: ExtendTaskSeriesInput)     => ipcRenderer.invoke(IPC.TASK_SERIES.EXTEND, input),
+    delete: (id)                               => ipcRenderer.invoke(IPC.TASK_SERIES.DELETE, id),
   },
 
   subtasks: {

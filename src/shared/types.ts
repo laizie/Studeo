@@ -146,6 +146,30 @@ export interface Task {
   /** ISO/UTC timestamp of when status last became 'completed'; null otherwise.
    *  Set/cleared by the repo on status transitions (mirrors Assignment). */
   completed_at: string | null;
+  /** The repeating series this occurrence came from, or null for a one-off.
+   *  Nulled (not deleted) when the series is dropped — see TaskSeries. */
+  series_id: string | null;
+  /** 1-based position within the series; null for a one-off. Not derived from
+   *  due_date, for the same reason as Assignment.series_index: dates are what
+   *  gets shifted, so "later" has to mean later in the series. */
+  series_index: number | null;
+  created_at: string;
+}
+
+/**
+ * A repeating task ("water the plants, every week until May"). The same shape as
+ * AssignmentSeries minus the things tasks don't have — no course, no type, no
+ * time of day — because a task is deliberately the lighter of the two.
+ *
+ * Same bargain as well: the rule is bookkeeping, the rows are the truth, and
+ * dropping the rule leaves every occurrence standing on its own.
+ */
+export interface TaskSeries {
+  id: string;
+  name_template: string;
+  interval_weeks: number;
+  anchor_date: string;
+  until_date: string;
   created_at: string;
 }
 
@@ -488,21 +512,22 @@ export interface ShiftAssignmentsInput {
   days: number;
 }
 
-/** One row's due date before and after a move. The list of these IS the Undo. */
-export interface AssignmentDateChange {
+/** One row's due date before and after a move. The list of these IS the Undo.
+ *  Shared by assignments and tasks — a date moves the same way for both. */
+export interface DateChange {
   id: string;
   from: string;
   to: string;
 }
 
 /** {id, dueDate} pairs for a transactional multi-row date write. */
-export interface AssignmentDateSet {
+export interface DateSet {
   id: string;
   dueDate: string;
 }
 
-export interface ShiftAssignmentsResult {
-  changed: AssignmentDateChange[];
+export interface ShiftResult {
+  changed: DateChange[];
   /** Occurrences deliberately left alone, so the UI can say "moved 7, left 2
    *  already-graded ones alone" instead of quietly rewriting finished history. */
   skipped: { id: string; name: string; reason: 'completed' | 'graded' }[];
@@ -522,6 +547,35 @@ export interface CreateTaskInput {
   name: string;
   status?: AssignmentStatus;
   dueDate: string;
+  /** Set by createTaskSeries when it expands a rule into rows — and by Undo,
+   *  so taking back a deleted occurrence puts it back in its series. */
+  seriesId?: string | null;
+  seriesIndex?: number | null;
+}
+
+export interface CreateTaskSeriesInput {
+  /** The first occurrence's name, as typed. Later ones are numbered from it. */
+  name: string;
+  anchorDate: string;
+  untilDate: string;
+  intervalWeeks: number;
+}
+
+export interface TaskSeriesWithOccurrences {
+  series: TaskSeries;
+  tasks: Task[];
+}
+
+export interface ExtendTaskSeriesInput {
+  seriesId: string;
+  untilDate: string;
+}
+
+export interface ShiftTasksInput {
+  taskId: string;
+  scope: SeriesScope;
+  /** Whole days to add; negative pulls the dates earlier. */
+  days: number;
 }
 
 export interface UpdateTaskInput {
@@ -724,6 +778,14 @@ export const IPC = {
     CREATE_MANY: 'tasks:create-many',
     UPDATE:      'tasks:update',
     DELETE:      'tasks:delete',
+    SHIFT:       'tasks:shift',
+    SET_DATES:   'tasks:set-dates',
+  },
+  TASK_SERIES: {
+    LIST:   'task_series:list',
+    CREATE: 'task_series:create',
+    EXTEND: 'task_series:extend',
+    DELETE: 'task_series:delete',
   },
   CLASS_MEETINGS: {
     LIST:   'class_meetings:list',
@@ -895,10 +957,10 @@ export interface WindowApi {
     restore(snapshot: AssignmentSnapshot): Promise<Assignment>;
     /** Move one occurrence, or it and the rest of its series, by a number of days.
      *  Completed and graded occurrences are skipped and reported back. */
-    shift(input: ShiftAssignmentsInput): Promise<ShiftAssignmentsResult>;
+    shift(input: ShiftAssignmentsInput): Promise<ShiftResult>;
     /** Transactional multi-row date write — all rows land or none do. Also how
      *  Undo replays a shift, by passing each row's original date back. */
-    setDates(items: AssignmentDateSet[]): Promise<number>;
+    setDates(items: DateSet[]): Promise<number>;
     /** Save a whole grid — repeating groups and one-off rows — in one transaction. */
     createBatch(input: CreateAssignmentBatchInput): Promise<AssignmentBatchResult>;
   };
@@ -924,6 +986,19 @@ export interface WindowApi {
     /** Atomic batch insert — all rows save or none do (recurring task series). */
     createMany(inputs: CreateTaskInput[]): Promise<Task[]>;
     update(id: string, input: UpdateTaskInput): Promise<Task>;
+    delete(id: string): Promise<void>;
+    /** Move one occurrence, or it and the rest of its series, by a number of days.
+     *  Completed occurrences are skipped and reported back. */
+    shift(input: ShiftTasksInput): Promise<ShiftResult>;
+    /** Transactional multi-row date write — also how Undo replays a shift. */
+    setDates(items: DateSet[]): Promise<number>;
+  };
+  taskSeries: {
+    list(): Promise<TaskSeries[]>;
+    /** Creates the series and expands it into occurrences in one transaction. */
+    create(input: CreateTaskSeriesInput): Promise<TaskSeriesWithOccurrences>;
+    extend(input: ExtendTaskSeriesInput): Promise<TaskSeriesWithOccurrences>;
+    /** "Stop repeating": drops the rule only; every occurrence survives. */
     delete(id: string): Promise<void>;
   };
   classMeetings: {

@@ -3,7 +3,8 @@ import { Repeat } from 'lucide-react';
 import DialogShell from '../../components/DialogShell';
 import type { Task } from '../../../shared/types';
 import { generateRepeats } from '../../../shared/repeat';
-import { useCreateTask, useCreateTasks, useUpdateTask } from '../../lib/queries/useTasks';
+import { useCreateTask, useUpdateTask } from '../../lib/queries/useTasks';
+import { useCreateTaskSeries } from '../../lib/queries/useTaskSeries';
 import { INPUT_CLASS } from '../../lib/inputClass';
 import { errorReason } from '../../lib/errors';
 import { showToast } from '../../store/useToastStore';
@@ -27,7 +28,7 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
   const [repeatUntil, setRepeatUntil] = useState('');
 
   const createTask  = useCreateTask();
-  const createTasks = useCreateTasks();
+  const createSeries = useCreateTaskSeries();
   const updateTask  = useUpdateTask();
   const nameRef = useRef<HTMLInputElement>(null);
   const uid = useId();
@@ -60,14 +61,17 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
 
     try {
       if (repeating) {
-        // Expand into independent, numbered copies and insert them atomically —
-        // either the whole series saves or none of it does (createMany).
-        const series = [
-          { name: name.trim(), dueDate },
-          ...followUps.map(o => ({ name: o.name, dueDate: o.dueDate })),
-        ];
-        await createTasks.mutateAsync(series);
-        showToast(`Added ${series.length} tasks`);
+        // Save the repeat RULE alongside the rows it expands to, so the series
+        // still knows it's a series afterwards — the same change assignments got.
+        // The previous version inserted the same rows with createMany and they
+        // came out strangers, which is why a slipped chore meant editing each one.
+        const { tasks } = await createSeries.mutateAsync({
+          name: name.trim(),
+          anchorDate: dueDate,
+          untilDate: repeatUntil,
+          intervalWeeks: repeatWeeks,
+        });
+        showToast(`Added ${tasks.length} tasks`);
         onClose();
         return;
       }
@@ -88,9 +92,9 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
     }
   }
 
-  const isPending = createTask.isPending || createTasks.isPending || updateTask.isPending;
-  const isError   = createTask.isError   || createTasks.isError   || updateTask.isError;
-  const mutationError = createTask.error ?? createTasks.error ?? updateTask.error;
+  const isPending = createTask.isPending || createSeries.isPending || updateTask.isPending;
+  const isError   = createTask.isError   || createSeries.isError   || updateTask.isError;
+  const mutationError = createTask.error ?? createSeries.error ?? updateTask.error;
 
   return (
     <DialogShell

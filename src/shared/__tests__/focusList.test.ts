@@ -21,7 +21,8 @@ function assignment(over: Partial<Assignment> = {}): Assignment {
 function task(over: Partial<Task> = {}): Task {
   return {
     id: 't1', name: 'Email the TA', status: 'not_started',
-    due_date: '2026-09-10', completed_at: null, created_at: '', ...over,
+    due_date: '2026-09-10', completed_at: null,
+    series_id: null, series_index: null, created_at: '', ...over,
   };
 }
 

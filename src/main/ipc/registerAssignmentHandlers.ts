@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES, SERIES_SCOPES } from '../../shared/types';
 import type {
-  AssignmentDateSet,
+  DateSet,
   CreateAssignmentBatchInput,
   AssignmentSnapshot,
   AssignmentStatus,
@@ -143,7 +143,7 @@ export function registerAssignmentHandlers(): void {
   // The bulk date write behind a shift and its Undo. Dates are validated for the
   // whole batch before any of it lands, matching the repo's all-or-nothing write:
   // a bad date in row nine shouldn't leave rows one to eight moved.
-  ipcMain.handle(IPC.ASSIGNMENTS.SET_DATES, (_event, items: AssignmentDateSet[]) => {
+  ipcMain.handle(IPC.ASSIGNMENTS.SET_DATES, (_event, items: DateSet[]) => {
     if (!Array.isArray(items) || items.length === 0) throw new Error('items must be a non-empty array');
     if (items.length > 500) throw new Error('Too many assignments in one batch (max 500)');
     for (const item of items) {

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
-  AssignmentDateSet,
+  DateSet,
   CreateAssignmentBatchInput,
   AssignmentSnapshot,
   AssignmentStatus,
@@ -92,7 +92,7 @@ export function useShiftAssignments() {
 export function useSetAssignmentDates() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (items: AssignmentDateSet[]) => window.api.assignments.setDates(items),
+    mutationFn: (items: DateSet[]) => window.api.assignments.setDates(items),
     onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
   });
 }

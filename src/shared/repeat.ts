@@ -109,9 +109,12 @@ export function shiftDate(date: string, days: number): string {
  *
  * Checked in order: a completed-and-graded row reports as 'completed', the more
  * obvious of the two reasons to a reader.
+ *
+ * `score` is optional because tasks don't have one — for them this is simply a
+ * question about completion.
  */
 export function shiftSkipReason(
-  occurrence: { status: AssignmentStatus; score: number | null },
+  occurrence: { status: AssignmentStatus; score?: number | null },
 ): 'completed' | 'graded' | null {
   if (occurrence.status === 'completed') return 'completed';
   if (occurrence.score != null) return 'graded';

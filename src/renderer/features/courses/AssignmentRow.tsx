@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Circle, CheckCircle2, Pencil, Trash2, Target, ListTodo, CalendarPlus, CalendarClock, Repeat } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SubtaskChecklist from './SubtaskChecklist';
-import MoveDatesDialog from './MoveDatesDialog';
+import AssignmentMoveDates from './AssignmentMoveDates';
 import PlanStudyDialog from '../study/PlanStudyDialog';
 import type { Assignment, AssignmentStatus, Course } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate, formatClock12 } from '../../../shared/deadlines';
@@ -280,7 +280,7 @@ export default function AssignmentRow({ assignment, onEdit, course, showCourseBa
       <PlanStudyDialog assignment={assignment} course={course} onClose={() => setPlanOpen(false)} />
     )}
 
-    <MoveDatesDialog
+    <AssignmentMoveDates
       assignment={assignment}
       isOpen={moveOpen}
       onClose={() => setMoveOpen(false)}

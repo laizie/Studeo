@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CreateTaskInput, UpdateTaskInput } from '../../../shared/types';
+import type {
+  CreateTaskInput,
+  DateSet,
+  ShiftTasksInput,
+  UpdateTaskInput,
+} from '../../../shared/types';
 
 export const taskKeys = {
   all:    ['tasks']             as const,
@@ -21,15 +26,6 @@ export function useCreateTask() {
   });
 }
 
-/** Batch-create a recurring task series atomically (mirrors useCreateAssignments). */
-export function useCreateTasks() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (inputs: CreateTaskInput[]) => window.api.tasks.createMany(inputs),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
-  });
-}
-
 export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
@@ -43,6 +39,30 @@ export function useDeleteTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => window.api.tasks.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
+/**
+ * Move a task, or it and the rest of its series, by a number of days.
+ *
+ * Resolves to the rows that actually moved (with their old dates) plus the
+ * finished ones it refused to touch — so the caller can report honestly and hand
+ * the before-dates to useSetTaskDates as an Undo.
+ */
+export function useShiftTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ShiftTasksInput) => window.api.tasks.shift(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
+/** Write exact dates to many tasks in one transaction — the Undo half of a shift. */
+export function useSetTaskDates() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: DateSet[]) => window.api.tasks.setDates(items),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
   });
 }

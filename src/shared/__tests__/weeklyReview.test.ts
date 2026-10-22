@@ -28,7 +28,10 @@ function assign(
 function task(
   id: string, dueDate: string, status: AssignmentStatus, completedAt: string | null = null,
 ): Task {
-  return { id, name: id, status, due_date: dueDate, completed_at: completedAt, created_at: '2026-01-01' };
+  return {
+    id, name: id, status, due_date: dueDate, completed_at: completedAt,
+    series_id: null, series_index: null, created_at: '2026-01-01',
+  };
 }
 
 function focus(id: string, startedAt: string, minutes: number): StudySession {

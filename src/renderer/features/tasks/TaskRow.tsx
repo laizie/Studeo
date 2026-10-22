@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Circle, CheckCircle2, Pencil, Trash2, Target } from 'lucide-react';
+import { Circle, CheckCircle2, Pencil, Trash2, Target, CalendarClock, Repeat } from 'lucide-react';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import TaskMoveDates from './TaskMoveDates';
 import type { Task, AssignmentStatus } from '../../../shared/types';
 import { computeDeadlineLabel, formatDueDate } from '../../../shared/deadlines';
 import { useUpdateTask, useDeleteTask, useCreateTask } from '../../lib/queries/useTasks';
@@ -28,6 +29,8 @@ export default function TaskRow({ task, onEdit }: Props) {
   const { items: focusItems, addItem: addToFocus, removeItem: removeFromFocus } = useStudyListStore();
   const inFocusList = focusItems.some(i => i.id === task.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const inSeries = task.series_index != null;
 
   const deadline    = computeDeadlineLabel(task.due_date);
   const isCompleted = task.status === 'completed';
@@ -51,7 +54,11 @@ export default function TaskRow({ task, onEdit }: Props) {
     setConfirmOpen(true);
   }
 
-  // Undo for delete = recreate from the row we still hold.
+  // Undo for delete = recreate from the row we still hold. The series fields come
+  // back with it: without them, taking back a deleted occurrence would quietly
+  // drop it out of its series, and "this and later" would then skip it forever.
+  // (The row still returns under a new id — that part predates series and is
+  // unchanged here.)
   function confirmDelete() {
     deleteTask.mutate(task.id, {
       onSuccess: () =>
@@ -60,6 +67,8 @@ export default function TaskRow({ task, onEdit }: Props) {
             name: task.name,
             status: task.status,
             dueDate: task.due_date.slice(0, 10),
+            seriesId: task.series_id,
+            seriesIndex: task.series_index,
           }),
         ),
     });
@@ -104,6 +113,19 @@ export default function TaskRow({ task, onEdit }: Props) {
         {task.name}
       </button>
 
+      {/* Repeating-series marker. Quiet by design: it explains why "Move dates"
+          offers to move more than this row. Hidden at the width the due date
+          hides at, rather than taking room from the task's name. */}
+      {inSeries && (
+        <span
+          className="shrink-0 hidden md:inline-flex text-muted"
+          title={`Part of a repeating series — occurrence ${task.series_index}`}
+          aria-label={`Occurrence ${task.series_index} of a repeating series`}
+        >
+          <Repeat size={12} />
+        </span>
+      )}
+
       <span className="shrink-0 text-xs text-muted bg-inset px-2 py-0.5 rounded hidden md:block">
         {formatDueDate(task.due_date)}
       </span>
@@ -129,6 +151,14 @@ export default function TaskRow({ task, onEdit }: Props) {
       </button>
 
       <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => { e.stopPropagation(); setMoveOpen(true); }}
+          aria-label={inSeries ? `Move dates for ${task.name} or its series` : `Move the due date for ${task.name}`}
+          className="p-1 text-muted hover:text-accent-text rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          title={inSeries ? 'Move dates' : 'Move due date'}
+        >
+          <CalendarClock size={13} />
+        </button>
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           aria-label={`Edit ${task.name}`}
@@ -157,6 +187,8 @@ export default function TaskRow({ task, onEdit }: Props) {
       onConfirm={confirmDelete}
       onClose={() => setConfirmOpen(false)}
     />
+
+    <TaskMoveDates task={task} isOpen={moveOpen} onClose={() => setMoveOpen(false)} />
     </div>
   );
 }
