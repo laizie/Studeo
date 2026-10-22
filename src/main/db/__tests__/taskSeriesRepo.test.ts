@@ -25,6 +25,8 @@ import {
   createTaskSeries,
   extendTaskSeries,
   deleteTaskSeries,
+  stopRepeatingFrom,
+  restoreOccurrences,
 } from '../repositories/taskSeriesRepo';
 
 beforeEach(() => {
@@ -314,5 +316,147 @@ describe('applyToSeries', () => {
 
   it('throws for a task that does not exist', () => {
     expect(() => applyToSeries({ taskId: 'nope', scope: 'all', name: 'X' })).toThrow(/not found/i);
+  });
+});
+
+describe('stopRepeatingFrom', () => {
+  it('removes the anchor and every untouched occurrence after it', () => {
+    const { series, tasks } = weeklySeries();
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+
+    expect(result.removed.map(t => t.id)).toEqual([tasks[2].id, tasks[3].id]);
+    expect(result.kept).toEqual([]);
+    expect(listBySeries(series.id).map(t => t.name)).toEqual([
+      'Water the plants 1', 'Water the plants 2',
+    ]);
+  });
+
+  it('pulls the series end date back to the last one left', () => {
+    const { series, tasks } = weeklySeries();
+
+    stopRepeatingFrom({ taskId: tasks[2].id });
+
+    expect(getTaskSeries(series.id)!.until_date).toBe('2026-03-13');
+  });
+
+  it('keeps a completed occurrence and says so', () => {
+    const { tasks } = weeklySeries();
+    updateTask(tasks[3].id, { status: 'completed' });
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+
+    expect(result.removed.map(t => t.id)).toEqual([tasks[2].id]);
+    expect(result.kept).toEqual([
+      { id: tasks[3].id, name: 'Water the plants 4', reason: 'completed' },
+    ]);
+    expect(getTask(tasks[3].id)).not.toBeNull();
+  });
+
+  it('keeps one that is merely in progress', () => {
+    const { tasks } = weeklySeries();
+    updateTask(tasks[3].id, { status: 'in_progress' });
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+
+    expect(result.kept[0].reason).toBe('in_progress');
+  });
+
+  it('leaves the end date where it is when something later survives', () => {
+    const { series, tasks } = weeklySeries();
+    updateTask(tasks[3].id, { status: 'completed' });
+
+    stopRepeatingFrom({ taskId: tasks[2].id });
+
+    // The last occurrence was kept, so the series still runs to its date.
+    expect(getTaskSeries(series.id)!.until_date).toBe('2026-03-27');
+  });
+
+  it('leaves everything before the cut alone', () => {
+    const { tasks } = weeklySeries();
+
+    stopRepeatingFrom({ taskId: tasks[2].id });
+
+    expect(getTask(tasks[0].id)).not.toBeNull();
+    expect(getTask(tasks[1].id)).not.toBeNull();
+  });
+
+  it('refuses to cut from the first occurrence', () => {
+    const { tasks } = weeklySeries();
+
+    expect(() => stopRepeatingFrom({ taskId: tasks[0].id })).toThrow(/stop repeating/i);
+  });
+
+  it('refuses a task that is not in a series', () => {
+    const solo = createTask({ name: 'Email the TA', dueDate: '2026-03-06' });
+
+    expect(() => stopRepeatingFrom({ taskId: solo.id })).toThrow(/not part of a series/i);
+  });
+
+  it('removes nothing when the whole tail has been started', () => {
+    const { series, tasks } = weeklySeries();
+    updateTask(tasks[2].id, { status: 'in_progress' });
+    updateTask(tasks[3].id, { status: 'completed' });
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+
+    expect(result.removed).toEqual([]);
+    expect(result.kept).toHaveLength(2);
+    expect(getTaskSeries(series.id)!.until_date).toBe('2026-03-27');
+  });
+
+  it('is put back exactly by restoreOccurrences', () => {
+    const { series, tasks } = weeklySeries();
+    const before = listBySeries(series.id).map(t => ({
+      id: t.id, name: t.name, due: t.due_date, idx: t.series_index,
+    }));
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+    restoreOccurrences({
+      seriesId: result.seriesId,
+      untilDate: result.previousUntilDate,
+      tasks: result.removed,
+    });
+
+    expect(
+      listBySeries(series.id).map(t => ({
+        id: t.id, name: t.name, due: t.due_date, idx: t.series_index,
+      })),
+    ).toEqual(before);
+    expect(getTaskSeries(series.id)!.until_date).toBe('2026-03-27');
+  });
+
+  it('brings a completed occurrence back still completed', () => {
+    const { tasks } = weeklySeries();
+    const done = updateTask(tasks[3].id, { status: 'completed' });
+    // Re-open it so it's droppable, then cut and restore.
+    updateTask(tasks[3].id, { status: 'not_started' });
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+    restoreOccurrences({
+      seriesId: result.seriesId,
+      untilDate: result.previousUntilDate,
+      tasks: result.removed,
+    });
+
+    const back = getTask(tasks[3].id)!;
+    expect(back.status).toBe('not_started');
+    expect(back.created_at).toBe(done.created_at);
+  });
+
+  it('restores under the original ids, so the series is whole again', () => {
+    const { series, tasks } = weeklySeries();
+
+    const result = stopRepeatingFrom({ taskId: tasks[2].id });
+    restoreOccurrences({
+      seriesId: result.seriesId,
+      untilDate: result.previousUntilDate,
+      tasks: result.removed,
+    });
+
+    // The point of restoring by id: a later "this and later" still reaches them.
+    const shift = shiftTasks({ taskId: tasks[1].id, scope: 'this_and_later', days: 7 });
+    expect(shift.changed).toHaveLength(3);
+    expect(listBySeries(series.id)).toHaveLength(4);
   });
 });

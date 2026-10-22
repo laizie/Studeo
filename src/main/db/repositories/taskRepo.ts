@@ -227,3 +227,30 @@ export function applyToSeries(input: ApplyToTaskSeriesInput): ApplyTaskSeriesRes
   setNames(changed.map(c => ({ id: c.id, name: c.to })));
   return { changed };
 }
+
+/**
+ * Insert a task row verbatim, WITHOUT a transaction of its own.
+ *
+ * The task equivalent of assignmentRepo.writeSnapshot, and simpler for the same
+ * reason the whole task side is: nothing references tasks(id), so the row is
+ * the entire snapshot. Exported so a caller already inside a transaction can
+ * restore several at once; anything calling it directly must wrap it.
+ */
+export function writeTask(task: Task): Task {
+  getDb()
+    .prepare(
+      `INSERT INTO tasks (id, name, status, due_date, completed_at, series_id, series_index, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      task.id,
+      task.name,
+      task.status,
+      task.due_date,
+      task.completed_at,
+      task.series_id,
+      task.series_index,
+      task.created_at,
+    );
+  return getTask(task.id)!;
+}

@@ -50,6 +50,8 @@ import type {
   LinkIntoSeriesInput,
   RestoreOccurrencesInput,
   StopRepeatingInput,
+  StopRepeatingTasksInput,
+  RestoreTaskOccurrencesInput,
   ShiftTasksInput,
   ShiftAssignmentsInput,
   ReminderNavTarget,
@@ -108,6 +110,8 @@ const api: WindowApi = {
     list:   ()                                 => ipcRenderer.invoke(IPC.TASK_SERIES.LIST),
     create: (input: CreateTaskSeriesInput)     => ipcRenderer.invoke(IPC.TASK_SERIES.CREATE, input),
     extend: (input: ExtendTaskSeriesInput)     => ipcRenderer.invoke(IPC.TASK_SERIES.EXTEND, input),
+    stopFrom: (input: StopRepeatingTasksInput) => ipcRenderer.invoke(IPC.TASK_SERIES.STOP_FROM, input),
+    restoreOccurrences: (input: RestoreTaskOccurrencesInput) => ipcRenderer.invoke(IPC.TASK_SERIES.RESTORE_OCCURRENCES, input),
     delete: (id)                               => ipcRenderer.invoke(IPC.TASK_SERIES.DELETE, id),
   },
 

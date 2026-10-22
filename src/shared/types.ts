@@ -613,6 +613,36 @@ export interface FieldSet {
 
 /** The task equivalents. Tasks have no time of day, so a scoped edit to one is
  *  only ever a rename — and the types say so rather than carrying a dead field. */
+/**
+ * Why a task occurrence survived a "stop repeating from here".
+ *
+ * Narrower than the assignment version on purpose: a task has no grade, and
+ * nothing in the schema hangs off one — no steps, no planned study blocks, no
+ * linked notes — so the only evidence that somebody has engaged with it is its
+ * own status.
+ */
+export type TaskKeptReason = 'completed' | 'in_progress';
+
+export interface StopRepeatingTasksInput {
+  /** Cut from this occurrence: it and everything after it are considered. */
+  taskId: string;
+}
+
+export interface StopRepeatingTasksResult {
+  seriesId: string;
+  /** The removed rows, which for a task is the whole snapshot — nothing hangs
+   *  off one, so the row IS everything Undo needs. */
+  removed: Task[];
+  kept: { id: string; name: string; reason: TaskKeptReason }[];
+  previousUntilDate: string;
+}
+
+export interface RestoreTaskOccurrencesInput {
+  seriesId: string;
+  untilDate: string;
+  tasks: Task[];
+}
+
 export interface ApplyToTaskSeriesInput {
   taskId: string;
   scope: SeriesScope;
@@ -899,6 +929,8 @@ export const IPC = {
   TASK_SERIES: {
     LIST:   'task_series:list',
     CREATE: 'task_series:create',
+    STOP_FROM: 'task_series:stop-from',
+    RESTORE_OCCURRENCES: 'task_series:restore-occurrences',
     EXTEND: 'task_series:extend',
     DELETE: 'task_series:delete',
   },
@@ -1129,6 +1161,10 @@ export interface WindowApi {
     /** Creates the series and expands it into occurrences in one transaction. */
     create(input: CreateTaskSeriesInput): Promise<TaskSeriesWithOccurrences>;
     extend(input: ExtendTaskSeriesInput): Promise<TaskSeriesWithOccurrences>;
+    /** Drop this occurrence and the later untouched ones, pulling the end date back. */
+    stopFrom(input: StopRepeatingTasksInput): Promise<StopRepeatingTasksResult>;
+    /** The Undo: puts the removed occurrences back and restores the end date. */
+    restoreOccurrences(input: RestoreTaskOccurrencesInput): Promise<void>;
     /** "Stop repeating": drops the rule only; every occurrence survives. */
     delete(id: string): Promise<void>;
   };

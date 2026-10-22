@@ -1,11 +1,18 @@
 import { ipcMain } from 'electron';
 import { IPC } from '../../shared/types';
-import type { CreateTaskSeriesInput, ExtendTaskSeriesInput } from '../../shared/types';
+import type {
+  CreateTaskSeriesInput,
+  ExtendTaskSeriesInput,
+  RestoreTaskOccurrencesInput,
+  StopRepeatingTasksInput,
+} from '../../shared/types';
 import { assertIsoDate } from '../../shared/validate';
 import {
   listTaskSeries,
   getTaskSeries,
   createTaskSeries,
+  stopRepeatingFrom,
+  restoreOccurrences,
   extendTaskSeries,
   deleteTaskSeries,
 } from '../db/repositories/taskSeriesRepo';
@@ -36,6 +43,25 @@ export function registerTaskSeriesHandlers(): void {
     }
     validateInterval(input.intervalWeeks);
     return createTaskSeries(input);
+  });
+
+  // "The rest of these aren't happening." Removes the untouched tail and pulls
+  // the end date back; anything started or done is kept and named.
+  ipcMain.handle(IPC.TASK_SERIES.STOP_FROM, (_event, input: StopRepeatingTasksInput) => {
+    if (!input?.taskId) throw new Error('taskId is required');
+    return stopRepeatingFrom(input);
+  });
+
+  ipcMain.handle(IPC.TASK_SERIES.RESTORE_OCCURRENCES, (_event, input: RestoreTaskOccurrencesInput) => {
+    if (!input?.seriesId) throw new Error('seriesId is required');
+    assertIsoDate(input.untilDate, 'untilDate');
+    if (!Array.isArray(input.tasks) || input.tasks.length === 0) {
+      throw new Error('Nothing to restore');
+    }
+    for (const task of input.tasks) {
+      if (!task?.id || !task.name) throw new Error('Nothing to restore');
+    }
+    restoreOccurrences(input);
   });
 
   ipcMain.handle(IPC.TASK_SERIES.EXTEND, (_event, input: ExtendTaskSeriesInput) => {

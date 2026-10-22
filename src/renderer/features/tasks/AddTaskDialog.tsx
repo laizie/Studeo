@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useId } from 'react';
 import { Repeat } from 'lucide-react';
 import DialogShell from '../../components/DialogShell';
 import SeriesScopeField from '../../components/SeriesScopeField';
+import StopRepeatingTaskAction from './StopRepeatingTaskAction';
 import type { SeriesScope, Task } from '../../../shared/types';
 import { generateRepeats } from '../../../shared/repeat';
 import {
@@ -188,6 +189,11 @@ export default function AddTaskDialog({ task, isOpen, onClose }: Props) {
               }
             />
           )}
+
+          {/* Cutting the series short. Under the scope control because both are
+              about the series rather than this row, and apart from the fields
+              above because it's the destructive one. */}
+          {isEditing && task && <StopRepeatingTaskAction task={task} onDone={onClose} />}
 
           {/* Repeat — add mode only. Expands into a numbered weekly/biweekly series. */}
           {!isEditing && (
