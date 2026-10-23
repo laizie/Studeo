@@ -18,7 +18,7 @@ import { buildParkingLotNote } from '../../../shared/parkingLot';
 import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
 import SpotifyUpNext from '../spotify/SpotifyUpNext';
 import AutoNowPlaying from '../music/AutoNowPlaying';
-import ProgressRing from './ProgressRing';
+import FocusCandle from './FocusCandle';
 import StudyPickerDialog from './StudyPickerDialog';
 import AmbienceControls from './AmbienceControls';
 import { useMiniTimerWindow } from '../../lib/useMiniTimer';
@@ -657,9 +657,6 @@ export default function FocusMode() {
   const phase     = useTimerStore(s => s.phase);
   const isRunning = useTimerStore(s => s.isRunning);
   const timeLeft  = useTimerStore(s => s.timeLeft);
-  const focusSecs = useTimerStore(s => s.focusSecs);
-  const breakSecs = useTimerStore(s => s.breakSecs);
-  const longBreakSecs = useTimerStore(s => s.longBreakSecs);
   const start = useTimerStore(s => s.start);
   const pause = useTimerStore(s => s.pause);
   const reset = useTimerStore(s => s.reset);
@@ -694,8 +691,6 @@ export default function FocusMode() {
   // are views onto the one timer.
   const miniTimer = useMiniTimerWindow();
 
-  const totalSecs =
-    phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
   const color = PHASE_COLORS[phase];
   const glow  = GLOW[phase];
 
@@ -772,8 +767,8 @@ export default function FocusMode() {
   // more uniform than tuning a dozen sizes, and it keeps the layout's proportions
   // identical at every window size. Rails cap their height *before* zoom so they stay on
   // screen at any scale.
-  const ringSize  = 336;
-  const clockText = 'text-7xl';
+  const candleWidth = 360;
+  const clockText = 'text-6xl';
   const glowSize  = 'h-[460px] w-[460px] blur-[80px]';
   const heroGap   = 'gap-9';
   const railMaxHeight = `${78 / zoom}vh`;
@@ -865,29 +860,31 @@ export default function FocusMode() {
             <div className={cn('flex flex-col items-center', heroGap)}>
               <IntentionLine running={isRunning} />
 
-              {/* Clock in a pool of lamplight */}
-              <div className="relative flex items-center justify-center">
-                <div
-                  aria-hidden
-                  className={cn('pointer-events-none absolute rounded-full', glowSize, isRunning && 'focus-breathe')}
-                  style={{
-                    background: `radial-gradient(circle, ${glow}66 0%, ${glow}24 42%, transparent 70%)`,
-                    opacity: isRunning ? undefined : 0.4,
-                  }}
-                />
-                <ProgressRing
-                  phase={phase}
-                  timeLeft={timeLeft}
-                  totalSecs={totalSecs}
-                  size={ringSize}
-                  trackColor={ROOM.line}
-                  className="relative -rotate-90"
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* The candle, burning for the block, with the clock beneath it. During
+                  focus the candle is the room's lamp; on a break its flame is out, and the
+                  phase's calm green glow takes over behind it, so the room still tells you
+                  which phase you're in. */}
+              <div className="relative flex flex-col items-center">
+                {phase !== 'focus' && (
+                  <div
+                    aria-hidden
+                    className={cn('pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full', glowSize, isRunning && 'focus-breathe')}
+                    style={{
+                      background: `radial-gradient(circle, ${glow}66 0%, ${glow}24 42%, transparent 70%)`,
+                      opacity: isRunning ? undefined : 0.4,
+                    }}
+                  />
+                )}
+                <div className="relative">
+                  <FocusCandle width={candleWidth} />
+                </div>
+                {/* Tucked up over the table's faded front edge, so the candle and clock
+                    together take no more height than the ring and clock did. */}
+                <div className="relative -mt-8 flex flex-col items-center">
                   <span className={cn('font-semibold tabular-nums tracking-tight', clockText)} style={{ color: ROOM.ink }}>
                     {formatClock(timeLeft)}
                   </span>
-                  <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
+                  <span className="mt-2 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
                     {PHASE_LABELS[phase as Phase]}
                   </span>
                 </div>

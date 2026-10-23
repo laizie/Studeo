@@ -24,6 +24,13 @@ import {
 // Drawn for Focus Mode's room: the backdrop stops are the room's (DESIGN.md, "Scene
 // palette — Focus Mode"), and the wax is a warm ivory that reads as candlelight there.
 
+/**
+ * What's behind the candle. 'room' paints Focus Mode's room into the canvas (the lab,
+ * where the candle is all there is). 'none' leaves the canvas transparent apart from the
+ * candle, its table and its light, so it sits in a page that already has the room.
+ */
+export type Backdrop = 'room' | 'none';
+
 export interface CandleRenderer {
   /** Draw `state` as of `nowMs` (a performance.now() timestamp). Call once per frame. */
   render(state: CandleState, nowMs: number): void;
@@ -122,13 +129,15 @@ function columnPath(ctx: CanvasRenderingContext2D, v: View, c: CandleState): voi
 
 // ── Pieces of the scene ─────────────────────────────────────────────────────────
 
-function drawRoom(ctx: CanvasRenderingContext2D, v: View): void {
-  const g = ctx.createRadialGradient(v.width / 2, v.height * 0.4, 0, v.width / 2, v.height * 0.4, v.width * 0.75);
-  g.addColorStop(0, ROOM_STOPS[0]);
-  g.addColorStop(0.55, ROOM_STOPS[1]);
-  g.addColorStop(1, ROOM_STOPS[2]);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, v.width, v.height);
+function drawRoom(ctx: CanvasRenderingContext2D, v: View, backdrop: Backdrop): void {
+  if (backdrop === 'room') {
+    const g = ctx.createRadialGradient(v.width / 2, v.height * 0.4, 0, v.width / 2, v.height * 0.4, v.width * 0.75);
+    g.addColorStop(0, ROOM_STOPS[0]);
+    g.addColorStop(0.55, ROOM_STOPS[1]);
+    g.addColorStop(1, ROOM_STOPS[2]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, v.width, v.height);
+  }
 
   // The table: a dark wooden surface the candle stands on.
   const top = py(v, 0);
@@ -139,6 +148,26 @@ function drawRoom(ctx: CanvasRenderingContext2D, v: View): void {
   ctx.fillRect(0, top, v.width, v.height - top);
   ctx.fillStyle = 'rgba(255, 225, 185, 0.07)';
   ctx.fillRect(0, top, v.width, 1);
+
+  // With no room painted behind it, fade the table out toward the sides and bottom so
+  // it reads as a surface going off into the dark, not a slab with hard edges. Nothing
+  // else has been drawn yet, so this only shapes the table.
+  if (backdrop === 'none') {
+    const across = ctx.createLinearGradient(0, 0, v.width, 0);
+    across.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    across.addColorStop(0.3, 'rgba(0, 0, 0, 1)');
+    across.addColorStop(0.7, 'rgba(0, 0, 0, 1)');
+    across.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fillStyle = across;
+    ctx.fillRect(0, 0, v.width, v.height);
+    const down = ctx.createLinearGradient(0, top, 0, v.height);
+    down.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    down.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = down;
+    ctx.fillRect(0, 0, v.width, v.height);
+    ctx.globalCompositeOperation = 'source-over';
+  }
 
   // Soft contact shadow where the candle and its puddle meet the table.
   ctx.save();
@@ -685,7 +714,9 @@ function drawSmoke(ctx: CanvasRenderingContext2D, puffs: Puff[]): void {
  * store is sized for the screen's pixel ratio, so the candle stays crisp on a Retina
  * display instead of being drawn at half resolution and stretched.
  */
-export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, height = 440): CandleRenderer {
+export function createCandleRenderer(
+  canvas: HTMLCanvasElement, width = 560, height = 440, backdrop: Backdrop = 'room',
+): CandleRenderer {
   const maybeCtx = canvas.getContext('2d');
   if (!maybeCtx) throw new Error('Canvas 2D is not available');
   const ctx: CanvasRenderingContext2D = maybeCtx;
@@ -695,6 +726,21 @@ export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, hei
   canvas.height = Math.round(height * dpr);
   canvas.style.width  = `${width}px`;
   canvas.style.height = `${height}px`;
+
+  // With no backdrop, the scene is drawn off-screen first. The multiply lighting pass
+  // needs something under it to darken — on bare transparent pixels it would paint its
+  // own gradient instead — so the lit result is cut back to the scene's own shape
+  // afterwards (see render). The glow and flame then go on top, spilling into the room.
+  let scene: CanvasRenderingContext2D = ctx;
+  let sceneCanvas: HTMLCanvasElement | null = null;
+  if (backdrop === 'none') {
+    sceneCanvas = document.createElement('canvas');
+    sceneCanvas.width = canvas.width;
+    sceneCanvas.height = canvas.height;
+    const offCtx = sceneCanvas.getContext('2d');
+    if (!offCtx) throw new Error('Canvas 2D is not available');
+    scene = offCtx;
+  }
 
   const view: View = { width, height, scale: 80, originX: width / 2, originY: height - 44 };
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -761,18 +807,29 @@ export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, hei
       const bright  = still ? 1 : 1 + 0.04 * Math.sin(t * 11 + phases[6]) + 0.03 * Math.sin(t * 17.3 + phases[7]);
       const light   = glow * Math.min(1, bright);
 
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.globalCompositeOperation = 'source-over';
-
       // The scene, at full brightness.
-      drawRoom(ctx, view);
-      drawTop(ctx, view, c, glow, poolFill);
-      drawColumn(ctx, view, c, glow);
-      if (overflow > 0.01) drawOverflow(ctx, view, c, overflowX, overflow);
-      for (const tear of c.tears) drawTear(ctx, view, c, tear, surface);
-      for (const drip of c.drips) drawRunningDrip(ctx, view, c, drip, alpha);
-      drawPuddle(ctx, view, surface, c.seams);
-      const wick = drawWick(ctx, view, c);
+      if (sceneCanvas) {
+        scene.setTransform(1, 0, 0, 1, 0, 0);
+        scene.clearRect(0, 0, sceneCanvas.width, sceneCanvas.height);
+      }
+      scene.setTransform(dpr, 0, 0, dpr, 0, 0);
+      scene.globalCompositeOperation = 'source-over';
+      drawRoom(scene, view, backdrop);
+      drawTop(scene, view, c, glow, poolFill);
+      drawColumn(scene, view, c, glow);
+      if (overflow > 0.01) drawOverflow(scene, view, c, overflowX, overflow);
+      for (const tear of c.tears) drawTear(scene, view, c, tear, surface);
+      for (const drip of c.drips) drawRunningDrip(scene, view, c, drip, alpha);
+      drawPuddle(scene, view, surface, c.seams);
+      const wick = drawWick(scene, view, c);
+
+      if (sceneCanvas) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(sceneCanvas, 0, 0);
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // Lighting pass 1: falloff from the flame (or a dim ambient with it out).
       const fx = wick.x + sway * 0.5;
@@ -783,6 +840,15 @@ export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, hei
       ctx.globalCompositeOperation = 'multiply';
       ctx.fillStyle = falloff;
       ctx.fillRect(0, 0, view.width, view.height);
+
+      // Keep only what the scene drew: without a backdrop, the multiply pass has just
+      // painted its gradient over the empty canvas around the candle as well.
+      if (sceneCanvas) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.drawImage(sceneCanvas, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
 
       // Lighting pass 2: the warm glow the flame throws around it.
       if (light > 0.01) {

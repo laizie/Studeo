@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useSettingsStore } from './useSettingsStore';
 import { useFocusStore } from './useFocusStore';
+import { useCandleStore } from './useCandleStore';
 import { queryClient } from '../lib/queryClient';
 import { studySessionKeys } from '../lib/queries/useStudySessions';
 import { readBoolPref, readPref, writePref } from '../lib/prefs';
@@ -129,6 +130,19 @@ function phaseSecs(phase: Phase, focusSecs: number, breakSecs: number, longBreak
 type SetTimer = (partial: Partial<TimerState>) => void;
 type GetTimer = () => TimerState;
 
+// Focus Mode's candle burns for the focus block, so the timer tells it what happens to
+// the block: lit when a block starts, paused and relit with the clock, and snuffed when
+// a block is given up before its time (reset, skip, ending the sitting, or changing the
+// block's length out from under it). A block that runs out needs no call — its candle
+// reaches the stub on its own at that moment. Calls that don't apply (snuffing a candle
+// that has already burnt down) are ignored by the candle store.
+const candle = () => useCandleStore.getState();
+
+/** Give up the focus block in progress, if there is one. */
+function snuffIfFocus(get: GetTimer): void {
+  if (get().phase === 'focus') candle().snuff();
+}
+
 /** Seconds actually left on the clock. While running, `endsAt` is the truth —
     `timeLeft` only catches up once a second, so reading it here would round the
     user's work down by up to a second on every skip. */
@@ -204,6 +218,9 @@ function leavePhase(set: SetTimer, get: GetTimer, worked: number, announce: bool
     isRunning: resume,
     endsAt: resume ? Date.now() + nextSecs * 1000 : null,
   });
+  // Auto-advance rolling straight from a break into focus starts a block without
+  // going through start(), so light its candle here.
+  if (next === 'focus' && resume) candle().light(nextSecs * 1000);
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
@@ -423,6 +440,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   setPhase: (phase) => {
+    snuffIfFocus(get);
     const { focusSecs, breakSecs, longBreakSecs } = get();
     set({ phase, isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs, longBreakSecs) });
   },
@@ -446,28 +464,36 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       endsAt: Date.now() + timeLeft * 1000,
       ...(staleSitting ? { focusCount: 0, lastBlockEndedAt: null } : {}),
     });
+    if (phase === 'focus') candle().light(timeLeft * 1000);
   },
   pause: () => {
-    const { endsAt, timeLeft } = get();
+    const { endsAt, timeLeft, phase } = get();
     const remaining = endsAt != null ? Math.max(0, Math.round((endsAt - Date.now()) / 1000)) : timeLeft;
     set({ isRunning: false, timeLeft: remaining, endsAt: null });
+    if (phase === 'focus') candle().pause();
   },
 
   reset: () => {
+    snuffIfFocus(get);
     const { phase, focusSecs, breakSecs, longBreakSecs } = get();
     set({ isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs, longBreakSecs) });
   },
 
   // Move on without waiting out the clock: cut a break short, or call a focus block
   // done early. The minutes already put in are logged (that work happened), so the
-  // day's total and the heatmap stay honest — see leavePhase.
-  skip: () => leavePhase(set, get, workedSecs(get), false),
+  // day's total and the heatmap stay honest — see leavePhase. The candle, though, is
+  // left standing: the block ended before its time.
+  skip: () => {
+    snuffIfFocus(get);
+    leavePhase(set, get, workedSecs(get), false);
+  },
 
   // "I'm done for now." Bank whatever the current block earned, then clear the cycle
   // so the next block opens a fresh sitting instead of continuing this one. Note the
   // history list groups by wall-clock gap alone, so restarting within the hour still
   // reads as one stretch there — this resets the timer's cycle, not the past.
   endSitting: () => {
+    snuffIfFocus(get);
     const { focusSecs, intention } = get();
     const worked = workedSecs(get);
     if (worked >= MIN_LOGGED_FOCUS_SECS) logFocusSession(worked, intention, false);
@@ -507,6 +533,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
 
   setFocusMins: (mins) => {
     saveSetting('focusMins', String(mins));
+    snuffIfFocus(get);
     const secs = mins * 60;
     const { phase } = get();
     set({ focusSecs: secs, ...(phase === 'focus' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
@@ -560,6 +587,16 @@ useTimerStore.subscribe((s) => {
   lastWritten = key;
   writeSnapshot(snap);
 });
+
+// Bring the candle in line with the timer we just restored. Normally the candle's own
+// saved record already agrees, but this covers a block that was running before the
+// candle existed (or whose record was lost): a running focus block gets a lit candle,
+// a paused one a paused candle. Both calls are no-ops when the candle already agrees.
+if (restored.phase === 'focus' && restored.isRunning) {
+  useCandleStore.getState().light(restored.timeLeft * 1000);
+} else if (restored.phase === 'focus') {
+  useCandleStore.getState().pause();
+}
 
 // A running timer's timeLeft has been changing without being written; capture the real
 // remaining time as the window goes away, so a quit mid-block resumes where it stopped.
