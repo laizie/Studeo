@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createCandle, advanceCandle, pauseCandle, resumeCandle, abandonCandle,
-  waxAccountedFor, isLit, isSettled, elapsedMs,
+  waxAccountedFor, isLit, isSettled, elapsedMs, baseColumnAt,
   CANDLE_HEIGHT, STUB_HEIGHT, STEP_MS, type CandleState,
 } from '../candleSim';
 
@@ -112,6 +112,31 @@ describe('finishing — a stub sitting in its own puddle', () => {
     for (const c of candles) {
       for (const t of c.tears) expect(t.y0).toBeLessThanOrEqual(STUB_HEIGHT + 1e-9);
     }
+  });
+});
+
+describe('drips — trails and smooth drawing', () => {
+  it('leaves trails that run down into the puddle', () => {
+    // A trail ends where the table's wax was when the drip landed; the puddle only grows
+    // after that, so its tip ends up at or below the puddle's surface.
+    const reachesPuddle = (c: CandleState) =>
+      c.tears.some((t) => t.y1 <= c.base[baseColumnAt(t.x1)] + 1e-9);
+    const candles = [1, 2, 3, 4, 5, 6].map((seed) => burnFully(seed));
+    expect(candles.some(reachesPuddle)).toBe(true);
+  });
+
+  it('remembers where each running drip was one step ago, just above where it is now', () => {
+    let c = createCandle(4, 25 * MIN);
+    let seen = 0;
+    for (let t = 0; t < 25 * 60 && seen < 20; t++) {
+      c = advanceCandle(c, 1);
+      for (const d of c.drips) {
+        expect(d.prevY).toBeGreaterThanOrEqual(d.y);
+        expect(d.prevY - d.y).toBeLessThan(0.5); // one step's travel, not a teleport
+        seen++;
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 });
 

@@ -58,12 +58,24 @@ const POOL_CAPACITY = 0.075;
 /** How close (in candle widths) a drip has to be to a tear to run along it. */
 const TEAR_REACH = 0.05;
 
+/** Share of a drip's wax left on the side as a trail when it runs all the way to the table. */
+export const TRAIL_SHARE = 0.15;
+
 export type Flame = 'lit' | 'paused' | 'finished' | 'abandoned';
 
 /** A drip still running, as liquid. */
 export interface Drip {
   x: number;
   y: number;
+  /**
+   * Where it was one step ago. The sim only moves in STEP_MS jumps; the renderer draws
+   * the drip part-way between this and (x, y) so it glides instead of hopping.
+   */
+  prevX: number;
+  prevY: number;
+  /** Where it left the rim: the top of the trail it leaves down the side. */
+  startX: number;
+  startY: number;
   mass: number;
   /** 1 = just left the pool, 0 = solid. Drives speed and how far it spreads on landing. */
   temp: number;
@@ -420,7 +432,12 @@ function releaseGushDrip(s: CandleState): void {
   const mass = g.remaining < 0.006 ? g.remaining : g.remaining * between(s, 0.35, 0.6);
   g.remaining -= mass;
   const x = notchX(g.notch) + between(s, -0.02, 0.02);
-  s.drips.push({ x, y: s.column, mass, temp: 1, coolRate: between(s, 0.1, 0.28) });
+  s.drips.push({
+    x, y: s.column,
+    prevX: x, prevY: s.column,
+    startX: x, startY: s.column,
+    mass, temp: 1, coolRate: between(s, 0.1, 0.28),
+  });
 
   if (g.remaining <= 0) s.gush = null;
   else g.wait = Math.round(between(s, 1, 8));
@@ -440,6 +457,8 @@ function tearUnder(s: CandleState, x: number, y: number): Tear | undefined {
 function moveDrips(s: CandleState): void {
   const still: Drip[] = [];
   for (const d of s.drips) {
+    d.prevX = d.x;
+    d.prevY = d.y;
     const size = Math.sqrt(d.mass / 0.01);
     const tear = tearUnder(s, d.x, d.y);
     d.temp -= (d.coolRate * (tear ? 0.4 : 1) / size) * DT;
@@ -451,7 +470,9 @@ function moveDrips(s: CandleState): void {
 
     const floor = s.base[baseColumnAt(d.x)];
     if (d.y <= floor) {
-      depositOnBase(s, d.x, d.mass, Math.max(0, d.temp));
+      const trail = d.mass * TRAIL_SHARE;
+      leaveTrail(s, d, floor, trail);
+      depositOnBase(s, d.x, d.mass - trail, Math.max(0, d.temp));
     } else if (d.temp <= 0) {
       freezeOnSide(s, d);
     } else {
@@ -480,7 +501,24 @@ function freezeOnSide(s: CandleState, d: Drip): void {
     extended.mass += d.mass;
     return;
   }
-  s.tears.push({ x0: d.x, y0: s.column, x1: d.x, y1: d.y, mass: d.mass });
+  s.tears.push({ x0: d.startX, y0: Math.min(d.startY, s.column), x1: d.x, y1: d.y, mass: d.mass });
+}
+
+/**
+ * A drip that makes it to the table still leaves some wax on the way down: a thin ridge
+ * from the rim to the puddle. If it ran down past the tip of an existing tear, that tear
+ * now reaches the table; otherwise the ridge is a tear of its own. Over a session these
+ * build into the long rim-to-puddle runs a well-used candle has.
+ */
+function leaveTrail(s: CandleState, d: Drip, floor: number, mass: number): void {
+  const along = s.tears.find((t) => t.y1 > floor && Math.abs(t.x1 - d.x) < TEAR_REACH * 1.5);
+  if (along) {
+    along.x1 = d.x;
+    along.y1 = floor;
+    along.mass += mass;
+    return;
+  }
+  s.tears.push({ x0: d.startX, y0: Math.min(d.startY, s.column), x1: d.x, y1: floor, mass });
 }
 
 /** A landing drip is split into this many parcels, each finding its own way down. */
