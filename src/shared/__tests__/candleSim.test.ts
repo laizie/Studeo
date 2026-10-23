@@ -125,6 +125,30 @@ describe('drips — trails and smooth drawing', () => {
     expect(candles.some(reachesPuddle)).toBe(true);
   });
 
+  it('weeps small beads between gushes, so tears build up gradually', () => {
+    let c = createCandle(7919, 25 * MIN);
+    let weeps = 0;
+    for (let t = 0; t < 25 * 60 * 4; t++) {
+      const before = c.drips.length;
+      c = advanceCandle(c, STEP_MS / 1000);
+      // A drip that appeared with no gush pouring is a weep.
+      if (!c.gush && c.drips.length > before) weeps++;
+    }
+    expect(weeps).toBeGreaterThan(c.gushes);
+  });
+
+  it('never weeps while paused', () => {
+    let c = pauseCandle(advanceCandle(createCandle(7919, 25 * MIN), 10 * 60));
+    c = advanceCandle(c, 200); // let anything already running finish and the pool set
+    let appeared = 0;
+    for (let t = 0; t < 1200; t++) {
+      const before = c.drips.length;
+      c = advanceCandle(c, 1);
+      if (c.drips.length > before) appeared++;
+    }
+    expect(appeared).toBe(0);
+  });
+
   it('remembers where each running drip was one step ago, just above where it is now', () => {
     let c = createCandle(4, 25 * MIN);
     let seen = 0;
