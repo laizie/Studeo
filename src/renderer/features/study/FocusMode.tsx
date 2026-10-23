@@ -19,6 +19,7 @@ import AppleMusicPlaylistsList from '../applemusic/AppleMusicPlaylistsList';
 import SpotifyUpNext from '../spotify/SpotifyUpNext';
 import AutoNowPlaying from '../music/AutoNowPlaying';
 import FocusCandle from './FocusCandle';
+import ProgressRing from './ProgressRing';
 import StudyPickerDialog from './StudyPickerDialog';
 import AmbienceControls from './AmbienceControls';
 import { useMiniTimerWindow } from '../../lib/useMiniTimer';
@@ -258,6 +259,101 @@ function AutoAdvanceToggle() {
       />
       Auto-advance to next phase
     </label>
+  );
+}
+
+// ── Candle toggle ──────────────────────────────────────────────────────────────────
+// The same preference as Settings → Study timer, surfaced in the room so the candle can
+// be swapped for the ring (and back) without leaving.
+function CandleToggle() {
+  const enabled = useSettingsStore(s => s.focusCandleEnabled);
+  const setEnabled = useSettingsStore(s => s.setFocusCandleEnabled);
+
+  return (
+    <label
+      className="flex cursor-pointer select-none items-center gap-2 text-xs transition-colors"
+      style={{ color: enabled ? ROOM.soft : ROOM.muted }}
+    >
+      <input
+        type="checkbox"
+        checked={enabled}
+        onChange={e => setEnabled(e.target.checked)}
+        className="h-3.5 w-3.5 cursor-pointer rounded"
+        style={{ accentColor: GLOW.focus }}
+      />
+      Candle
+    </label>
+  );
+}
+
+// ── The hero ─────────────────────────────────────────────────────────────────────
+// The room's centrepiece and its clock: a candle burning for the block, or — with the
+// candle turned off — the progress ring in a pool of lamplight.
+const HERO_GLOW = 'h-[460px] w-[460px] blur-[80px]';
+
+function FocusHero() {
+  const candleOn  = useSettingsStore(s => s.focusCandleEnabled);
+  const phase     = useTimerStore(s => s.phase);
+  const isRunning = useTimerStore(s => s.isRunning);
+  const timeLeft  = useTimerStore(s => s.timeLeft);
+  const focusSecs = useTimerStore(s => s.focusSecs);
+  const breakSecs = useTimerStore(s => s.breakSecs);
+  const longBreakSecs = useTimerStore(s => s.longBreakSecs);
+  const color = PHASE_COLORS[phase];
+  const glow  = GLOW[phase];
+
+  const lamplight = (className: string, show: boolean) => show && (
+    <div
+      aria-hidden
+      className={cn('pointer-events-none absolute rounded-full', HERO_GLOW, isRunning && 'focus-breathe', className)}
+      style={{
+        background: `radial-gradient(circle, ${glow}66 0%, ${glow}24 42%, transparent 70%)`,
+        opacity: isRunning ? undefined : 0.4,
+      }}
+    />
+  );
+
+  if (!candleOn) {
+    const totalSecs = phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
+    return (
+      <div className="relative flex items-center justify-center">
+        {lamplight('', true)}
+        <ProgressRing
+          phase={phase}
+          timeLeft={timeLeft}
+          totalSecs={totalSecs}
+          size={336}
+          trackColor={ROOM.line}
+          className="relative -rotate-90"
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-7xl font-semibold tabular-nums tracking-tight" style={{ color: ROOM.ink }}>
+            {formatClock(timeLeft)}
+          </span>
+          <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
+            {PHASE_LABELS[phase as Phase]}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // During focus the candle is the room's lamp. On a break its flame is out, and the
+  // phase's calm green glow takes over behind it, so the room still says which phase
+  // you're in.
+  return (
+    <div className="relative flex flex-col items-center">
+      {lamplight('top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2', phase !== 'focus')}
+      <FocusCandle width={330} />
+      <div className="relative -mt-5 flex flex-col items-center">
+        <span className="text-6xl font-semibold tabular-nums tracking-tight" style={{ color: ROOM.ink }}>
+          {formatClock(timeLeft)}
+        </span>
+        <span className="mt-2 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
+          {PHASE_LABELS[phase as Phase]}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -656,7 +752,6 @@ export default function FocusMode() {
 
   const phase     = useTimerStore(s => s.phase);
   const isRunning = useTimerStore(s => s.isRunning);
-  const timeLeft  = useTimerStore(s => s.timeLeft);
   const start = useTimerStore(s => s.start);
   const pause = useTimerStore(s => s.pause);
   const reset = useTimerStore(s => s.reset);
@@ -692,7 +787,6 @@ export default function FocusMode() {
   const miniTimer = useMiniTimerWindow();
 
   const color = PHASE_COLORS[phase];
-  const glow  = GLOW[phase];
 
   // The scene scales with the window size; the drag math divides the cursor delta by it
   // so a dragged rail still tracks the pointer 1:1.
@@ -767,9 +861,6 @@ export default function FocusMode() {
   // more uniform than tuning a dozen sizes, and it keeps the layout's proportions
   // identical at every window size. Rails cap their height *before* zoom so they stay on
   // screen at any scale.
-  const candleWidth = 360;
-  const clockText = 'text-6xl';
-  const glowSize  = 'h-[460px] w-[460px] blur-[80px]';
   const heroGap   = 'gap-9';
   const railMaxHeight = `${78 / zoom}vh`;
 
@@ -860,35 +951,7 @@ export default function FocusMode() {
             <div className={cn('flex flex-col items-center', heroGap)}>
               <IntentionLine running={isRunning} />
 
-              {/* The candle, burning for the block, with the clock beneath it. During
-                  focus the candle is the room's lamp; on a break its flame is out, and the
-                  phase's calm green glow takes over behind it, so the room still tells you
-                  which phase you're in. */}
-              <div className="relative flex flex-col items-center">
-                {phase !== 'focus' && (
-                  <div
-                    aria-hidden
-                    className={cn('pointer-events-none absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full', glowSize, isRunning && 'focus-breathe')}
-                    style={{
-                      background: `radial-gradient(circle, ${glow}66 0%, ${glow}24 42%, transparent 70%)`,
-                      opacity: isRunning ? undefined : 0.4,
-                    }}
-                  />
-                )}
-                <div className="relative">
-                  <FocusCandle width={candleWidth} />
-                </div>
-                {/* Tucked up over the table's faded front edge, so the candle and clock
-                    together take no more height than the ring and clock did. */}
-                <div className="relative -mt-8 flex flex-col items-center">
-                  <span className={cn('font-semibold tabular-nums tracking-tight', clockText)} style={{ color: ROOM.ink }}>
-                    {formatClock(timeLeft)}
-                  </span>
-                  <span className="mt-2 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
-                    {PHASE_LABELS[phase as Phase]}
-                  </span>
-                </div>
-              </div>
+              <FocusHero />
 
               <CycleDots color={color} />
 
@@ -928,7 +991,10 @@ export default function FocusMode() {
 
               <div className="flex flex-col items-center gap-3">
                 <MethodSwitcher />
-                <AutoAdvanceToggle />
+                <div className="flex items-center gap-5">
+                  <AutoAdvanceToggle />
+                  <CandleToggle />
+                </div>
               </div>
 
               <p className="max-w-lg text-center text-xs leading-relaxed" style={{ color: ROOM.muted }}>

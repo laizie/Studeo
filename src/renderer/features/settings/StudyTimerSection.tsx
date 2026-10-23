@@ -1,11 +1,15 @@
-import { Timer, Coffee, Moon, Volume2, PenLine } from 'lucide-react';
+import { Timer, Coffee, Moon, Volume2, PenLine, Flame } from 'lucide-react';
 import { useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS, LONG_BREAK_OPTIONS } from '../../store/useTimerStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { SectionHeading, SettingsCard, SettingsRow, PillGroup, Toggle } from './components';
 
 export default function StudyTimerSection() {
   const { focusSecs, breakSecs, longBreakSecs, setFocusMins, setBreakMins, setLongBreakMins } = useTimerStore();
-  const { timerSoundEnabled, setTimerSoundEnabled, reflectionPromptEnabled, setReflectionPromptEnabled } = useSettingsStore();
+  const {
+    timerSoundEnabled, setTimerSoundEnabled,
+    reflectionPromptEnabled, setReflectionPromptEnabled,
+    focusCandleEnabled, setFocusCandleEnabled,
+  } = useSettingsStore();
 
   return (
     <div className="mb-8">
@@ -60,6 +64,13 @@ export default function StudyTimerSection() {
           description="In Focus Mode, a one-line “How did it go?” before the break"
         >
           <Toggle checked={reflectionPromptEnabled} onChange={setReflectionPromptEnabled} />
+        </SettingsRow>
+        <SettingsRow
+          icon={<Flame size={17} />}
+          label="Burn a candle in Focus Mode"
+          description="A candle that burns down over each focus block, in place of the progress ring"
+        >
+          <Toggle checked={focusCandleEnabled} onChange={setFocusCandleEnabled} />
         </SettingsRow>
       </SettingsCard>
       <p className="text-xs text-muted mt-2 px-1">

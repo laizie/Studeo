@@ -42,6 +42,14 @@ interface SettingsState {
   /** Show the "How did it go?" reflection card in Focus Mode after each focus block. */
   reflectionPromptEnabled: boolean;
   setReflectionPromptEnabled: (v: boolean) => void;
+
+  /**
+   * Focus Mode's centrepiece: a candle that burns down over each focus block (on), or
+   * the progress ring (off). Only what's *shown* — the timer keeps the candle's record
+   * either way, so switching it on mid-block shows the block's candle as it should be.
+   */
+  focusCandleEnabled: boolean;
+  setFocusCandleEnabled: (v: boolean) => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -105,6 +113,8 @@ const initTimerSound = readSetting('timerSound', 'studeo:timerSound') !== 'false
 
 // Default ON — closing the loop with a one-line reflection is part of the Focus Mode ritual.
 const initReflectionPrompt = readSetting('reflectionPrompt', 'studeo:reflectionPrompt') !== 'false';
+// Default ON: absence of the key means the candle.
+const initFocusCandle = readSetting('focusCandle') !== 'false';
 
 // The reminder scheduler lives in the main process, which can't read
 // localStorage — push the saved preference over IPC on startup and on change.
@@ -186,5 +196,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setReflectionPromptEnabled: (v) => {
     saveSetting('reflectionPrompt', String(v));
     set({ reflectionPromptEnabled: v });
+  },
+
+  focusCandleEnabled: initFocusCandle,
+  setFocusCandleEnabled: (v) => {
+    saveSetting('focusCandle', String(v));
+    set({ focusCandleEnabled: v });
   },
 }));

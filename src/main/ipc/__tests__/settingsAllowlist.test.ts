@@ -20,7 +20,7 @@ describe('setting keys allowlist', () => {
       // Appearance + notifications
       'theme', 'musicMode', 'defaultMusicService',
       'classRemindersEnabled', 'reminderLeadMinutes', 'dueDigestEnabled', 'dueDigestTime',
-      'timerSound', 'reflectionPrompt', 'ambienceVolume',
+      'timerSound', 'reflectionPrompt', 'focusCandle', 'ambienceVolume',
       // Pomodoro
       'focusMins', 'breakMins', 'longBreakMins', 'customTechnique', 'autoAdvance',
       // Import

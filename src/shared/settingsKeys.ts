@@ -20,6 +20,8 @@ export const SETTING_KEYS = [
   'dueDigestTime',
   'timerSound',
   'reflectionPrompt',
+  /** Whether Focus Mode shows the burning candle (on) or the progress ring (off). */
+  'focusCandle',
   'ambienceVolume',
 
   // Pomodoro timer configuration.

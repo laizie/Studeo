@@ -53,7 +53,7 @@ const TOP_RY = 0.075;
 
 // Lighting stops for the multiply pass, flame lit and flame out. Blended by glow.
 const LIGHT_LIT   = ['#fff8ec', '#f4e2c6', '#b49473', '#4a392b'];
-const LIGHT_DARK  = ['#9a8775', '#94816f', '#7d6b5b', '#4a3a2d'];
+const LIGHT_DARK  = ['#b9a48c', '#ae9881', '#8c7662', '#4a3a2d'];
 const LIGHT_STOPS = [0, 0.18, 0.45, 1];
 
 // ── Colour helpers ──────────────────────────────────────────────────────────────
@@ -130,17 +130,18 @@ function columnPath(ctx: CanvasRenderingContext2D, v: View, c: CandleState): voi
 // ── Pieces of the scene ─────────────────────────────────────────────────────────
 
 function drawRoom(ctx: CanvasRenderingContext2D, v: View, backdrop: Backdrop): void {
-  if (backdrop === 'room') {
-    const g = ctx.createRadialGradient(v.width / 2, v.height * 0.4, 0, v.width / 2, v.height * 0.4, v.width * 0.75);
-    g.addColorStop(0, ROOM_STOPS[0]);
-    g.addColorStop(0.55, ROOM_STOPS[1]);
-    g.addColorStop(1, ROOM_STOPS[2]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, v.width, v.height);
-  }
+  // In Focus Mode the page already is the room; the candle brings only its dish.
+  if (backdrop !== 'room') return;
 
-  // The table: a dark wooden surface the candle stands on.
-  const top = py(v, 0);
+  const g = ctx.createRadialGradient(v.width / 2, v.height * 0.4, 0, v.width / 2, v.height * 0.4, v.width * 0.75);
+  g.addColorStop(0, ROOM_STOPS[0]);
+  g.addColorStop(0.55, ROOM_STOPS[1]);
+  g.addColorStop(1, ROOM_STOPS[2]);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, v.width, v.height);
+
+  // The table: a dark wooden surface the dish stands on.
+  const top = py(v, -DISH_WALL);
   const t = ctx.createLinearGradient(0, top, 0, v.height);
   t.addColorStop(0, '#3d2c1f');
   t.addColorStop(1, '#1b130c');
@@ -148,37 +149,79 @@ function drawRoom(ctx: CanvasRenderingContext2D, v: View, backdrop: Backdrop): v
   ctx.fillRect(0, top, v.width, v.height - top);
   ctx.fillStyle = 'rgba(255, 225, 185, 0.07)';
   ctx.fillRect(0, top, v.width, 1);
+}
 
-  // With no room painted behind it, fade the table out toward the sides and bottom so
-  // it reads as a surface going off into the dark, not a slab with hard edges. Nothing
-  // else has been drawn yet, so this only shapes the table.
-  if (backdrop === 'none') {
-    const across = ctx.createLinearGradient(0, 0, v.width, 0);
-    across.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    across.addColorStop(0.3, 'rgba(0, 0, 0, 1)');
-    across.addColorStop(0.7, 'rgba(0, 0, 0, 1)');
-    across.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.globalCompositeOperation = 'destination-in';
-    ctx.fillStyle = across;
-    ctx.fillRect(0, 0, v.width, v.height);
-    const down = ctx.createLinearGradient(0, top, 0, v.height);
-    down.addColorStop(0, 'rgba(0, 0, 0, 1)');
-    down.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = down;
-    ctx.fillRect(0, 0, v.width, v.height);
-    ctx.globalCompositeOperation = 'source-over';
-  }
+// The dish, in candle widths: wide enough to catch the whole puddle, seen from slightly
+// above like the candle's top, with a low wall.
+const DISH_RX   = 1.66;
+const DISH_RY   = 0.17;
+const DISH_WALL = 0.09;
 
-  // Soft contact shadow where the candle and its puddle meet the table.
+/**
+ * A shallow dark dish the candle stands in. It grounds the candle as an object in the
+ * room (rather than a shape on a shelf) and gives the puddle somewhere to be: it builds
+ * up inside the dish's rim. Its surface catches the flame's light in the lighting pass.
+ */
+function drawDish(ctx: CanvasRenderingContext2D, v: View): void {
+  const cx = px(v, 0);
+  const cy = py(v, 0);
+  const rx = DISH_RX * v.scale;
+  const ry = DISH_RY * v.scale;
+  const wall = DISH_WALL * v.scale;
+
+  // Soft shadow on whatever the dish stands on.
   ctx.save();
-  ctx.translate(px(v, 0), top + 2);
-  ctx.scale(1, 0.11);
-  const s = ctx.createRadialGradient(0, 0, 0, 0, 0, v.scale * 1.3);
-  s.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
-  s.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = s;
+  ctx.translate(cx, cy + wall + 2);
+  ctx.scale(1, 0.16);
+  const shadow = ctx.createRadialGradient(0, 0, rx * 0.6, 0, 0, rx * 1.25);
+  shadow.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+  shadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shadow;
   ctx.beginPath();
-  ctx.arc(0, 0, v.scale * 1.3, 0, Math.PI * 2);
+  ctx.arc(0, 0, rx * 1.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // The wall: the front half of the rim, carried down by its height.
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI);
+  ctx.ellipse(cx, cy + wall, rx, ry, 0, Math.PI, 0, true);
+  ctx.closePath();
+  const side = ctx.createLinearGradient(cx - rx, 0, cx + rx, 0);
+  side.addColorStop(0,    '#1a120c');
+  side.addColorStop(0.42, '#4a3626');
+  side.addColorStop(0.58, '#3e2d20');
+  side.addColorStop(1,    '#140e09');
+  ctx.fillStyle = side;
+  ctx.fill();
+
+  // The floor of the dish, a touch lighter toward the middle where the light falls.
+  const floor = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+  floor.addColorStop(0, '#46331f');
+  floor.addColorStop(1, '#241910');
+  ctx.fillStyle = floor;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // A thin glaze highlight around the rim.
+  ctx.strokeStyle = 'rgba(255, 226, 190, 0.18)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Where the candle stands, a little darker.
+  const contact = ctx.createRadialGradient(cx, cy, 0, cx, cy, v.scale * 0.75);
+  contact.addColorStop(0, 'rgba(0, 0, 0, 0.35)');
+  contact.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(1, ry / rx * 1.6);
+  ctx.translate(-cx, -cy);
+  ctx.fillStyle = contact;
+  ctx.beginPath();
+  ctx.arc(cx, cy, v.scale * 0.75, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -815,6 +858,7 @@ export function createCandleRenderer(
       scene.setTransform(dpr, 0, 0, dpr, 0, 0);
       scene.globalCompositeOperation = 'source-over';
       drawRoom(scene, view, backdrop);
+      drawDish(scene, view);
       drawTop(scene, view, c, glow, poolFill);
       drawColumn(scene, view, c, glow);
       if (overflow > 0.01) drawOverflow(scene, view, c, overflowX, overflow);
@@ -859,6 +903,23 @@ export function createCandleRenderer(
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = warm;
         ctx.fillRect(0, 0, view.width, view.height);
+
+        // And a pool of it on the dish and the puddle, strongest at the candle's foot.
+        const dx = px(view, 0);
+        const dy = py(view, 0);
+        const rx = DISH_RX * view.scale;
+        ctx.save();
+        ctx.translate(dx, dy);
+        ctx.scale(1, (DISH_RY / DISH_RX) * 2.2);
+        const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+        pool.addColorStop(0,   `rgba(255, 170, 90, ${0.2 * light})`);
+        pool.addColorStop(0.6, `rgba(255, 150, 70, ${0.07 * light})`);
+        pool.addColorStop(1,   'rgba(255, 150, 70, 0)');
+        ctx.fillStyle = pool;
+        ctx.beginPath();
+        ctx.arc(0, 0, rx, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
       ctx.globalCompositeOperation = 'source-over';
 

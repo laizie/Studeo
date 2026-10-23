@@ -20,15 +20,18 @@ import { createCandleRenderer } from './candleRenderer';
 // change would be pure overhead.
 
 /**
- * The renderer's native scene size; the canvas is scaled to `width` with CSS. The scene
- * is the lab's 560 × 440 plus HEADROOM above it, so the flame's glow fades out inside
- * the canvas instead of being sliced off flat at its top edge. That headroom is only
- * glow, so it hangs up out of the layout box behind whatever sits above the candle,
- * rather than pushing the clock down.
+ * The renderer's native scene size; the canvas is scaled to `width` with CSS.
+ *
+ * Framed tighter than the lab's 560 × 440: just wide enough for the dish and the
+ * flame's glow, and just tall enough for a full candle on its dish — so the candle fills
+ * more of the space it's given. HEADROOM above that lets the glow fade out inside the
+ * canvas instead of being sliced off flat at its top edge. It's only glow (and the
+ * flame of a full-height candle), so it hangs up out of the layout box behind whatever
+ * sits above, rather than pushing the clock down.
  */
-const SCENE_W  = 560;
-const SCENE_H  = 440;
-const HEADROOM = 200;
+const SCENE_W  = 440;
+const SCENE_H  = 374;
+const HEADROOM = 220;
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0];
