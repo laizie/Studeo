@@ -331,6 +331,7 @@ function step(s: CandleState): void {
   trimTears(s);
   settlePool(s);
   spill(s);
+  weep(s);
   moveDrips(s);
   if (isLit(s)) relaxRim(s);
 }
@@ -441,6 +442,37 @@ function releaseGushDrip(s: CandleState): void {
 
   if (g.remaining <= 0) s.gush = null;
   else g.wait = Math.round(between(s, 1, 8));
+}
+
+/**
+ * Between gushes the rim isn't watertight. As the pool fills, a little wax now and then
+ * weeps over the weakest notch: a small, already-cooling bead that creeps a short way
+ * down — usually along an existing tear — and sets. It's the slow layer under the
+ * gushes: tears lengthen and thicken gradually through a session instead of only in
+ * bursts. The fuller the pool, the more often it weeps; a nearly-full pool weeps about
+ * every 25 seconds.
+ */
+function weep(s: CandleState): void {
+  if (s.gush || !isLit(s) || s.poolHeat < 0.6) return;
+  const fullness = s.pool / s.spillAt;
+  if (fullness < 0.35) return;
+  if (nextRandom(s) > (fullness * fullness * DT) / 25) return;
+
+  let notch = 0;
+  let weakest = Infinity;
+  for (let i = 0; i < RIM_NOTCHES; i++) {
+    const score = s.rim[i] + between(s, 0, 0.2);
+    if (score < weakest) { weakest = score; notch = i; }
+  }
+  const mass = Math.min(s.pool * 0.2, between(s, 0.0012, 0.0025));
+  s.pool -= mass;
+  const x = notchX(notch) + between(s, -0.015, 0.015);
+  s.drips.push({
+    x, y: s.column,
+    prevX: x, prevY: s.column,
+    startX: x, startY: s.column,
+    mass, temp: between(s, 0.55, 0.8), coolRate: between(s, 0.12, 0.25),
+  });
 }
 
 /** The tear (if any) a point at (x, y) is sitting on. */

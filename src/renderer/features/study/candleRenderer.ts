@@ -154,34 +154,51 @@ function drawRoom(ctx: CanvasRenderingContext2D, v: View): void {
   ctx.restore();
 }
 
-/** The top surface: the rim's lip and the cup of wax inside it, molten or set. */
-function drawTop(ctx: CanvasRenderingContext2D, v: View, c: CandleState, glow: number): void {
+/**
+ * The top surface: the rim's lip and the pool of wax inside it, molten or set.
+ * `fill` (0..1) is how close the pool is to spilling: the molten pool visibly widens
+ * toward the rim as wax melts into it, so a gush arrives as the end of something you
+ * watched build — and shrinks back as the gush drains it.
+ */
+function drawTop(ctx: CanvasRenderingContext2D, v: View, c: CandleState, glow: number, fill: number): void {
   const cx = px(v, 0);
   const cy = py(v, c.column);
   const rx = CANDLE_HALF_WIDTH * v.scale;
   const ry = TOP_RY * v.scale;
 
-  // The rim, lit from the flame just above it.
+  // The rim, lit from the flame just above it. Its back edge is the far half of the
+  // ellipse; its front edge is the real lip, worn notches and all — so where the rim has
+  // dipped you see down onto the top surface instead of through a gap to the room.
   const rimFill = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
   rimFill.addColorStop(0, mix(WAX.light, '#fff1d6', glow));
   rimFill.addColorStop(1, WAX.mid);
   ctx.fillStyle = rimFill;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 0);
+  for (let x = CANDLE_HALF_WIDTH; x >= -CANDLE_HALF_WIDTH - 1e-9; x -= 0.02) {
+    ctx.lineTo(px(v, x), py(v, lipY(c, x)));
+  }
+  ctx.closePath();
   ctx.fill();
 
-  // The pool: amber and glossy while molten, matte as it sets.
-  const prx = rx * 0.82;
-  const pry = ry * 0.72;
-  const pcy = cy + ry * 0.12;
+  // The pool: a small melt cup around the wick when nearly empty, reaching almost to the
+  // rim when it's about to spill. Honey while molten, matte wax as it sets.
+  const reach = 0.42 + 0.48 * Math.sqrt(Math.max(0, Math.min(1, fill)));
+  const prx = rx * reach;
+  const pry = ry * reach * 0.88;
+  const pcy = cy + ry * 0.1;
   ctx.fillStyle = mix(WAX_SET, MOLTEN, c.poolHeat);
   ctx.beginPath();
   ctx.ellipse(cx, pcy, prx, pry, 0, 0, Math.PI * 2);
   ctx.fill();
   if (c.poolHeat > 0.05) {
-    ctx.fillStyle = `rgba(255, 250, 235, ${0.45 * c.poolHeat})`;
+    // A soft sheen across the liquid, brighter the fuller and hotter it is.
+    const sheen = ctx.createRadialGradient(cx - prx * 0.3, pcy - pry * 0.2, 0, cx - prx * 0.3, pcy - pry * 0.2, prx * 0.7);
+    sheen.addColorStop(0, `rgba(255, 248, 228, ${0.35 * c.poolHeat})`);
+    sheen.addColorStop(1, 'rgba(255, 248, 228, 0)');
+    ctx.fillStyle = sheen;
     ctx.beginPath();
-    ctx.ellipse(cx - prx * 0.35, pcy - pry * 0.25, prx * 0.32, pry * 0.28, -0.1, 0, Math.PI * 2);
+    ctx.ellipse(cx, pcy, prx, pry, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -229,12 +246,13 @@ function phaseOf(a: number, b: number): number {
 }
 
 /**
- * The bead at the end of a run of wax. Running drips and set tears share these sizing
+ * The blob at the end of a run of wax. Running drips and set tears share these sizing
  * rules, so a drip that stops becomes a tear of the same shape — only its colour
- * changes, and it has already cooled to wax colour by then. Nothing pops.
+ * changes, and it has already cooled to wax colour by then. Kept small: a big round
+ * bead is what makes a drop read as water rather than wax.
  */
 function beadRadius(mass: number): number {
-  return Math.min(7.5, 2.4 + Math.sqrt(mass) * 18);
+  return Math.min(5.5, 1.8 + Math.sqrt(mass) * 14);
 }
 
 /** Rope thickness for `mass` of wax spread down `lengthUnits`. Square root, not linear: a thin run still has to read as wax, not a crack. */
@@ -242,15 +260,18 @@ function ropeWidth(v: View, mass: number, lengthUnits: number): number {
   return Math.min(9, Math.max(2.6, Math.sqrt(mass / Math.max(0.04, lengthUnits)) * v.scale * 0.9));
 }
 
-/** A run of wax in canvas px: from where it hangs off the rim (x0, y0) to its bead (x1, y1). */
+/** A run of wax in canvas px: from where it leaves the rim (x0, y0) down to its tip (x1, y1). */
 interface Rope {
   x0: number;
   y0: number;
   x1: number;
   y1: number;
   width: number;
+  /** Horizontal radius of the end blob; 0 for a run that ends in the puddle with no blob. */
   bead: number;
   phase: number;
+  /** Hangs off the rim, so it gets a little hump of wax where it spills over the lip. */
+  hangs: boolean;
 }
 
 interface RopeColours {
@@ -266,90 +287,149 @@ const SET_ROPE: RopeColours    = { light: '#fbf1dc', mid: '#ecd9b4', shade: '#c9
 // stand out against a column that's glowing warm near the flame.
 const MOLTEN_ROPE: RopeColours = { light: '#ffdf96', mid: '#e5a84e', shade: '#b0702a', edge: '#8a5520' };
 
+/** How much taller than wide a drip's end is. Wax drips end in an elongated blob, not a sphere. */
+const TIP_STRETCH = 1.3;
+
+/**
+ * Trace a run of wax as one outline: down the left side, round the tip, back up the
+ * right. The rope swells smoothly into its end blob over its last few pixels, so the
+ * sides flow straight into the tip — no step where a line meets a circle.
+ */
 function ropePath(ctx: CanvasRenderingContext2D, r: Rope, dx = 0, dy = 0): void {
   const x0 = r.x0 + dx;
   const y0 = r.y0 + dy;
   const x1 = r.x1 + dx;
   const y1 = r.y1 + dy;
-  const lengthPx = Math.max(2, y1 - y0);
+  const lengthPx = Math.max(1, y1 - y0);
 
-  // Half-width down the rope: thin where it hangs from the rim, fuller lower down,
-  // with a gentle knobbly wobble where successive drips set on top of each other.
-  const halfWidth = (f: number) =>
-    (r.width / 2) * (0.35 + 0.65 * f * f * (3 - 2 * f)) * (1 + 0.16 * Math.sin(f * lengthPx / 6 + r.phase));
+  // The rope itself: thin where it leaves the rim, fuller lower down, with a gentle
+  // knobbly wobble where successive drips set on top of each other.
+  const ropeHalf = (f: number) =>
+    (r.width / 2) * (0.45 + 0.55 * f * f * (3 - 2 * f)) * (1 + 0.12 * Math.sin(f * lengthPx / 6 + r.phase));
+  const tip = Math.max(ropeHalf(1), Math.min(r.bead, lengthPx * 0.4));
+  const swell = Math.min(lengthPx * 0.6, tip * 2.6);
+  const halfAt = (f: number) => {
+    const u = Math.max(0, Math.min(1, (f * lengthPx - (lengthPx - swell)) / swell));
+    return ropeHalf(f) + (tip - ropeHalf(f)) * u * u * (3 - 2 * u);
+  };
 
-  const steps = Math.max(4, Math.ceil(lengthPx / 4));
-  const bead = Math.max(halfWidth(1) * 1.35, r.bead);
-
+  const steps = Math.max(6, Math.ceil(lengthPx / 3));
   ctx.beginPath();
   for (let k = 0; k <= steps; k++) {
     const f = k / steps;
-    const x = x0 + (x1 - x0) * f - halfWidth(f);
+    const x = x0 + (x1 - x0) * f - halfAt(f);
     const y = y0 + (y1 - y0) * f;
     if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
-  ctx.arc(x1, y1, bead, Math.PI, 0, true);
+  // The tip: half an ellipse, its sides vertical where they meet the rope's.
+  ctx.ellipse(x1, y1, tip, r.bead > 0 ? tip * TIP_STRETCH : tip, 0, Math.PI, 0, true);
   for (let k = steps; k >= 0; k--) {
     const f = k / steps;
-    ctx.lineTo(x0 + (x1 - x0) * f + halfWidth(f), y0 + (y1 - y0) * f);
+    ctx.lineTo(x0 + (x1 - x0) * f + halfAt(f), y0 + (y1 - y0) * f);
   }
   ctx.closePath();
 }
 
 /**
- * Paint a rope so it stands off the column: a shadow cast away from the flame, a
- * rounded body, a defined edge, a highlight down the lit side and a glint on the bead.
- * `gloss` (0..1) is how wet it looks — hot drips shine, set wax is satin.
+ * Paint a run of wax so it stands off the column: a shadow cast away from the flame, a
+ * rounded body, a soft edge, the hump where it spills over the lip, and a satin sheen.
+ * `gloss` (0..1) is how wet it looks — a hot drip has a little more sheen — but wax is
+ * never glassy: no hard white glint, which is what makes a drop read as water.
  */
 function paintRope(ctx: CanvasRenderingContext2D, r: Rope, colours: RopeColours, gloss: number): void {
   // 0 for the thinnest trail, 1 for a full rope. Thin trails get a lighter shadow and no
   // outline — at that width, both read as a second line beside the trail.
   const heft = Math.min(1, Math.max(0, (r.width - 2.6) / 4));
+  const tip = Math.max(r.width / 2, Math.min(r.bead, (r.y1 - r.y0) * 0.4));
 
   ropePath(ctx, r, 1.4, 1.8);
   ctx.fillStyle = `rgba(60, 40, 22, ${0.12 + 0.2 * heft})`;
   ctx.fill();
 
   ropePath(ctx, r);
-  const body = ctx.createLinearGradient(r.x1 - r.bead * 1.2, 0, r.x1 + r.bead * 1.2, 0);
+  const body = ctx.createLinearGradient(r.x1 - tip * 1.3, 0, r.x1 + tip * 1.3, 0);
   body.addColorStop(0,   colours.light);
   body.addColorStop(0.5, colours.mid);
   body.addColorStop(1,   colours.shade);
   ctx.fillStyle = body;
   ctx.fill();
-  ctx.strokeStyle = withAlpha(colours.edge, 0.45 * Math.max(heft, gloss));
+  ctx.strokeStyle = withAlpha(colours.edge, 0.4 * Math.max(heft, gloss));
   ctx.lineWidth = 0.8;
   ctx.stroke();
 
-  if (r.y1 - r.y0 > r.bead * 2) {
-    ctx.strokeStyle = `rgba(255, 250, 240, ${0.3 + 0.4 * gloss})`;
-    ctx.lineWidth = Math.max(0.8, r.width * 0.2);
+  // Where it spills over the rim: a low hump of wax sitting on the lip, so the run is
+  // visibly attached to the top rather than starting from a hard line.
+  if (r.hangs) {
+    const rx = Math.max(2.2, r.width * 0.55);
+    const hump = ctx.createLinearGradient(0, r.y0 - 1.4, 0, r.y0 + 2);
+    hump.addColorStop(0, colours.mid);
+    hump.addColorStop(1, colours.light);
+    ctx.fillStyle = hump;
+    ctx.beginPath();
+    ctx.ellipse(r.x0, r.y0 + 0.5, rx, 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // A soft highlight down the lit side.
+  if (r.y1 - r.y0 > tip * 3) {
+    ctx.strokeStyle = `rgba(255, 250, 240, ${0.16 + 0.16 * gloss})`;
+    ctx.lineWidth = Math.max(0.7, r.width * 0.16);
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(r.x0 - r.width * 0.12, r.y0 + 2);
-    ctx.lineTo(r.x1 - r.bead * 0.35, r.y1 - r.bead * 0.7);
+    ctx.moveTo(r.x0 - r.width * 0.12, r.y0 + 3);
+    ctx.lineTo(r.x1 - tip * 0.4, r.y1 - tip * 1.2);
     ctx.stroke();
   }
 
-  ctx.fillStyle = `rgba(255, 252, 242, ${0.55 + 0.4 * gloss})`;
-  ctx.beginPath();
-  ctx.arc(r.x1 - r.bead * 0.35, r.y1 - r.bead * 0.3, Math.max(0.7, r.bead * 0.32), 0, Math.PI * 2);
-  ctx.fill();
+  // Satin sheen on the tip: a broad, faint glow, not a pinpoint.
+  if (r.bead > 0) {
+    const sx = r.x1 - tip * 0.3;
+    const sy = r.y1 - tip * 0.2;
+    const sheen = ctx.createRadialGradient(sx, sy, 0, sx, sy, tip * 1.1);
+    sheen.addColorStop(0, `rgba(255, 250, 240, ${0.22 + 0.18 * gloss})`);
+    sheen.addColorStop(1, 'rgba(255, 250, 240, 0)');
+    ctx.fillStyle = sheen;
+    ctx.beginPath();
+    ctx.arc(sx, sy, tip * 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
-function drawTear(ctx: CanvasRenderingContext2D, v: View, t: Tear): void {
+/** The puddle's drawn surface height at x, in candle units. */
+function surfaceAt(surface: number[], x: number): number {
+  return surface[Math.min(BASE_COLS - 1, Math.max(0, Math.floor((x + BASE_HALF_WIDTH) / BASE_DX)))];
+}
+
+/**
+ * Where a run of wax leaves the top. Tears hang from the rim (the sim keeps their top at
+ * the column's height as it burns down), and the rim seen from slightly above is the
+ * front lip — a few px lower than the column's centre. Starting there keeps streaks
+ * from poking up over the top surface.
+ */
+function ropeTop(v: View, c: CandleState, x: number, y: number): { y: number; hangs: boolean } {
+  const hangs = y >= c.column - 0.02;
+  return { y: hangs ? py(v, lipY(c, x)) : py(v, y), hangs };
+}
+
+function drawTear(ctx: CanvasRenderingContext2D, v: View, c: CandleState, t: Tear, surface: number[]): void {
+  const top = ropeTop(v, c, t.x0, t.y0);
+  // A run that reached the table ends in the puddle: no blob, and its end tucked under
+  // the puddle's edge so the two read as one piece of wax.
+  const floor = surfaceAt(surface, t.x1);
+  const intoPuddle = floor > 0.004 && t.y1 <= floor + 0.015;
   paintRope(ctx, {
-    x0: px(v, t.x0), y0: py(v, t.y0),
-    x1: px(v, t.x1), y1: py(v, t.y1),
+    x0: px(v, t.x0), y0: top.y,
+    x1: px(v, t.x1), y1: intoPuddle ? py(v, floor) + 4 : py(v, t.y1),
     width: ropeWidth(v, t.mass, t.y0 - t.y1),
-    bead: beadRadius(t.mass),
+    bead: intoPuddle ? 0 : beadRadius(t.mass),
     phase: phaseOf(t.x0, t.mass),
+    hangs: top.hangs,
   }, SET_ROPE, 0);
 }
 
 /**
- * A drip on its way down: a molten rope from where it left the rim to its bead, amber
- * and glossy while hot, turning to wax colour as it cools.
+ * A drip on its way down: a molten rope from where it left the rim to its tip, honey
+ * coloured while hot, turning to wax colour as it cools.
  *
  * The sim only moves drips in STEP_MS jumps, so drawing (x, y) directly would hop four
  * times a second. Instead it's drawn `alpha` of the way from where it was one step ago
@@ -359,7 +439,8 @@ function drawTear(ctx: CanvasRenderingContext2D, v: View, t: Tear): void {
 function drawRunningDrip(ctx: CanvasRenderingContext2D, v: View, c: CandleState, d: Drip, alpha: number): void {
   const x = d.prevX + (d.x - d.prevX) * alpha;
   const y = d.prevY + (d.y - d.prevY) * alpha;
-  const top = Math.min(d.startY, c.column);
+  const start = Math.min(d.startY, c.column);
+  const top = ropeTop(v, c, d.startX, start);
   const heat = Math.max(0, Math.min(1, d.temp));
   const colours: RopeColours = {
     light: mix(SET_ROPE.light, MOLTEN_ROPE.light, heat),
@@ -368,27 +449,27 @@ function drawRunningDrip(ctx: CanvasRenderingContext2D, v: View, c: CandleState,
     edge:  heat > 0.5 ? MOLTEN_ROPE.edge : SET_ROPE.edge,
   };
   paintRope(ctx, {
-    x0: px(v, d.startX), y0: py(v, top),
-    x1: px(v, x), y1: py(v, y),
-    width: ropeWidth(v, d.mass, top - y),
+    x0: px(v, d.startX), y0: top.y,
+    x1: px(v, x), y1: Math.max(top.y + 1, py(v, y)),
+    width: ropeWidth(v, d.mass, start - y),
     bead: beadRadius(d.mass),
     phase: phaseOf(d.startX, d.mass),
+    hangs: top.hangs,
   }, colours, heat);
 }
 
 /** Molten wax bulging over the lip where the rim has given way — the cue that a gush is coming down. */
 function drawOverflow(ctx: CanvasRenderingContext2D, v: View, c: CandleState, x: number, amount: number): void {
   const cx = px(v, x);
-  const rx = 6.5 * amount;
-  const ry = 5 * amount;
-  const cy = py(v, lipY(c, x)) + ry * 0.35;
-  ctx.fillStyle = mix(WAX_SET, MOLTEN, c.poolHeat);
+  const rx = 5.5 * amount;
+  const ry = 3.6 * amount;
+  const cy = py(v, lipY(c, x)) + ry * 0.3;
+  const fill = ctx.createLinearGradient(cx - rx, 0, cx + rx, 0);
+  fill.addColorStop(0, mix(SET_ROPE.light, MOLTEN_ROPE.light, c.poolHeat));
+  fill.addColorStop(1, mix(SET_ROPE.mid, MOLTEN_ROPE.mid, c.poolHeat));
+  ctx.fillStyle = fill;
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = `rgba(255, 250, 236, ${0.6 * amount})`;
-  ctx.beginPath();
-  ctx.arc(cx - rx * 0.35, cy - ry * 0.3, Math.max(0.6, ry * 0.35), 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -411,15 +492,19 @@ function soften(heights: number[]): number[] {
 const cellX = (v: View, i: number) => px(v, -BASE_HALF_WIDTH + (i + 0.5) * BASE_DX);
 
 /**
- * The hardened puddle on the table, drawn in front of the column's foot. `base` is the
- * renderer's eased copy of the sim's heightmap, so landing wax spreads out rather than
- * appearing in a single frame.
+ * The puddle's surface as drawn. `base` is the renderer's eased copy of the sim's
+ * heightmap, so landing wax spreads out over a few seconds rather than appearing at once.
+ *
+ * The sim's heightmap settles at its angle of repose, which reads as sharp sand-pile
+ * peaks. Set wax is rounded off by surface tension, so the outline is softened before
+ * drawing. Display only: the wax itself isn't moved, so conservation is untouched.
  */
-function drawPuddle(ctx: CanvasRenderingContext2D, v: View, base: number[], seams: number[][]): void {
-  // The sim's heightmap settles at its angle of repose, which reads as sharp sand-pile
-  // peaks. Set wax is rounded off by surface tension, so the outline is softened before
-  // drawing. Display only: the wax itself isn't moved, so conservation is untouched.
-  const heights = soften(soften(soften(base)));
+function puddleSurface(base: number[]): number[] {
+  return soften(soften(soften(base)));
+}
+
+/** The hardened puddle on the table, drawn in front of the column's foot. */
+function drawPuddle(ctx: CanvasRenderingContext2D, v: View, heights: number[], seams: number[][]): void {
   const first = heights.findIndex((h) => h > 0.003);
   if (first < 0) return;
   let last = first;
@@ -627,6 +712,7 @@ export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, hei
   let overflowX = 0;   // where it's bulging
   let shownBase: number[] = [];   // the puddle as drawn, easing up toward the sim's
   let shownSeed: number | null = null;
+  let poolFill = 0;    // 0..1, the pool's fullness as drawn, easing toward the sim's
 
   return {
     render(c, nowMs) {
@@ -652,19 +738,23 @@ export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, hei
       // How far we are into the sim's next step, for drawing drips between steps.
       const alpha = c.carryMs / STEP_MS;
 
-      // Ease the drawn puddle up toward the real one so landing wax spreads out over a
-      // moment instead of appearing in one frame. Shrinking only happens on a new candle
-      // (or a replay), and that snaps straight to the new shape.
+      // Ease the drawn puddle up toward the real one so landing wax flows out and settles
+      // over a few seconds instead of appearing at once. Shrinking only happens on a new
+      // candle (or a replay), and that snaps straight to the new shape.
       if (shownSeed !== c.seed || shownBase.length !== c.base.length) {
         shownBase = [...c.base];
         shownSeed = c.seed;
+        poolFill = c.pool / c.spillAt;
       } else {
-        const k = still ? 1 : 1 - Math.exp(-dt * 5);
+        const k = still ? 1 : 1 - Math.exp(-dt * 1.2);
         for (let i = 0; i < c.base.length; i++) {
           const target = c.base[i];
           shownBase[i] = target < shownBase[i] ? target : shownBase[i] + (target - shownBase[i]) * k;
         }
+        // The pool drains over the second or so a gush takes, rather than in one frame.
+        poolFill += (c.pool / c.spillAt - poolFill) * (still ? 1 : 1 - Math.exp(-dt * 2.5));
       }
+      const surface = puddleSurface(shownBase);
 
       const sway    = still ? 0 : 2.4 * wobble(t, phases);
       const stretch = still ? 1 : 1 + 0.05 * wobble(t * 1.4, phases.slice(3));
@@ -676,12 +766,12 @@ export function createCandleRenderer(canvas: HTMLCanvasElement, width = 560, hei
 
       // The scene, at full brightness.
       drawRoom(ctx, view);
-      drawTop(ctx, view, c, glow);
+      drawTop(ctx, view, c, glow, poolFill);
       drawColumn(ctx, view, c, glow);
       if (overflow > 0.01) drawOverflow(ctx, view, c, overflowX, overflow);
-      for (const tear of c.tears) drawTear(ctx, view, tear);
+      for (const tear of c.tears) drawTear(ctx, view, c, tear, surface);
       for (const drip of c.drips) drawRunningDrip(ctx, view, c, drip, alpha);
-      drawPuddle(ctx, view, shownBase, c.seams);
+      drawPuddle(ctx, view, surface, c.seams);
       const wick = drawWick(ctx, view, c);
 
       // Lighting pass 1: falloff from the flame (or a dim ambient with it out).
