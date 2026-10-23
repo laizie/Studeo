@@ -9,6 +9,7 @@ import WeeklyReviewPage from '../features/review/WeeklyReviewPage';
 import TasksPage from '../features/tasks/TasksPage';
 import CalendarPage from '../features/calendar/CalendarPage';
 import StudyPage from '../features/study/StudyPage';
+import CandleLab from '../features/study/CandleLab';
 import SettingsPage from '../features/settings/SettingsPage';
 import BatchAddPage from '../features/courses/BatchAddPage';
 import ImportFeedPage from '../features/import/ImportFeedPage';
@@ -37,6 +38,8 @@ export default function App() {
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="study" element={<StudyPage />} />
+          {/* Dev-only workbench; not linked anywhere, reach it at #/candle-lab. */}
+          {import.meta.env.DEV && <Route path="candle-lab" element={<CandleLab />} />}
           <Route path="notes" element={<NotebooksLandingPage />} />
           <Route path="notes/loose" element={<LooseNotesPage />} />
           <Route path="notes/class/:courseId" element={<ClassNotebookPage />} />
