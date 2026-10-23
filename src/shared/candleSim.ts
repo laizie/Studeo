@@ -304,35 +304,77 @@ function moveDrips(s: CandleState): void {
   s.drips = still;
 }
 
+/** A landing drip is split into this many parcels, each finding its own way down. */
+const PARCELS_PER_DRIP = 6;
+
 /**
- * A drip lands at `x` and spreads into a bump on the base heightmap. Warmer drips
- * spread wider and slide further out from the candle before setting.
+ * Steepest slope (height change per unit across) that wax can rest on before it slides.
+ * Hot wax barely holds on; nearly-set wax stacks up steep. This is the "angle of
+ * repose" idea from sand piles, and it's what stops a clump from becoming a needle.
+ */
+const REPOSE_HOT  = 0.25;
+const REPOSE_COLD = 1.6;
+
+/**
+ * A drip lands at `x` and flows downhill across the wax already there before it sets.
  *
- * ── Learning exercise ──
- * This is deliberately the simplest version that works: one bell-shaped bump. Real
- * wax *flows downhill* — it would slide off the top of an earlier clump and pool in
- * the hollow beside it, which is what makes clumps lopsided and layered. Rewriting
- * this to let the wax roll toward lower neighbours while it's still warm is the
- * suggested exercise. The rule to keep: every bit of `mass` must end up on the base
- * (the conservation test will tell you if any leaks).
+ * The drip is split into a few parcels, laid down one after another. Each parcel starts
+ * where the drip hit (nudged outward — wax running off a candle keeps some sideways
+ * momentum) and keeps rolling to its lower neighbour while the slope is steeper than
+ * it can rest on and it still has heat to move. Then it sets as a small bump.
+ *
+ * Because each parcel feels the slope the earlier ones left, wax slides off old clumps
+ * and fills the hollows beside them, building ledges and tongues — layered and
+ * lopsided, and different every time, since every drip lands on a different surface.
  */
 function depositOnBase(s: CandleState, x: number, mass: number, temp: number): void {
   const outward = Math.sign(x || between(s, -1, 1));
-  const centre  = x + outward * temp * between(s, 0.05, 0.5);
-  const sigma   = 0.07 + temp * between(s, 0.05, 0.2);
+  const parcel  = mass / PARCELS_PER_DRIP;
 
-  // Bell-curve weights around the landing point, normalised so they sum to 1 over the
-  // cells that actually exist — a bump near the edge gets squashed, never clipped.
+  for (let p = 0; p < PARCELS_PER_DRIP; p++) {
+    let i = baseColumnAt(x + outward * temp * between(s, 0.05, 0.4) + between(s, -0.04, 0.04));
+    let heat = temp;
+
+    // How far it can still travel, in cells. Even cold wax gets a nudge or two.
+    let moves = 2 + Math.round(heat * between(s, 15, 40));
+    while (moves-- > 0) {
+      const here  = s.base[i];
+      const left  = i > 0             ? s.base[i - 1] : Infinity;
+      const right = i < BASE_COLS - 1 ? s.base[i + 1] : Infinity;
+      const lowest = Math.min(left, right);
+
+      const repose = REPOSE_HOT + (REPOSE_COLD - REPOSE_HOT) * (1 - heat);
+      if ((here - lowest) / BASE_DX <= repose) break; // gentle enough to rest here
+
+      if (left < right)      i--;
+      else if (right < left) i++;
+      else                   i += nextRandom(s) < 0.5 ? -1 : 1;
+      heat = Math.max(0, heat - 0.04);
+    }
+
+    spreadBump(s, i, parcel, 0.03 + heat * 0.05);
+  }
+}
+
+/**
+ * Lay `mass` down as a small bell-shaped bump centred on cell `centre`. The weights are
+ * normalised over the cells that exist, so a bump at the edge is squashed, never
+ * clipped — every bit of mass lands somewhere, which is what keeps conservation exact.
+ */
+function spreadBump(s: CandleState, centre: number, mass: number, sigma: number): void {
+  const reach = Math.ceil((sigma * 3) / BASE_DX);
+  const lo = Math.max(0, centre - reach);
+  const hi = Math.min(BASE_COLS - 1, centre + reach);
+
   const weights: number[] = [];
   let total = 0;
-  for (let i = 0; i < BASE_COLS; i++) {
-    const cx = -BASE_HALF_WIDTH + (i + 0.5) * BASE_DX;
-    const w  = Math.exp(-((cx - centre) ** 2) / (2 * sigma * sigma));
+  for (let i = lo; i <= hi; i++) {
+    const w = Math.exp(-(((i - centre) * BASE_DX) ** 2) / (2 * sigma * sigma));
     weights.push(w);
     total += w;
   }
-  for (let i = 0; i < BASE_COLS; i++) {
-    s.base[i] += (mass * weights[i]) / total / BASE_DX;
+  for (let i = lo; i <= hi; i++) {
+    s.base[i] += (mass * weights[i - lo]) / total / BASE_DX;
   }
 }
 
