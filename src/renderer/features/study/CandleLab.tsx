@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Play, Pause, RotateCcw, Shuffle, Flame, FlameKindling, Snowflake, Ban } from 'lucide-react';
 import {
   createCandle, advanceCandle, pauseCandle, resumeCandle, abandonCandle,
-  waxAccountedFor, isLit, isSettled, elapsedMs,
-  notchX, BASE_COLS, BASE_DX, BASE_HALF_WIDTH, CANDLE_HEIGHT, CANDLE_HALF_WIDTH, RIM_NOTCHES,
+  waxAccountedFor, isLit, isSettled, elapsedMs, CANDLE_HEIGHT,
   type CandleState,
 } from '../../../shared/candleSim';
+import { createCandleRenderer, type CandleRenderer } from './candleRenderer';
 import { formatClock } from '../../../shared/pomodoro';
 import { cn } from '../../lib/utils';
 
 // Dev-only workbench for the candle simulation (route: #/candle-lab, dev builds only).
-// Prototype stage: the drawing is deliberately plain shapes so we can judge the
-// *behaviour* — burn rate, gush rhythm, tears, how clumps build up — before polishing.
+// The drawing lives in candleRenderer.ts so Focus Mode can reuse it; this page is just
+// controls, a readout, and the frame loop.
 //
 // The split to notice: the sim (shared/candleSim.ts) knows nothing about canvases or
 // frames. This component owns the clock: each animation frame it asks "how much real
@@ -28,117 +28,9 @@ const SPEEDS    = [1, 10, 60, 600];
 
 const W = 560;
 const H = 440;
-const SCALE  = 80;          // px per candle width
-const ORIGIN = { x: W / 2, y: H - 40 };
-
-const WAX      = '#efe6d2';
-const WAX_DARK = '#d9ccb0';
-const MOLTEN   = '#f2c46d';
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0];
-}
-
-// World (candle units, y up) → canvas pixels (y down).
-const px = (x: number) => ORIGIN.x + x * SCALE;
-const py = (y: number) => ORIGIN.y - y * SCALE;
-
-/** Blend two #rrggbb colours; t = 0 gives a, 1 gives b. */
-function mix(a: string, b: string, t: number): string {
-  const ca = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
-  const cb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
-  return `rgb(${ca.map((v, i) => Math.round(v + (cb[i] - v) * t)).join(',')})`;
-}
-
-function draw(ctx: CanvasRenderingContext2D, c: CandleState): void {
-  ctx.clearRect(0, 0, W, H);
-
-  // Table
-  ctx.fillStyle = '#3a2f28';
-  ctx.fillRect(0, ORIGIN.y, W, H - ORIGIN.y);
-
-  // Column
-  ctx.fillStyle = WAX;
-  ctx.fillRect(px(-CANDLE_HALF_WIDTH), py(c.column), SCALE, c.column * SCALE);
-
-  // Rim notches — darker = weaker; a gush comes from the weak spots.
-  for (let i = 0; i < RIM_NOTCHES; i++) {
-    const w = SCALE / RIM_NOTCHES;
-    ctx.fillStyle = `rgba(120, 80, 40, ${0.6 * (1 - c.rim[i])})`;
-    ctx.fillRect(px(notchX(i)) - w / 2, py(c.column), w, 4);
-  }
-
-  // Pool: amber while molten, fading to wax as it sets. Thickness tracks the volume.
-  if (c.pool > 0) {
-    ctx.fillStyle = mix(WAX_DARK, MOLTEN, c.poolHeat);
-    ctx.fillRect(px(-CANDLE_HALF_WIDTH), py(c.column) - 2, SCALE, Math.max(2, c.pool * 120));
-  }
-
-  // Tears: thicker where more wax has run down them.
-  ctx.strokeStyle = WAX_DARK;
-  ctx.lineCap = 'round';
-  for (const t of c.tears) {
-    const length = Math.max(0.05, t.y0 - t.y1);
-    ctx.lineWidth = Math.min(14, Math.max(2, (t.mass / length) * SCALE * 2.5));
-    ctx.beginPath();
-    ctx.moveTo(px(t.x0), py(t.y0));
-    ctx.lineTo(px(t.x1), py(t.y1));
-    ctx.stroke();
-  }
-
-  // Drips in flight — hotter is more orange
-  for (const d of c.drips) {
-    ctx.fillStyle = `rgb(240, ${200 - d.temp * 60}, ${150 - d.temp * 100})`;
-    ctx.beginPath();
-    ctx.arc(px(d.x), py(d.y), Math.sqrt(d.mass) * SCALE * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Base heightmap, drawn in front of the column
-  const cellX = (i: number) => px(-BASE_HALF_WIDTH + (i + 0.5) * BASE_DX);
-  ctx.fillStyle = WAX_DARK;
-  ctx.beginPath();
-  ctx.moveTo(px(-BASE_HALF_WIDTH), py(0));
-  for (let i = 0; i < BASE_COLS; i++) ctx.lineTo(cellX(i), py(c.base[i]));
-  ctx.lineTo(px(BASE_HALF_WIDTH), py(0));
-  ctx.closePath();
-  ctx.fill();
-
-  // Pause seams: where the surface set before more wax landed on it. Only drawn where
-  // something has since covered it — an uncovered seam is just the surface.
-  ctx.strokeStyle = 'rgba(110, 85, 55, 0.55)';
-  ctx.lineWidth = 1;
-  for (const seam of c.seams) {
-    ctx.beginPath();
-    let drawing = false;
-    for (let i = 0; i < BASE_COLS; i++) {
-      const covered = c.base[i] - seam[i] > 0.01 && seam[i] > 0.005;
-      if (covered && !drawing) { ctx.moveTo(cellX(i), py(seam[i])); drawing = true; }
-      else if (covered)        { ctx.lineTo(cellX(i), py(seam[i])); }
-      else                     { drawing = false; }
-    }
-    ctx.stroke();
-  }
-
-  // Flame. Its flicker uses Math.random on purpose: it's decoration, not state, so it
-  // doesn't need to be reproducible — only the wax does.
-  if (isLit(c)) {
-    const fx = px(0);
-    const fy = py(c.column) - 6;
-    const h  = 34 + Math.random() * 8;
-    ctx.fillStyle = '#ffb347';
-    ctx.beginPath();
-    ctx.ellipse(fx + (Math.random() - 0.5) * 2, fy - h / 2, 8, h / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#fff3c4';
-    ctx.beginPath();
-    ctx.ellipse(fx, fy - h / 3, 4, h / 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    // A dark wick stub so an unlit candle doesn't look like it's missing something.
-    ctx.fillStyle = '#2b2420';
-    ctx.fillRect(px(0) - 1.5, py(c.column) - 10, 3, 10);
-  }
 }
 
 const FLAME_LABELS: Record<CandleState['flame'], string> = {
@@ -156,6 +48,7 @@ export default function CandleLab() {
   const [readout, setReadout]         = useState<CandleState>(() => createCandle(seed, durationMin * 60_000));
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const renderer  = useRef<CandleRenderer | null>(null);
   const candle    = useRef<CandleState>(readout);
 
   /** Replace the candle (a new one, or the result of a session event) and refresh the readout. */
@@ -172,8 +65,12 @@ export default function CandleLab() {
   // The frame loop. The candle lives in a ref, not state: it changes 60×/s and only
   // the canvas needs every frame. The text readout is refreshed a few times a second.
   useEffect(() => {
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    // Created once and kept across speed/freeze changes, so its glow and smoke carry on
+    // instead of restarting every time a control is touched.
+    renderer.current ??= createCandleRenderer(canvas, W, H);
+    const paint = renderer.current;
     let frame = 0;
     let last  = performance.now();
     let lastReadout = 0;
@@ -182,7 +79,7 @@ export default function CandleLab() {
       const realSecs = (now - last) / 1000;
       last = now;
       if (!frozen) candle.current = advanceCandle(candle.current, realSecs * speed);
-      if (ctx) draw(ctx, candle.current);
+      paint.render(candle.current, now);
       if (now - lastReadout > 200) {
         lastReadout = now;
         setReadout(candle.current);
@@ -233,7 +130,7 @@ export default function CandleLab() {
       </div>
 
       <div className="flex gap-6 items-start">
-        <canvas ref={canvasRef} width={W} height={H} className="rounded-lg bg-[#1f1a17] shrink-0" />
+        <canvas ref={canvasRef} className="rounded-lg shrink-0" />
         <dl className="text-xs font-mono grid grid-cols-[auto_auto] gap-x-4 gap-y-1">
           <dt className="text-stone-500">seed</dt>      <dd>{c.seed}</dd>
           <dt className="text-stone-500">flame</dt>
