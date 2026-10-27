@@ -1,11 +1,12 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
-import { seriesRenames, shiftDate, shiftSkipReason } from '../../../shared/repeat';
+import { cadenceDates, seriesRenames, shiftDate, shiftSkipReason } from '../../../shared/repeat';
 import type {
   ApplyTaskSeriesResult,
   ApplyToTaskSeriesInput,
   NameChange,
   NameSet,
+  RespaceTasksInput,
   Task,
   CreateTaskInput,
   DateChange,
@@ -253,4 +254,37 @@ export function writeTask(task: Task): Task {
       task.created_at,
     );
   return getTask(task.id)!;
+}
+
+/**
+ * Lay a task and the ones after it back out at a fixed interval.
+ *
+ * Mirrors assignmentRepo.respaceSeries, including the positional slots: a
+ * finished occurrence keeps its own date and the ones after it still land on
+ * the rhythm rather than shuffling up to close the gap.
+ */
+export function respaceSeries(input: RespaceTasksInput): ShiftResult {
+  const anchor = getTask(input.taskId);
+  if (!anchor) throw new Error('Task not found');
+
+  const targets = scopeTargets(anchor, 'this_and_later');
+  const slots = cadenceDates(anchor.due_date, input.intervalWeeks, targets.length);
+  if (slots.length !== targets.length) throw new Error('Could not work out the new dates');
+
+  const changed: DateChange[] = [];
+  const skipped: ShiftResult['skipped'] = [];
+
+  targets.forEach((occurrence, i) => {
+    const isAnchor = occurrence.id === anchor.id;
+    const reason = isAnchor ? null : shiftSkipReason(occurrence);
+    if (reason) {
+      skipped.push({ id: occurrence.id, name: occurrence.name, reason });
+      return;
+    }
+    if (slots[i] === occurrence.due_date) return;
+    changed.push({ id: occurrence.id, from: occurrence.due_date, to: slots[i] });
+  });
+
+  setDates(changed.map(c => ({ id: c.id, dueDate: c.to })));
+  return { changed, skipped };
 }

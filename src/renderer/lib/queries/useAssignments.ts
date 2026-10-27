@@ -7,6 +7,7 @@ import type {
   AssignmentSnapshot,
   AssignmentStatus,
   CreateAssignmentInput,
+  RespaceSeriesInput,
   ShiftAssignmentsInput,
   UpdateAssignmentInput,
 } from '../../../shared/types';
@@ -133,6 +134,15 @@ export function useSetAssignmentFields() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (items: FieldSet[]) => window.api.assignments.setFields(items),
+    onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
+  });
+}
+
+/** Lay an occurrence and the ones after it back out at a fixed interval. */
+export function useRespaceAssignments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RespaceSeriesInput) => window.api.assignments.respace(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: assignmentKeys.all }),
   });
 }

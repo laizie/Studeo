@@ -5,6 +5,7 @@ import type {
   CreateTaskInput,
   DateSet,
   NameSet,
+  RespaceTasksInput,
   ShiftTasksInput,
   UpdateTaskInput,
 } from '../../shared/types';
@@ -16,6 +17,7 @@ import {
   updateTask,
   deleteTask,
   shiftTasks,
+  respaceSeries,
   setDates,
   applyToSeries,
   setNames,
@@ -69,6 +71,16 @@ export function registerTaskHandlers(): void {
     if (input.days === 0) throw new Error('days must not be zero');
     if (Math.abs(input.days) > 365) throw new Error('days must be within a year either way');
     return shiftTasks(input);
+  });
+
+  // Put a run back on a rhythm. Mirrors assignments:respace.
+  ipcMain.handle(IPC.TASKS.RESPACE, (_event, input: RespaceTasksInput) => {
+    if (!input?.taskId) throw new Error('taskId is required');
+    if (!Number.isInteger(input.intervalWeeks) || input.intervalWeeks < 1) {
+      throw new Error('intervalWeeks must be a whole number of weeks, at least 1');
+    }
+    if (input.intervalWeeks > 52) throw new Error('intervalWeeks must be at most 52');
+    return respaceSeries(input);
   });
 
   // The bulk date write behind a shift and its Undo. The whole batch is validated

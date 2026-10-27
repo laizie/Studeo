@@ -1,6 +1,11 @@
 import MoveDatesDialog from '../../components/MoveDatesDialog';
 import type { Task } from '../../../shared/types';
-import { useTasks, useShiftTasks, useSetTaskDates } from '../../lib/queries/useTasks';
+import {
+  useTasks,
+  useShiftTasks,
+  useSetTaskDates,
+  useRespaceTasks,
+} from '../../lib/queries/useTasks';
 
 interface Props {
   task: Task;
@@ -13,6 +18,7 @@ interface Props {
 export default function TaskMoveDates({ task, isOpen, onClose }: Props) {
   const shift = useShiftTasks();
   const setDates = useSetTaskDates();
+  const respace = useRespaceTasks();
   const { data: rows = [] } = useTasks();
 
   return (
@@ -27,9 +33,10 @@ export default function TaskMoveDates({ task, isOpen, onClose }: Props) {
       rows={rows}
       noun="task"
       shift={(scope, days) => shift.mutateAsync({ taskId: task.id, scope, days })}
+      respace={intervalWeeks => respace.mutateAsync({ taskId: task.id, intervalWeeks })}
       restore={items => setDates.mutate(items)}
-      isPending={shift.isPending}
-      isError={shift.isError}
+      isPending={shift.isPending || respace.isPending}
+      isError={shift.isError || respace.isError}
       isOpen={isOpen}
       onClose={onClose}
     />

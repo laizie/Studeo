@@ -18,6 +18,7 @@ import {
   setDates,
   setFields,
   shiftAssignments,
+  respaceSeries,
   applyToSeries,
 } from '../repositories/assignmentRepo';
 import {
@@ -952,5 +953,108 @@ describe('stopRepeatingFrom', () => {
     });
     expect(shift.changed).toHaveLength(3);
     expect(listBySeries(series.id)).toHaveLength(4);
+  });
+});
+
+describe('respaceSeries', () => {
+  it('lays a bunched-up run back out one a week', () => {
+    // The damage: three occurrences pushed back until they shared a date.
+    const { series, assignments } = weeklySeries();
+    setDates([
+      { id: assignments[1].id, dueDate: '2026-03-27' },
+      { id: assignments[2].id, dueDate: '2026-03-27' },
+    ]);
+
+    respaceSeries({ assignmentId: assignments[0].id, intervalWeeks: 1 });
+
+    expect(listBySeries(series.id).map(a => a.due_date)).toEqual([
+      '2026-03-06', '2026-03-13', '2026-03-20', '2026-03-27',
+    ]);
+  });
+
+  it('keeps the anchor exactly where it is', () => {
+    const { assignments } = weeklySeries();
+
+    respaceSeries({ assignmentId: assignments[1].id, intervalWeeks: 1 });
+
+    expect(getAssignment(assignments[1].id)!.due_date).toBe('2026-03-13');
+  });
+
+  it('never touches anything before the anchor', () => {
+    const { series, assignments } = weeklySeries();
+    setDates([{ id: assignments[0].id, dueDate: '2026-02-01' }]);
+
+    respaceSeries({ assignmentId: assignments[2].id, intervalWeeks: 1 });
+
+    // The first one was left out on its own date, and stays there.
+    expect(listBySeries(series.id)[0].due_date).toBe('2026-02-01');
+  });
+
+  it('spaces at a biweekly cadence', () => {
+    const { series, assignments } = weeklySeries();
+
+    respaceSeries({ assignmentId: assignments[0].id, intervalWeeks: 2 });
+
+    expect(listBySeries(series.id).map(a => a.due_date)).toEqual([
+      '2026-03-06', '2026-03-20', '2026-04-03', '2026-04-17',
+    ]);
+  });
+
+  it('leaves a finished occurrence on its date but keeps the rhythm around it', () => {
+    // Slots are positional: occurrence 3 keeps its own date, and occurrence 4
+    // still lands in slot 4 rather than shuffling up to close the gap.
+    const { series, assignments } = weeklySeries();
+    updateAssignment(assignments[2].id, { status: 'completed' });
+    setDates([
+      { id: assignments[1].id, dueDate: '2026-03-27' },
+      { id: assignments[3].id, dueDate: '2026-03-27' },
+    ]);
+
+    const result = respaceSeries({ assignmentId: assignments[0].id, intervalWeeks: 1 });
+
+    expect(result.skipped.map(s => s.id)).toEqual([assignments[2].id]);
+    expect(listBySeries(series.id).map(a => a.due_date)).toEqual([
+      '2026-03-06', '2026-03-13', '2026-03-20', '2026-03-27',
+    ]);
+  });
+
+  it('reports the old dates so Undo can replay them', () => {
+    const { series, assignments } = weeklySeries();
+    setDates([{ id: assignments[3].id, dueDate: '2026-03-13' }]);
+    const before = listBySeries(series.id).map(a => a.due_date);
+
+    const result = respaceSeries({ assignmentId: assignments[0].id, intervalWeeks: 1 });
+    setDates(result.changed.map(c => ({ id: c.id, dueDate: c.from })));
+
+    expect(listBySeries(series.id).map(a => a.due_date)).toEqual(before);
+  });
+
+  it('writes nothing when the series is already on the rhythm', () => {
+    const { assignments } = weeklySeries();
+
+    const result = respaceSeries({ assignmentId: assignments[0].id, intervalWeeks: 1 });
+
+    expect(result.changed).toEqual([]);
+  });
+
+  it('is a no-op on the last occurrence, which has nothing after it', () => {
+    const { assignments } = weeklySeries();
+
+    const result = respaceSeries({ assignmentId: assignments[3].id, intervalWeeks: 1 });
+
+    expect(result.changed).toEqual([]);
+  });
+
+  it('leaves a one-off assignment alone', () => {
+    const solo = createAssignment({ courseId, name: 'Essay', dueDate: '2026-03-06' });
+
+    const result = respaceSeries({ assignmentId: solo.id, intervalWeeks: 1 });
+
+    expect(result.changed).toEqual([]);
+    expect(getAssignment(solo.id)!.due_date).toBe('2026-03-06');
+  });
+
+  it('throws for an assignment that does not exist', () => {
+    expect(() => respaceSeries({ assignmentId: 'nope', intervalWeeks: 1 })).toThrow(/not found/i);
   });
 });

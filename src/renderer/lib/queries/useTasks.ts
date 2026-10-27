@@ -4,6 +4,7 @@ import type {
   CreateTaskInput,
   DateSet,
   NameSet,
+  RespaceTasksInput,
   ShiftTasksInput,
   UpdateTaskInput,
 } from '../../../shared/types';
@@ -83,6 +84,15 @@ export function useSetTaskNames() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (items: NameSet[]) => window.api.tasks.setNames(items),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
+/** Lay a task and the ones after it back out at a fixed interval. */
+export function useRespaceTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RespaceTasksInput) => window.api.tasks.respace(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
   });
 }

@@ -295,6 +295,72 @@ function nameStem(name: string): string {
  *
  * Callers pass only rows that have no series yet; this does not check.
  */
+/** The trailing number in a name, or null when there isn't one. */
+function nameNumber(name: string): number | null {
+  const match = name.trim().match(/^(.*?)(\d+)\s*$/);
+  return match ? parseInt(match[2], 10) : null;
+}
+
+/**
+ * Whether a stem group reads as a numbered run: "Homework 1, 2, 3, 4".
+ *
+ * Numbering is evidence that doesn't depend on the dates, which matters because
+ * the rows that most need linking are the ones whose dates went wrong. A run
+ * that has been pushed back a week at a time until four of them sit in the same
+ * week is no longer evenly spaced — but it is still obviously Homework 1 to 4.
+ *
+ * A couple of gaps are allowed (an occurrence deleted along the way), but not
+ * an arbitrary scatter: "Essay 1, 4, 9" is three essays, not a series.
+ */
+function isNumberedRun(numbers: (number | null)[]): boolean {
+  if (numbers.some(n => n === null)) return false;
+  const sorted = [...(numbers as number[])].sort((a, b) => a - b);
+  if (new Set(sorted).size !== sorted.length) return false;
+  const span = sorted[sorted.length - 1] - sorted[0];
+  return span <= sorted.length + 1;
+}
+
+/**
+ * The interval a numbered run was probably on, read off whatever spacing
+ * survived: the most common whole-week gap between consecutive occurrences.
+ *
+ * Falls back to weekly, which is both the commonest cadence and the one the
+ * user is trying to get back to when the dates have collapsed into a heap.
+ */
+function inferIntervalWeeks(ordered: DetectableRow[]): number {
+  const counts = new Map<number, number>();
+  for (let i = 1; i < ordered.length; i++) {
+    const weeks = daysBetween(ordered[i - 1].dueDate, ordered[i].dueDate) / 7;
+    if (!Number.isInteger(weeks) || weeks < 1 || weeks > MAX_LINK_INTERVAL_WEEKS) continue;
+    counts.set(weeks, (counts.get(weeks) ?? 0) + 1);
+  }
+
+  let best = 1;
+  let bestCount = 0;
+  for (const [weeks, count] of counts) {
+    if (count > bestCount || (count === bestCount && weeks < best)) {
+      best = weeks;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+/**
+ * Find groups of unlinked rows that look like they were meant to be a series.
+ *
+ * Two kinds of evidence, tried in that order. A group whose names carry a run of
+ * numbers is a series whatever its dates say — that's the case where linking is
+ * most useful, because dates that drifted are exactly why someone would want
+ * these bound together and spaced out again. Otherwise the rows have to argue
+ * for themselves through their spacing: same stem, evenly spaced a whole number
+ * of weeks apart, at least MIN_LINK_CANDIDATES of them in a row.
+ *
+ * A row never appears in two candidates — linking it twice is not a thing that
+ * can happen, so offering it twice would be a lie.
+ *
+ * Callers pass only rows that have no series yet; this does not check.
+ */
 export function detectSeriesCandidates(rows: DetectableRow[]): LinkCandidate[] {
   const byStem = new Map<string, DetectableRow[]>();
   for (const row of rows) {
@@ -309,6 +375,15 @@ export function detectSeriesCandidates(rows: DetectableRow[]): LinkCandidate[] {
   const candidates: LinkCandidate[] = [];
   for (const [stem, group] of byStem) {
     if (group.length < MIN_LINK_CANDIDATES) continue;
+
+    // ── Numbered run: order by the numbers, ignore where the dates ended up ──
+    if (isNumberedRun(group.map(r => nameNumber(r.name)))) {
+      const ordered = [...group].sort((a, b) => nameNumber(a.name)! - nameNumber(b.name)!);
+      candidates.push({ stem, intervalWeeks: inferIntervalWeeks(ordered), members: ordered });
+      continue;
+    }
+
+    // ── Otherwise: look for an evenly spaced run ────────────────────────────
     // YYYY-MM-DD sorts correctly as text.
     const items = [...group].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
@@ -339,4 +414,26 @@ export function detectSeriesCandidates(rows: DetectableRow[]): LinkCandidate[] {
   }
 
   return candidates.sort((a, b) => a.members[0].dueDate.localeCompare(b.members[0].dueDate));
+}
+
+// ─── Putting a series back on a rhythm ────────────────────────────────────────
+
+/**
+ * The dates a run should land on: `count` of them, `intervalWeeks` apart,
+ * starting from `startDate`.
+ *
+ * This is the repair for a series that was pushed back one occurrence at a time
+ * until several of them piled into the same week. Positional, like everything
+ * else about a series: the nth occurrence gets the nth slot, whether or not the
+ * ones before it actually moved.
+ */
+export function cadenceDates(startDate: string, intervalWeeks: number, count: number): string[] {
+  if (!Number.isInteger(intervalWeeks) || intervalWeeks < 1 || count < 1) return [];
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const date = shiftDate(startDate, i * intervalWeeks * 7);
+    if (!date) return [];
+    out.push(date);
+  }
+  return out;
 }

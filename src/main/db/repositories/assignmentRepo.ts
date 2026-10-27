@@ -1,6 +1,6 @@
 import { getDb } from '../connection';
 import { asRow } from '../rows';
-import { seriesRenames, shiftDate, shiftSkipReason } from '../../../shared/repeat';
+import { cadenceDates, seriesRenames, shiftDate, shiftSkipReason } from '../../../shared/repeat';
 import type {
   ApplySeriesResult,
   ApplyToSeriesInput,
@@ -11,6 +11,7 @@ import type {
   DateSet,
   AssignmentSnapshot,
   AssignmentStatus,
+  RespaceSeriesInput,
   SeriesScope,
   ShiftAssignmentsInput,
   ShiftResult,
@@ -410,4 +411,45 @@ export function applyToSeries(input: ApplyToSeriesInput): ApplySeriesResult {
 
   setFields(changed.map(c => ({ id: c.id, name: c.toName, dueTime: c.toDueTime })));
   return { changed };
+}
+
+/**
+ * Lay an occurrence and the ones after it back out at a fixed interval.
+ *
+ * The repair for a series that was nudged back a week at a time until four of
+ * them shared a Friday. The anchor keeps its date — it's the one the user
+ * pointed at, and it's the only date here anybody chose on purpose — and each
+ * later occurrence takes the next slot.
+ *
+ * Slots are positional, not sequential: the nth occurrence gets the nth slot
+ * whether or not the ones before it were free to move. So a finished occurrence
+ * sitting in the middle keeps its own date (a completed assignment's due date
+ * records when it was actually due, exactly as in a shift) while the ones after
+ * it still land where the rhythm says they should, instead of shuffling up to
+ * close the gap.
+ */
+export function respaceSeries(input: RespaceSeriesInput): ShiftResult {
+  const anchor = getAssignment(input.assignmentId);
+  if (!anchor) throw new Error('Assignment not found');
+
+  const targets = scopeTargets(anchor, 'this_and_later');
+  const slots = cadenceDates(anchor.due_date, input.intervalWeeks, targets.length);
+  if (slots.length !== targets.length) throw new Error('Could not work out the new dates');
+
+  const changed: DateChange[] = [];
+  const skipped: ShiftResult['skipped'] = [];
+
+  targets.forEach((occurrence, i) => {
+    const isAnchor = occurrence.id === anchor.id;
+    const reason = isAnchor ? null : shiftSkipReason(occurrence);
+    if (reason) {
+      skipped.push({ id: occurrence.id, name: occurrence.name, reason });
+      return;
+    }
+    if (slots[i] === occurrence.due_date) return;
+    changed.push({ id: occurrence.id, from: occurrence.due_date, to: slots[i] });
+  });
+
+  setDates(changed.map(c => ({ id: c.id, dueDate: c.to })));
+  return { changed, skipped };
 }

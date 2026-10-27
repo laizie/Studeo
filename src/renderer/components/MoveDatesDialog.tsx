@@ -3,7 +3,7 @@ import DialogShell from './DialogShell';
 import SeriesScopeField from './SeriesScopeField';
 import type { AssignmentStatus, DateSet, SeriesScope, ShiftResult } from '../../shared/types';
 import { formatDueDate } from '../../shared/deadlines';
-import { shiftDate, shiftSkipReason } from '../../shared/repeat';
+import { cadenceDates, shiftDate, shiftSkipReason } from '../../shared/repeat';
 import { showUndoToast } from '../store/useToastStore';
 import { cn } from '../lib/utils';
 import { INPUT_CLASS } from '../lib/inputClass';
@@ -35,6 +35,8 @@ interface Props {
   /** What this dialog calls the thing, in its own copy. */
   noun: 'assignment' | 'task';
   shift: (scope: SeriesScope, days: number) => Promise<ShiftResult>;
+  /** Lay this occurrence and the ones after it back out at a fixed interval. */
+  respace: (intervalWeeks: number) => Promise<ShiftResult>;
   /** Put the given dates back — the Undo half of a shift. */
   restore: (items: DateSet[]) => void;
   isPending: boolean;
@@ -71,6 +73,7 @@ export default function MoveDatesDialog({
   rows,
   noun,
   shift,
+  respace,
   restore,
   isPending,
   isError,
@@ -79,6 +82,7 @@ export default function MoveDatesDialog({
 }: Props) {
   const [scope, setScope] = useState<SeriesScope>('one');
   const [customDays, setCustomDays] = useState('');
+  const [cadence, setCadence] = useState(1);
   const uid = useId();
 
   const inSeries = target.seriesId != null && target.seriesIndex != null;
@@ -112,27 +116,34 @@ export default function MoveDatesDialog({
     parsedCustom !== 0 &&
     Math.abs(parsedCustom) <= 365;
 
+  /**
+   * Report a finished move and offer to take it back.
+   *
+   * Undo replays each row's own previous date, so occurrences that had been
+   * moved by hand beforehand go back to where they personally were — which is
+   * the whole point when the thing being repaired is a heap of hand-moved dates.
+   */
+  function report(verb: string, result: ShiftResult) {
+    if (result.changed.length === 0) {
+      onClose();
+      return;
+    }
+
+    const plural = result.changed.length === 1 ? noun : `${noun}s`;
+    const left =
+      result.skipped.length > 0
+        ? ` · left ${result.skipped.length} finished ${result.skipped.length === 1 ? 'one' : 'ones'} alone`
+        : '';
+
+    showUndoToast(`${verb} ${result.changed.length} ${plural}${left}`, () =>
+      restore(result.changed.map(c => ({ id: c.id, dueDate: c.from }))),
+    );
+    onClose();
+  }
+
   async function applyShift(days: number) {
     try {
-      const result = await shift(scope, days);
-      if (result.changed.length === 0) {
-        onClose();
-        return;
-      }
-
-      const plural = result.changed.length === 1 ? noun : `${noun}s`;
-      const moved = `Moved ${result.changed.length} ${plural}`;
-      const left =
-        result.skipped.length > 0
-          ? ` · left ${result.skipped.length} finished ${result.skipped.length === 1 ? 'one' : 'ones'} alone`
-          : '';
-
-      // Undo replays each row's own previous date, so occurrences that had been
-      // moved by hand before the shift go back to where they personally were.
-      showUndoToast(moved + left, () =>
-        restore(result.changed.map(c => ({ id: c.id, dueDate: c.from }))),
-      );
-      onClose();
+      report('Moved', await shift(scope, days));
     } catch {
       // The mutation's global onError already told the user. Staying open with the
       // dialog's state intact is what we want, but the rejection still has to be
@@ -140,7 +151,23 @@ export default function MoveDatesDialog({
     }
   }
 
+  async function applyRespace() {
+    try {
+      report('Spaced out', await respace(cadence));
+    } catch {
+      // As above.
+    }
+  }
+
   if (!isOpen) return null;
+
+  // Everything after this occurrence in the series — what a respace would lay out.
+  const laterCount = inSeries
+    ? siblings.filter(r => (r.series_index ?? 0) > (target.seriesIndex ?? 0)).length
+    : 0;
+  // The slots those would land on. The anchor keeps slot 0, so drop it, and show
+  // only the first few — the sentence above already says how many there are.
+  const respacePreview = cadenceDates(target.dueDate, cadence, laterCount + 1).slice(1, 4);
 
   const previewDays = customValid ? parsedCustom : 7;
   // shiftDate returns '' for a date it can't parse, which should never happen for
@@ -221,6 +248,59 @@ export default function MoveDatesDialog({
           {isPending ? 'Moving…' : 'Move'}
         </button>
       </div>
+
+      {/* Putting a bunched-up run back on a rhythm. Only worth showing when there
+          is something after this row to lay out. */}
+      {laterCount > 0 && (
+        <div className="mt-5 border-t border-line pt-4">
+          <span className="mb-1.5 block text-sm font-medium text-ink-soft">
+            Or put them back on a rhythm
+          </span>
+          <p className="mb-2.5 text-xs text-muted">
+            Keeps “{target.name}” on {formatDueDate(target.dueDate)} and lays the{' '}
+            {laterCount === 1 ? 'one' : laterCount} after it out from there. Finished ones stay
+            where they are.
+          </p>
+
+          <div className="mb-2.5 flex gap-1.5">
+            {[1, 2].map(weeks => (
+              <button
+                key={weeks}
+                type="button"
+                onClick={() => setCadence(weeks)}
+                aria-pressed={cadence === weeks}
+                className={cn(
+                  'flex-1 rounded-lg border px-2 py-1.5 text-xs transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                  cadence === weeks
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-ink-soft hover:bg-surface-hi',
+                )}
+              >
+                {weeks === 1 ? 'One a week' : 'Every 2 weeks'}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={applyRespace}
+              disabled={isPending}
+              className={cn(
+                'rounded-lg bg-accent px-4 py-1.5 text-xs text-accent-ink transition-colors',
+                'hover:bg-accent-deep active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+            >
+              {isPending ? 'Spacing…' : 'Space them out'}
+            </button>
+          </div>
+
+          {respacePreview.length > 0 && (
+            <p className="text-xs text-muted">
+              They’d land on {respacePreview.map(d => formatDueDate(d)).join(', ')}
+              {laterCount > respacePreview.length ? ', …' : ''}.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Concrete landing date, so a shift is never a guess about what +1 week means. */}
       {previewDate && (

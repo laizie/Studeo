@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  cadenceDates,
   detectSeriesCandidates,
   generateRepeats,
   groupIntoSeries,
@@ -315,7 +316,9 @@ describe('seriesRenames', () => {
 describe('detectSeriesCandidates', () => {
   const row = (id: string, name: string, dueDate: string) => ({ id, name, dueDate });
 
-  it('finds a weekly run of three or more', () => {
+  // ── Numbered runs: the names are the evidence, whatever the dates say ──────
+
+  it('finds a numbered run', () => {
     const out = detectSeriesCandidates([
       row('a', 'Homework 1', '2026-03-06'),
       row('b', 'Homework 2', '2026-03-13'),
@@ -328,7 +331,48 @@ describe('detectSeriesCandidates', () => {
     expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'c']);
   });
 
-  it('finds a biweekly run', () => {
+  it('finds a run that was pushed back until it piled up', () => {
+    // The damage this exists to repair: four occurrences nudged back a week at
+    // a time until most of them share a date. No spacing left to read, but the
+    // numbering still says plainly what these are.
+    const out = detectSeriesCandidates([
+      row('a', 'Homework 1', '2026-03-06'),
+      row('b', 'Homework 2', '2026-03-20'),
+      row('c', 'Homework 3', '2026-03-20'),
+      row('d', 'Homework 4', '2026-03-20'),
+    ]);
+
+    expect(out).toHaveLength(1);
+    expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('orders a numbered run by its numbers, not by its dates', () => {
+    const out = detectSeriesCandidates([
+      row('c', 'Homework 3', '2026-03-09'),
+      row('a', 'Homework 1', '2026-03-23'),
+      row('b', 'Homework 2', '2026-03-16'),
+    ]);
+
+    expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('spans a break in the rhythm, because the numbering carries across it', () => {
+    // Reading week in the middle. Five homeworks are five homeworks.
+    const out = detectSeriesCandidates([
+      row('a', 'Homework 1', '2026-03-06'),
+      row('b', 'Homework 2', '2026-03-13'),
+      row('c', 'Homework 3', '2026-03-20'),
+      row('d', 'Homework 4', '2026-04-10'),
+      row('e', 'Homework 5', '2026-04-17'),
+    ]);
+
+    expect(out).toHaveLength(1);
+    expect(out[0].members).toHaveLength(5);
+    // Weekly wins the vote: three of the four gaps are a week.
+    expect(out[0].intervalWeeks).toBe(1);
+  });
+
+  it('reads a biweekly cadence off a numbered run', () => {
     const out = detectSeriesCandidates([
       row('a', 'Lab 1', '2026-03-06'),
       row('b', 'Lab 2', '2026-03-20'),
@@ -338,7 +382,39 @@ describe('detectSeriesCandidates', () => {
     expect(out[0].intervalWeeks).toBe(2);
   });
 
-  it('refuses a pair — any two dates are evenly spaced', () => {
+  it('falls back to weekly when no gap is a whole number of weeks', () => {
+    const out = detectSeriesCandidates([
+      row('a', 'Homework 1', '2026-03-06'),
+      row('b', 'Homework 2', '2026-03-11'),
+      row('c', 'Homework 3', '2026-03-16'),
+    ]);
+
+    expect(out[0].intervalWeeks).toBe(1);
+  });
+
+  it('tolerates a gap in the numbering, from an occurrence deleted along the way', () => {
+    const out = detectSeriesCandidates([
+      row('a', 'Quiz 1', '2026-03-06'),
+      row('b', 'Quiz 2', '2026-03-13'),
+      row('d', 'Quiz 4', '2026-03-27'),
+    ]);
+
+    expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'd']);
+  });
+
+  it('refuses numbers scattered too far apart to be a run', () => {
+    // Essays 1, 4 and 9 are three essays, not a series — and with no usable
+    // spacing either, there is nothing left to propose on.
+    const out = detectSeriesCandidates([
+      row('a', 'Essay 1', '2026-03-06'),
+      row('b', 'Essay 4', '2026-03-11'),
+      row('c', 'Essay 9', '2026-03-19'),
+    ]);
+
+    expect(out).toEqual([]);
+  });
+
+  it('refuses a numbered pair — two of anything proves nothing', () => {
     const out = detectSeriesCandidates([
       row('a', 'Essay 1', '2026-03-06'),
       row('b', 'Essay 2', '2026-03-13'),
@@ -347,25 +423,65 @@ describe('detectSeriesCandidates', () => {
     expect(out).toEqual([]);
   });
 
-  it('ignores spacing that is not a whole number of weeks', () => {
+  // ── Unnumbered names: back to arguing through the spacing ─────────────────
+
+  it('finds an evenly spaced run of identical names', () => {
     const out = detectSeriesCandidates([
-      row('a', 'Homework 1', '2026-03-06'),
-      row('b', 'Homework 2', '2026-03-11'),
-      row('c', 'Homework 3', '2026-03-16'),
+      row('a', 'Reading response', '2026-03-06'),
+      row('b', 'Reading response', '2026-03-13'),
+      row('c', 'Reading response', '2026-03-20'),
+    ]);
+
+    expect(out).toHaveLength(1);
+    expect(out[0].stem).toBe('Reading response');
+    expect(out[0].intervalWeeks).toBe(1);
+  });
+
+  it('ignores unnumbered rows spaced by something other than whole weeks', () => {
+    const out = detectSeriesCandidates([
+      row('a', 'Reading response', '2026-03-06'),
+      row('b', 'Reading response', '2026-03-11'),
+      row('c', 'Reading response', '2026-03-16'),
     ]);
 
     expect(out).toEqual([]);
   });
 
-  it('ignores spacing wider than a month', () => {
+  it('ignores unnumbered rows spaced wider than a month', () => {
     const out = detectSeriesCandidates([
-      row('a', 'Report 1', '2026-01-02'),
-      row('b', 'Report 2', '2026-02-06'),
-      row('c', 'Report 3', '2026-03-13'),
+      row('a', 'Status report', '2026-01-02'),
+      row('b', 'Status report', '2026-02-06'),
+      row('c', 'Status report', '2026-03-13'),
     ]);
 
     expect(out).toEqual([]);
   });
+
+  it('stops an unnumbered run at a break in the rhythm', () => {
+    const out = detectSeriesCandidates([
+      row('a', 'Reading response', '2026-03-06'),
+      row('b', 'Reading response', '2026-03-13'),
+      row('c', 'Reading response', '2026-03-20'),
+      row('d', 'Reading response', '2026-04-10'),
+      row('e', 'Reading response', '2026-04-17'),
+    ]);
+
+    expect(out).toHaveLength(1);
+    expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('finds an unnumbered run that crosses a DST boundary', () => {
+    // US DST starts 2026-03-08: a naive ms division gives 6.96 days here.
+    const out = detectSeriesCandidates([
+      row('a', 'Reading response', '2026-03-01'),
+      row('b', 'Reading response', '2026-03-08'),
+      row('c', 'Reading response', '2026-03-15'),
+    ]);
+
+    expect(out[0].intervalWeeks).toBe(1);
+  });
+
+  // ── Shared rules ──────────────────────────────────────────────────────────
 
   it('keeps different stems apart', () => {
     const out = detectSeriesCandidates([
@@ -379,20 +495,6 @@ describe('detectSeriesCandidates', () => {
 
     expect(out).toHaveLength(2);
     expect(out.map(c => c.stem).sort()).toEqual(['Homework', 'Quiz']);
-  });
-
-  it('takes the longest run and stops at a break in the rhythm', () => {
-    const out = detectSeriesCandidates([
-      row('a', 'Homework 1', '2026-03-06'),
-      row('b', 'Homework 2', '2026-03-13'),
-      row('c', 'Homework 3', '2026-03-20'),
-      // Reading week — the next one is three weeks later, then weekly resumes.
-      row('d', 'Homework 4', '2026-04-10'),
-      row('e', 'Homework 5', '2026-04-17'),
-    ]);
-
-    expect(out).toHaveLength(1);
-    expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('never offers the same row in two candidates', () => {
@@ -409,26 +511,6 @@ describe('detectSeriesCandidates', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('sorts rows by date before looking for a rhythm', () => {
-    const out = detectSeriesCandidates([
-      row('c', 'Homework 3', '2026-03-20'),
-      row('a', 'Homework 1', '2026-03-06'),
-      row('b', 'Homework 2', '2026-03-13'),
-    ]);
-
-    expect(out[0].members.map(m => m.id)).toEqual(['a', 'b', 'c']);
-  });
-
-  it('groups rows whose names carry no number at all', () => {
-    const out = detectSeriesCandidates([
-      row('a', 'Reading response', '2026-03-06'),
-      row('b', 'Reading response', '2026-03-13'),
-      row('c', 'Reading response', '2026-03-20'),
-    ]);
-
-    expect(out[0].stem).toBe('Reading response');
-  });
-
   it('skips a name that is only a number', () => {
     const out = detectSeriesCandidates([
       row('a', '1', '2026-03-06'),
@@ -439,32 +521,34 @@ describe('detectSeriesCandidates', () => {
     expect(out).toEqual([]);
   });
 
-  it('survives two rows sharing a date', () => {
-    const out = detectSeriesCandidates([
-      row('a', 'Homework 1', '2026-03-06'),
-      row('b', 'Homework 2', '2026-03-06'),
-      row('c', 'Homework 3', '2026-03-13'),
-      row('d', 'Homework 4', '2026-03-20'),
-    ]);
-
-    // The duplicate date breaks the rhythm at the front; the rest still reads
-    // as a run of three.
-    expect(out).toHaveLength(1);
-    expect(out[0].members).toHaveLength(3);
-  });
-
-  it('finds a run that crosses a DST boundary', () => {
-    // US DST starts 2026-03-08: a naive ms division gives 6.96 days here.
-    const out = detectSeriesCandidates([
-      row('a', 'Homework 1', '2026-03-01'),
-      row('b', 'Homework 2', '2026-03-08'),
-      row('c', 'Homework 3', '2026-03-15'),
-    ]);
-
-    expect(out[0].intervalWeeks).toBe(1);
-  });
-
   it('returns nothing for an empty list', () => {
     expect(detectSeriesCandidates([])).toEqual([]);
+  });
+});
+
+describe('cadenceDates', () => {
+  it('lays out weekly slots from a start date', () => {
+    expect(cadenceDates('2026-11-20', 1, 4)).toEqual([
+      '2026-11-20', '2026-11-27', '2026-12-04', '2026-12-11',
+    ]);
+  });
+
+  it('lays out a biweekly cadence', () => {
+    expect(cadenceDates('2026-11-20', 2, 3)).toEqual(['2026-11-20', '2026-12-04', '2026-12-18']);
+  });
+
+  it('keeps the weekday across a DST boundary', () => {
+    // US DST ends 2026-11-01; all four should stay Sundays.
+    expect(cadenceDates('2026-10-25', 1, 3)).toEqual(['2026-10-25', '2026-11-01', '2026-11-08']);
+  });
+
+  it('returns just the start for a count of one', () => {
+    expect(cadenceDates('2026-11-20', 1, 1)).toEqual(['2026-11-20']);
+  });
+
+  it('returns nothing for unusable input', () => {
+    expect(cadenceDates('2026-11-20', 0, 3)).toEqual([]);
+    expect(cadenceDates('2026-11-20', 1, 0)).toEqual([]);
+    expect(cadenceDates('not-a-date', 1, 3)).toEqual([]);
   });
 });

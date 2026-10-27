@@ -664,6 +664,26 @@ export interface NameSet {
   name: string;
 }
 
+/**
+ * Put a run back on a rhythm.
+ *
+ * The repair for a series that was pushed back one occurrence at a time until
+ * several of them landed in the same week. Always means "this one and the ones
+ * after it": the anchor keeps its date and the rest are laid out from it, so
+ * nothing before the row you pointed at ever moves. Re-spacing a whole series
+ * is the same action started from its first occurrence.
+ */
+export interface RespaceSeriesInput {
+  assignmentId: string;
+  /** 1 = one a week, 2 = every two weeks. */
+  intervalWeeks: number;
+}
+
+export interface RespaceTasksInput {
+  taskId: string;
+  intervalWeeks: number;
+}
+
 export interface ShiftResult {
   changed: DateChange[];
   /** Occurrences deliberately left alone, so the UI can say "moved 7, left 2
@@ -895,6 +915,7 @@ export const IPC = {
     DELETE:      'assignments:delete',
     RESTORE:     'assignments:restore',
     SHIFT:       'assignments:shift',
+    RESPACE:     'assignments:respace',
     SET_DATES:   'assignments:set-dates',
     CREATE_BATCH:'assignments:create-batch',
     APPLY_SERIES:'assignments:apply-series',
@@ -922,6 +943,7 @@ export const IPC = {
     UPDATE:      'tasks:update',
     DELETE:      'tasks:delete',
     SHIFT:       'tasks:shift',
+    RESPACE:     'tasks:respace',
     SET_DATES:   'tasks:set-dates',
     APPLY_SERIES:'tasks:apply-series',
     SET_NAMES:   'tasks:set-names',
@@ -1105,6 +1127,8 @@ export interface WindowApi {
     /** Move one occurrence, or it and the rest of its series, by a number of days.
      *  Completed and graded occurrences are skipped and reported back. */
     shift(input: ShiftAssignmentsInput): Promise<ShiftResult>;
+    /** Lay this occurrence and the ones after it back out at a fixed interval. */
+    respace(input: RespaceSeriesInput): Promise<ShiftResult>;
     /** Transactional multi-row date write — all rows land or none do. Also how
      *  Undo replays a shift, by passing each row's original date back. */
     setDates(items: DateSet[]): Promise<number>;
@@ -1149,6 +1173,8 @@ export interface WindowApi {
     /** Move one occurrence, or it and the rest of its series, by a number of days.
      *  Completed occurrences are skipped and reported back. */
     shift(input: ShiftTasksInput): Promise<ShiftResult>;
+    /** Lay this occurrence and the ones after it back out at a fixed interval. */
+    respace(input: RespaceTasksInput): Promise<ShiftResult>;
     /** Transactional multi-row date write — also how Undo replays a shift. */
     setDates(items: DateSet[]): Promise<number>;
     /** Apply a rename across a series, renumbering from the anchor's new name. */

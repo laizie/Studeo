@@ -3,6 +3,7 @@ import { IPC, ASSIGNMENT_TYPES, ASSIGNMENT_STATUSES, SERIES_SCOPES } from '../..
 import type {
   ApplyToSeriesInput,
   DateSet,
+  RespaceSeriesInput,
   FieldSet,
   CreateAssignmentBatchInput,
   AssignmentSnapshot,
@@ -20,6 +21,7 @@ import {
   deleteAssignment,
   restoreAssignment,
   shiftAssignments,
+  respaceSeries,
   setDates,
   applyToSeries,
   setFields,
@@ -140,6 +142,19 @@ export function registerAssignmentHandlers(): void {
     if (Math.abs(input.days) > 365) throw new Error('days must be within a year either way');
     const result = shiftAssignments(input);
     // Every moved row is a reminder that should now fire on a different day.
+    notifyAssignmentsChanged();
+    return result;
+  });
+
+  // Put a run back on a rhythm after it was nudged into a heap. Always reaches
+  // forward from the anchor, so there is no scope to validate — only the cadence.
+  ipcMain.handle(IPC.ASSIGNMENTS.RESPACE, (_event, input: RespaceSeriesInput) => {
+    if (!input?.assignmentId) throw new Error('assignmentId is required');
+    if (!Number.isInteger(input.intervalWeeks) || input.intervalWeeks < 1) {
+      throw new Error('intervalWeeks must be a whole number of weeks, at least 1');
+    }
+    if (input.intervalWeeks > 52) throw new Error('intervalWeeks must be at most 52');
+    const result = respaceSeries(input);
     notifyAssignmentsChanged();
     return result;
   });

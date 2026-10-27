@@ -17,6 +17,7 @@ import {
   setDates,
   setNames,
   shiftTasks,
+  respaceSeries,
   applyToSeries,
 } from '../repositories/taskRepo';
 import {
@@ -458,5 +459,60 @@ describe('stopRepeatingFrom', () => {
     const shift = shiftTasks({ taskId: tasks[1].id, scope: 'this_and_later', days: 7 });
     expect(shift.changed).toHaveLength(3);
     expect(listBySeries(series.id)).toHaveLength(4);
+  });
+});
+
+describe('respaceSeries', () => {
+  it('lays a bunched-up run back out one a week', () => {
+    const { series, tasks } = weeklySeries();
+    setDates([
+      { id: tasks[1].id, dueDate: '2026-03-27' },
+      { id: tasks[2].id, dueDate: '2026-03-27' },
+    ]);
+
+    respaceSeries({ taskId: tasks[0].id, intervalWeeks: 1 });
+
+    expect(listBySeries(series.id).map(t => t.due_date)).toEqual([
+      '2026-03-06', '2026-03-13', '2026-03-20', '2026-03-27',
+    ]);
+  });
+
+  it('keeps the anchor where it is and never looks backwards', () => {
+    const { series, tasks } = weeklySeries();
+    setDates([{ id: tasks[0].id, dueDate: '2026-02-01' }]);
+
+    respaceSeries({ taskId: tasks[1].id, intervalWeeks: 1 });
+
+    expect(listBySeries(series.id).map(t => t.due_date)).toEqual([
+      '2026-02-01', '2026-03-13', '2026-03-20', '2026-03-27',
+    ]);
+  });
+
+  it('leaves a finished occurrence on its date but keeps the rhythm around it', () => {
+    const { series, tasks } = weeklySeries();
+    updateTask(tasks[2].id, { status: 'completed' });
+    setDates([{ id: tasks[3].id, dueDate: '2026-03-13' }]);
+
+    const result = respaceSeries({ taskId: tasks[0].id, intervalWeeks: 1 });
+
+    expect(result.skipped.map(s => s.id)).toEqual([tasks[2].id]);
+    expect(listBySeries(series.id).map(t => t.due_date)).toEqual([
+      '2026-03-06', '2026-03-13', '2026-03-20', '2026-03-27',
+    ]);
+  });
+
+  it('reports the old dates so Undo can replay them', () => {
+    const { series, tasks } = weeklySeries();
+    setDates([{ id: tasks[3].id, dueDate: '2026-03-13' }]);
+    const before = listBySeries(series.id).map(t => t.due_date);
+
+    const result = respaceSeries({ taskId: tasks[0].id, intervalWeeks: 1 });
+    setDates(result.changed.map(c => ({ id: c.id, dueDate: c.from })));
+
+    expect(listBySeries(series.id).map(t => t.due_date)).toEqual(before);
+  });
+
+  it('throws for a task that does not exist', () => {
+    expect(() => respaceSeries({ taskId: 'nope', intervalWeeks: 1 })).toThrow(/not found/i);
   });
 });

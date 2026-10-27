@@ -4,6 +4,7 @@ import {
   useAssignments,
   useShiftAssignments,
   useSetAssignmentDates,
+  useRespaceAssignments,
 } from '../../lib/queries/useAssignments';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 export default function AssignmentMoveDates({ assignment, isOpen, onClose }: Props) {
   const shift = useShiftAssignments();
   const setDates = useSetAssignmentDates();
+  const respace = useRespaceAssignments();
   // Same query key the course page already uses, so this reads from cache rather
   // than fetching: it's only here to count what a scope would touch.
   const { data: rows = [] } = useAssignments({ courseId: assignment.course_id });
@@ -33,9 +35,10 @@ export default function AssignmentMoveDates({ assignment, isOpen, onClose }: Pro
       rows={rows}
       noun="assignment"
       shift={(scope, days) => shift.mutateAsync({ assignmentId: assignment.id, scope, days })}
+      respace={intervalWeeks => respace.mutateAsync({ assignmentId: assignment.id, intervalWeeks })}
       restore={items => setDates.mutate(items)}
-      isPending={shift.isPending}
-      isError={shift.isError}
+      isPending={shift.isPending || respace.isPending}
+      isError={shift.isError || respace.isError}
       isOpen={isOpen}
       onClose={onClose}
     />
