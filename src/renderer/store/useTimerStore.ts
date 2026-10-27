@@ -4,17 +4,20 @@ import { useFocusStore } from './useFocusStore';
 import { useCandleStore } from './useCandleStore';
 import { queryClient } from '../lib/queryClient';
 import { studySessionKeys } from '../lib/queries/useStudySessions';
-import { readBoolPref, readPref, writePref } from '../lib/prefs';
+import { readBoolPref, readEnumPref, readPref, writePref } from '../lib/prefs';
 import type { SettingKey } from '../../shared/settingsKeys';
 import { SITTING_GAP_MS } from '../../shared/studySittings';
-import { CYCLE_LENGTH, type Phase } from '../../shared/pomodoro';
+import {
+  CYCLE_LENGTH, OPEN_LABEL, PHASE_LABELS, TIMER_MODES, clockText,
+  type MiniTimerState, type Phase, type TimerMode,
+} from '../../shared/pomodoro';
 
 // Phase names, colors, the clock formatter and the Phase type itself now live in
 // shared/pomodoro.ts — the pop-out window renders all four and must not import this
 // store (that would give it a second, independent timer). Re-exported here so every
 // existing importer keeps its familiar `from '../store/useTimerStore'`.
-export { PHASE_LABELS, PHASE_COLORS, formatClock } from '../../shared/pomodoro';
-export type { Phase } from '../../shared/pomodoro';
+export { PHASE_LABELS, PHASE_COLORS, OPEN_LABEL, formatClock, formatElapsed } from '../../shared/pomodoro';
+export type { Phase, TimerMode } from '../../shared/pomodoro';
 
 export const FOCUS_OPTIONS      = [25, 30, 50, 60, 75, 90] as const;
 export const BREAK_OPTIONS      = [5, 10, 15, 20, 25, 30]  as const;
@@ -26,6 +29,10 @@ const LONG_BREAK_EVERY = CYCLE_LENGTH;
 // Below this, a focus block isn't study — it's a misclick or a change of mind. Skipping
 // out that early logs nothing rather than littering the history with 8-second blocks.
 const MIN_LOGGED_FOCUS_SECS = 60;
+
+// An open session has no length to burn a candle for, so Focus Mode's candle burns in
+// hours instead: each lasts an hour, and when one burns down the next is lit (tick()).
+const OPEN_CANDLE_MS = 60 * 60_000;
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 let audioCtx: AudioContext | null = null;
@@ -140,7 +147,43 @@ const candle = () => useCandleStore.getState();
 
 /** Give up the focus block in progress, if there is one. */
 function snuffIfFocus(get: GetTimer): void {
-  if (get().phase === 'focus') candle().snuff();
+  if (get().mode === 'pomodoro' && get().phase === 'focus') candle().snuff();
+}
+
+// ── Open sessions ─────────────────────────────────────────────────────────────
+// An open session is a stopwatch. Its state mirrors the countdown's: while running,
+// `countsFrom` is the truth (time studied = now − countsFrom, the way time left =
+// endsAt − now); while paused, `openElapsedMs` is (the way `timeLeft` is).
+
+/** Open mode: ms studied in the current session. */
+function openElapsedMs(get: GetTimer): number {
+  const { countsFrom, openElapsedMs: banked } = get();
+  return countsFrom != null ? Math.max(0, Date.now() - countsFrom) : banked;
+}
+
+/**
+ * Close an open session: log the time studied and set up for a fresh one.
+ *
+ * Every way out of an open session comes through here — Finish, but also reset, skip,
+ * ending the sitting, or switching technique — so time on an open clock is never just
+ * dropped. A countdown's reset only costs the block in progress; an open session can
+ * be hours long, and one stray keypress shouldn't cost an evening's record.
+ * `armReflection` pops Focus Mode's "How did it go?" card, as finishing a block does.
+ */
+function closeOpenSession(set: SetTimer, get: GetTimer, armReflection: boolean): void {
+  const worked = Math.floor(openElapsedMs(get) / 1000);
+  const patch: Partial<TimerState> = { isRunning: false, countsFrom: null, openElapsedMs: 0, elapsed: 0 };
+  if (worked >= MIN_LOGGED_FOCUS_SECS) {
+    const willReflect =
+      armReflection &&
+      useSettingsStore.getState().reflectionPromptEnabled &&
+      useFocusStore.getState().isOpen;
+    logFocusSession(worked, get().intention, willReflect);
+    patch.lastBlockEndedAt = Date.now();
+    patch.intention = '';
+  }
+  candle().snuff();
+  set(patch);
 }
 
 /** Seconds actually left on the clock. While running, `endsAt` is the truth —
@@ -225,6 +268,8 @@ function leavePhase(set: SetTimer, get: GetTimer, worked: number, announce: bool
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 interface TimerState {
+  /** 'pomodoro' counts down through blocks and breaks; 'open' counts up with no breaks. */
+  mode: TimerMode;
   phase: Phase;
   isRunning: boolean;
   timeLeft: number;
@@ -254,6 +299,20 @@ interface TimerState {
   lastFocusSessionId: string | null;
   /** True right after a focus block ends, until the user writes or skips a reflection. */
   awaitingReflection: boolean;
+  /**
+   * Open mode, running: the wall-clock ms the session would have started at had it
+   * never been paused (time studied = now − countsFrom). Null when paused or idle.
+   */
+  countsFrom: number | null;
+  /** Open mode: ms studied as of the last pause — the truth while paused, like timeLeft. */
+  openElapsedMs: number;
+  /** Open mode: whole seconds studied so far, for display. tick() moves it once a second. */
+  elapsed: number;
+
+  /** Switch between the countdown and an open session. Ends whatever was in progress. */
+  setMode: (mode: TimerMode) => void;
+  /** Open mode: stop and log the time studied, ready for a new session. */
+  finish: () => void;
 
   setPhase: (phase: Phase) => void;
   setCustomTechnique: (v: boolean) => void;
@@ -290,6 +349,9 @@ interface TimerSnapshot {
   focusCount: number;
   intention: string;
   lastBlockEndedAt: number | null;
+  /** Open mode — optional, so a snapshot from before open sessions existed still reads. */
+  countsFrom?: number | null;
+  openElapsedMs?: number;
 }
 
 const SNAPSHOT_KEY = 'studeo:timerState';
@@ -401,11 +463,31 @@ const restored = (() => {
 //
 // Rule of thumb: a recovery routine has to retire the state it consumes, or it isn't
 // recovery — it's a replay.
-writeSnapshot(restored);
+// Which kind of timer it was, and the open session if one was underway. An open session
+// comes back the way a countdown does: still running if it was running (time while the
+// app was closed counts — it may only have been a restart), or paused with its time.
+const initMode: TimerMode = readEnumPref('timerMode', TIMER_MODES, 'pomodoro');
+
+const restoredOpen = (() => {
+  const idle = { countsFrom: null as number | null, openElapsedMs: 0 };
+  const s = readSnapshot();
+  if (!s || initMode !== 'open') return idle;
+  if (typeof s.countsFrom === 'number' && Number.isFinite(s.countsFrom) && s.countsFrom <= Date.now()) {
+    return { countsFrom: s.countsFrom, openElapsedMs: 0 };
+  }
+  if (typeof s.openElapsedMs === 'number' && Number.isFinite(s.openElapsedMs) && s.openElapsedMs > 0) {
+    return { countsFrom: null, openElapsedMs: s.openElapsedMs };
+  }
+  return idle;
+})();
+const restoredIsRunning = initMode === 'open' ? restoredOpen.countsFrom != null : restored.isRunning;
+
+writeSnapshot({ ...restored, ...restoredOpen, isRunning: restoredIsRunning });
 
 export const useTimerStore = create<TimerState>((set, get) => ({
+  mode:        initMode,
   phase:       restored.phase,
-  isRunning:   restored.isRunning,
+  isRunning:   restoredIsRunning,
   timeLeft:    restored.timeLeft,
   // Persisted like the durations beside it: whether the timer rolls straight into
   // the next phase is how you work, not a per-session decision.
@@ -420,6 +502,34 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   intention:          restored.intention,
   lastFocusSessionId: null,
   awaitingReflection: false,
+  countsFrom:    restoredOpen.countsFrom,
+  openElapsedMs: restoredOpen.openElapsedMs,
+  elapsed: Math.floor(
+    (restoredOpen.countsFrom != null ? Date.now() - restoredOpen.countsFrom : restoredOpen.openElapsedMs) / 1000,
+  ),
+
+  setMode: (mode) => {
+    if (!TIMER_MODES.includes(mode) || mode === get().mode) return;
+    // Leaving an open session logs it; leaving a countdown mid-block gives the block up,
+    // as switching technique always has.
+    if (get().mode === 'open') closeOpenSession(set, get, false);
+    else snuffIfFocus(get);
+    saveSetting('timerMode', mode);
+    set({
+      mode,
+      phase: 'focus',
+      isRunning: false,
+      endsAt: null,
+      timeLeft: get().focusSecs,
+      countsFrom: null,
+      openElapsedMs: 0,
+      elapsed: 0,
+    });
+  },
+
+  finish: () => {
+    if (get().mode === 'open') closeOpenSession(set, get, true);
+  },
 
   setCustomTechnique: (v) => {
     saveSetting('customTechnique', String(v));
@@ -431,8 +541,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // it (see tick()). If auto-advance is on, that break starts now — so the pause
   // covered only the reflection beat, not the break itself.
   clearReflectionPrompt: () => {
-    const { autoAdvance, isRunning, timeLeft } = get();
-    if (autoAdvance && !isRunning) {
+    const { autoAdvance, isRunning, timeLeft, mode } = get();
+    if (mode === 'pomodoro' && autoAdvance && !isRunning) {
       set({ awaitingReflection: false, lastFocusSessionId: null, isRunning: true, endsAt: Date.now() + timeLeft * 1000 });
     } else {
       set({ awaitingReflection: false, lastFocusSessionId: null });
@@ -440,6 +550,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   },
 
   setPhase: (phase) => {
+    if (get().mode === 'open') return;
     snuffIfFocus(get);
     const { focusSecs, breakSecs, longBreakSecs } = get();
     set({ phase, isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs, longBreakSecs) });
@@ -448,6 +559,12 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // Anchor a wall-clock end time so the countdown survives navigation and
   // self-corrects after the OS throttles background timers (no drift).
   start: () => {
+    if (get().mode === 'open') {
+      if (get().isRunning) return;
+      set({ isRunning: true, countsFrom: Date.now() - get().openElapsedMs });
+      candle().light(OPEN_CANDLE_MS);
+      return;
+    }
     ensureNotificationPermission();
     const { timeLeft, phase, focusCount, lastBlockEndedAt } = get();
     // Sitting down again after a long enough gap starts a new sitting, so the cycle
@@ -467,13 +584,21 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     if (phase === 'focus') candle().light(timeLeft * 1000);
   },
   pause: () => {
+    if (get().mode === 'open') {
+      const ms = openElapsedMs(get);
+      set({ isRunning: false, countsFrom: null, openElapsedMs: ms, elapsed: Math.floor(ms / 1000) });
+      candle().pause();
+      return;
+    }
     const { endsAt, timeLeft, phase } = get();
     const remaining = endsAt != null ? Math.max(0, Math.round((endsAt - Date.now()) / 1000)) : timeLeft;
     set({ isRunning: false, timeLeft: remaining, endsAt: null });
     if (phase === 'focus') candle().pause();
   },
 
+  // In an open session these both finish it — logged, never discarded (closeOpenSession).
   reset: () => {
+    if (get().mode === 'open') { closeOpenSession(set, get, false); return; }
     snuffIfFocus(get);
     const { phase, focusSecs, breakSecs, longBreakSecs } = get();
     set({ isRunning: false, endsAt: null, timeLeft: phaseSecs(phase, focusSecs, breakSecs, longBreakSecs) });
@@ -484,6 +609,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // day's total and the heatmap stay honest — see leavePhase. The candle, though, is
   // left standing: the block ended before its time.
   skip: () => {
+    if (get().mode === 'open') { closeOpenSession(set, get, true); return; }
     snuffIfFocus(get);
     leavePhase(set, get, workedSecs(get), false);
   },
@@ -493,6 +619,7 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // history list groups by wall-clock gap alone, so restarting within the hour still
   // reads as one stretch there — this resets the timer's cycle, not the past.
   endSitting: () => {
+    if (get().mode === 'open') closeOpenSession(set, get, false);
     snuffIfFocus(get);
     const { focusSecs, intention } = get();
     const worked = workedSecs(get);
@@ -519,6 +646,14 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   // Driven once a second from the app shell. Remaining time is derived from
   // endsAt rather than decremented, so a missed tick can't accumulate drift.
   tick: () => {
+    if (get().mode === 'open') {
+      if (!get().isRunning || get().countsFrom == null) return;
+      set({ elapsed: Math.floor(openElapsedMs(get) / 1000) });
+      // One-hour candles: when this hour's has burnt down, light the next. (A no-op
+      // while the current one is still lit.)
+      candle().light(OPEN_CANDLE_MS);
+      return;
+    }
     const { isRunning, endsAt, focusSecs } = get();
     if (!isRunning || endsAt == null) return;
     const remaining = Math.round((endsAt - Date.now()) / 1000);
@@ -535,7 +670,12 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     saveSetting('focusMins', String(mins));
     snuffIfFocus(get);
     const secs = mins * 60;
-    const { phase } = get();
+    const { phase, mode } = get();
+    if (mode === 'open') {
+      // Only the countdown's setting changed — the open session keeps running.
+      set({ focusSecs: secs, timeLeft: secs });
+      return;
+    }
     set({ focusSecs: secs, ...(phase === 'focus' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
 
@@ -553,6 +693,46 @@ export const useTimerStore = create<TimerState>((set, get) => ({
     set({ longBreakSecs: secs, ...(phase === 'long_break' ? { timeLeft: secs, isRunning: false, endsAt: null } : {}) });
   },
 }));
+
+// ── What the clock reads ──────────────────────────────────────────────────────────
+// Every clock — the Study page, Focus Mode, the sidebar chip, the window title, the
+// pop-out — reads through these, so none of them has to know there are two kinds of
+// timer, and they can't disagree about what time it is.
+
+/** The timer as a self-contained snapshot: what the pop-out is sent, and what clocks read. */
+export function clockStateOf(s: TimerState): MiniTimerState {
+  const open = s.mode === 'open';
+  return {
+    mode: s.mode,
+    phase: s.phase,
+    isRunning: s.isRunning,
+    // Open mode: seconds studied (the truth while paused; while running, countsFrom is).
+    timeLeft: open ? Math.floor(s.openElapsedMs / 1000) : s.timeLeft,
+    endsAt: open ? null : s.endsAt,
+    countsFrom: open ? s.countsFrom : null,
+    // Open mode has no length; progress is drawn through each hour instead.
+    totalSecs: open ? 3600 : s.phase === 'focus' ? s.focusSecs : s.phase === 'long_break' ? s.longBreakSecs : s.breakSecs,
+    focusCount: s.focusCount,
+  };
+}
+
+/** The clock's text: "24:13" counting down, or "1:05:42" studied in an open session. */
+export const selectClockText = (s: TimerState): string => clockText(clockStateOf(s));
+
+/** What the clock is counting: the phase name, or "Open study". */
+export const selectClockLabel = (s: TimerState): string =>
+  s.mode === 'open' ? OPEN_LABEL : PHASE_LABELS[s.phase];
+
+/**
+ * For a progress ring: the countdown's own remaining/total, or — in an open session —
+ * how far through the current hour, so the ring fills once an hour.
+ */
+export function ringProgressOf(s: TimerState): { timeLeft: number; totalSecs: number } {
+  const c = clockStateOf(s);
+  return s.mode === 'open'
+    ? { timeLeft: s.elapsed % 3600, totalSecs: 3600 }
+    : { timeLeft: s.timeLeft, totalSecs: c.totalSecs };
+}
 
 // Snapshot so a session survives quitting the app (restored above) — but only when
 // something that MATTERS to the restore has changed.
@@ -576,6 +756,8 @@ function snapshotOf(s: TimerState): TimerSnapshot {
     focusCount: s.focusCount,
     intention: s.intention,
     lastBlockEndedAt: s.lastBlockEndedAt,
+    countsFrom: s.countsFrom,
+    openElapsedMs: s.openElapsedMs,
   };
 }
 
@@ -590,9 +772,13 @@ useTimerStore.subscribe((s) => {
 
 // Bring the candle in line with the timer we just restored. Normally the candle's own
 // saved record already agrees, but this covers a block that was running before the
-// candle existed (or whose record was lost): a running focus block gets a lit candle,
-// a paused one a paused candle. Both calls are no-ops when the candle already agrees.
-if (restored.phase === 'focus' && restored.isRunning) {
+// candle existed (or whose record was lost): a running focus block or open session gets
+// a lit candle, a paused one a paused candle. Both calls are no-ops when the candle
+// already agrees.
+if (initMode === 'open') {
+  if (restoredIsRunning) useCandleStore.getState().light(OPEN_CANDLE_MS);
+  else useCandleStore.getState().pause();
+} else if (restored.phase === 'focus' && restored.isRunning) {
   useCandleStore.getState().light(restored.timeLeft * 1000);
 } else if (restored.phase === 'focus') {
   useCandleStore.getState().pause();

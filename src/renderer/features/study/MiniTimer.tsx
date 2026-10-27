@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useState } from 'react';
-import { Play, Pause, SkipForward, X } from 'lucide-react';
+import { Play, Pause, SkipForward, Square, X } from 'lucide-react';
 import {
-  PHASE_LABELS, PHASE_COLORS, CYCLE_LENGTH,
-  formatClock, secondsLeft,
+  PHASE_LABELS, PHASE_COLORS, CYCLE_LENGTH, OPEN_LABEL,
+  clockSeconds, clockText,
   type MiniTimerState,
 } from '../../../shared/pomodoro';
 
@@ -113,9 +113,15 @@ export default function MiniTimer() {
     );
   }
 
-  const secs     = secondsLeft(state);
+  // An open session counts up instead of down: no phases or cycle dots, its progress
+  // line fills once an hour, and the skip button finishes the session (logging it).
+  const open     = state.mode === 'open';
+  const secs     = clockSeconds(state);
+  const text     = clockText(state);
   const color    = PHASE_COLORS[state.phase];
-  const progress = state.totalSecs > 0 ? 1 - secs / state.totalSecs : 0;
+  const progress = open
+    ? (secs % 3600) / 3600
+    : state.totalSecs > 0 ? 1 - secs / state.totalSecs : 0;
 
   const send = (command: 'start' | 'pause' | 'skip') => window.api.miniTimer.command(command);
 
@@ -137,10 +143,10 @@ export default function MiniTimer() {
             style={{ color: MUTED, fontSize: 9.5, letterSpacing: '0.09em' }}
             className="font-medium uppercase"
           >
-            {PHASE_LABELS[state.phase]}
+            {open ? OPEN_LABEL : PHASE_LABELS[state.phase]}
           </span>
           {/* Cycle dots: how many focus blocks until the long break. */}
-          <span className="flex items-center gap-1 ml-0.5" aria-hidden>
+          {!open && <span className="flex items-center gap-1 ml-0.5" aria-hidden>
             {Array.from({ length: CYCLE_LENGTH }, (_, i) => (
               <span
                 key={i}
@@ -152,13 +158,15 @@ export default function MiniTimer() {
                 }}
               />
             ))}
-          </span>
+          </span>}
         </div>
         <div
-          style={{ fontSize: 27, lineHeight: 1.05, letterSpacing: '-0.02em' }}
+          // An open session's "1:05:42" is wider than "24:13"; step the size down so it
+          // still fits beside the buttons.
+          style={{ fontSize: text.length > 5 ? 23 : 27, lineHeight: 1.05, letterSpacing: '-0.02em' }}
           className="font-semibold tabular-nums mt-1"
         >
-          {formatClock(secs)}
+          {text}
         </div>
       </div>
 
@@ -181,16 +189,17 @@ export default function MiniTimer() {
           : <Play size={16} fill="currentColor" strokeWidth={0} style={{ marginLeft: 2 }} />}
       </button>
 
-      {/* Skip — same meaning as on the Study page: bank the minutes, move on. */}
+      {/* Skip — same meaning as on the Study page: bank the minutes, move on. In an open
+          session that's Finish: the owner's skip() logs the session and ends it. */}
       <button
         onClick={() => send('skip')}
         {...skipHandlers}
-        aria-label={state.phase === 'focus' ? 'Skip to break' : 'Skip break'}
-        title={state.phase === 'focus' ? "Skip to break — keeps the minutes you've put in" : 'Skip the break'}
+        aria-label={open ? 'Finish session' : state.phase === 'focus' ? 'Skip to break' : 'Skip break'}
+        title={open ? 'Finish — log the time you studied' : state.phase === 'focus' ? "Skip to break — keeps the minutes you've put in" : 'Skip the break'}
         style={{ ...ghostStyle(skipHover), width: 28, height: 28 }}
         className="shrink-0 flex items-center justify-center rounded-full transition-colors"
       >
-        <SkipForward size={14} />
+        {open ? <Square size={12} fill="currentColor" strokeWidth={0} /> : <SkipForward size={14} />}
       </button>
 
       {/* Close the pop-out. The timer keeps running — this hides the window, it

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, PictureInPicture2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Square, X, CheckCircle2, Circle, Plus, Maximize, Minimize, GripHorizontal, Clock, Inbox, PictureInPicture2 } from 'lucide-react';
 import {
-  useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock, type Phase,
+  useTimerStore, PHASE_COLORS, formatElapsed,
+  selectClockText, selectClockLabel, ringProgressOf,
 } from '../../store/useTimerStore';
 import { useStudyListStore } from '../../store/useStudyListStore';
 import { useFocusList } from '../../lib/useFocusList';
@@ -32,10 +33,13 @@ import { ROOM, GLOW } from './roomPalette';
 
 // A tiny, opinionated set of presets for the in-room method switch — the same three
 // techniques as the Study page minus Custom, which belongs to the fuller settings there.
+// Open is the open-ended session — a clock that counts up, no breaks — so it has no
+// durations to apply.
 const METHODS = [
   { id: 'pomodoro', label: 'Pomodoro',  focus: 25, brk: 5  },
   { id: '5217',     label: '52 / 17',   focus: 52, brk: 17 },
   { id: 'deepwork', label: 'Deep Work', focus: 90, brk: 20 },
+  { id: 'open',     label: 'Open',      focus: 0,  brk: 0  },
 ] as const;
 
 // ── Draggable panels ─────────────────────────────────────────────────────────────
@@ -206,11 +210,15 @@ function MethodSwitcher() {
   const setFocusMins       = useTimerStore(s => s.setFocusMins);
   const setBreakMins       = useTimerStore(s => s.setBreakMins);
   const setCustomTechnique = useTimerStore(s => s.setCustomTechnique);
+  const mode               = useTimerStore(s => s.mode);
+  const setMode            = useTimerStore(s => s.setMode);
 
   const fMin = Math.round(focusSecs / 60);
   const bMin = Math.round(breakSecs / 60);
 
   function apply(m: (typeof METHODS)[number]) {
+    if (m.id === 'open') { setMode('open'); return; }
+    setMode('pomodoro');
     setCustomTechnique(false);
     setFocusMins(m.focus);
     setBreakMins(m.brk);
@@ -219,7 +227,9 @@ function MethodSwitcher() {
   return (
     <div className="flex items-center gap-1 rounded-full p-1" style={{ backgroundColor: '#ffffff0d' }}>
       {METHODS.map(m => {
-        const active = fMin === m.focus && bMin === m.brk;
+        const active = mode === 'open'
+          ? m.id === 'open'
+          : m.id !== 'open' && fMin === m.focus && bMin === m.brk;
         return (
           <button
             key={m.id}
@@ -244,6 +254,10 @@ function MethodSwitcher() {
 function AutoAdvanceToggle() {
   const autoAdvance = useTimerStore(s => s.autoAdvance);
   const toggle      = useTimerStore(s => s.toggleAutoAdvance);
+  const open        = useTimerStore(s => s.mode === 'open');
+
+  // An open session has no phases to advance between.
+  if (open) return null;
 
   return (
     <label
@@ -295,10 +309,11 @@ function FocusHero() {
   const candleOn  = useSettingsStore(s => s.focusCandleEnabled);
   const phase     = useTimerStore(s => s.phase);
   const isRunning = useTimerStore(s => s.isRunning);
-  const timeLeft  = useTimerStore(s => s.timeLeft);
-  const focusSecs = useTimerStore(s => s.focusSecs);
-  const breakSecs = useTimerStore(s => s.breakSecs);
-  const longBreakSecs = useTimerStore(s => s.longBreakSecs);
+  const clockText  = useTimerStore(selectClockText);
+  const clockLabel = useTimerStore(selectClockLabel);
+  // The ring: the countdown's own progress, or — in an open session — through the hour.
+  const ringLeft  = useTimerStore(s => ringProgressOf(s).timeLeft);
+  const ringTotal = useTimerStore(s => ringProgressOf(s).totalSecs);
   const color = PHASE_COLORS[phase];
   const glow  = GLOW[phase];
 
@@ -314,24 +329,23 @@ function FocusHero() {
   );
 
   if (!candleOn) {
-    const totalSecs = phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
     return (
       <div className="relative flex items-center justify-center">
         {lamplight('', true)}
         <ProgressRing
           phase={phase}
-          timeLeft={timeLeft}
-          totalSecs={totalSecs}
+          timeLeft={ringLeft}
+          totalSecs={ringTotal}
           size={336}
           trackColor={ROOM.line}
           className="relative -rotate-90"
         />
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-7xl font-semibold tabular-nums tracking-tight" style={{ color: ROOM.ink }}>
-            {formatClock(timeLeft)}
+            {clockText}
           </span>
           <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
-            {PHASE_LABELS[phase as Phase]}
+            {clockLabel}
           </span>
         </div>
       </div>
@@ -347,10 +361,10 @@ function FocusHero() {
       <FocusCandle width={330} />
       <div className="relative -mt-5 flex flex-col items-center">
         <span className="text-6xl font-semibold tabular-nums tracking-tight" style={{ color: ROOM.ink }}>
-          {formatClock(timeLeft)}
+          {clockText}
         </span>
         <span className="mt-2 text-xs font-medium uppercase tracking-[0.2em]" style={{ color }}>
-          {PHASE_LABELS[phase as Phase]}
+          {clockLabel}
         </span>
       </div>
     </div>
@@ -360,19 +374,13 @@ function FocusHero() {
 // ── Total studied today (corner) ─────────────────────────────────────────────────
 // Logged focus time today plus the live elapsed of the block in progress, so it ticks
 // like a stopwatch while you work and holds steady on breaks.
-function formatHms(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = Math.floor(totalSec % 60);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}
-
 function TotalStudyToday() {
   const { data: sessions = [] } = useStudySessions();
   const phase     = useTimerStore(s => s.phase);
   const timeLeft  = useTimerStore(s => s.timeLeft);
   const focusSecs = useTimerStore(s => s.focusSecs);
+  const mode      = useTimerStore(s => s.mode);
+  const elapsed   = useTimerStore(s => s.elapsed);
 
   const loggedSec = useMemo(
     () => Math.round(focusMinutesSince(sessions, startOfDay(new Date())) * 60),
@@ -381,12 +389,13 @@ function TotalStudyToday() {
   // Elapsed of the block in progress. Counted whenever we're in a focus phase (not only
   // while running) so pausing holds the total steady instead of dropping the elapsed and
   // snapping it back on resume. It's only added to the logged total once the block ends.
-  const liveSec = phase === 'focus' ? Math.max(0, focusSecs - timeLeft) : 0;
+  // An open session's live part is simply its time so far.
+  const liveSec = mode === 'open' ? elapsed : phase === 'focus' ? Math.max(0, focusSecs - timeLeft) : 0;
 
   return (
     <div className="flex items-center gap-2" style={{ color: ROOM.muted }}>
       <Clock size={14} />
-      <span className="text-sm font-medium tabular-nums" style={{ color: ROOM.soft }}>{formatHms(loggedSec + liveSec)}</span>
+      <span className="text-sm font-medium tabular-nums" style={{ color: ROOM.soft }}>{formatElapsed(loggedSec + liveSec)}</span>
       <span className="text-xs">studied today</span>
     </div>
   );
@@ -441,6 +450,9 @@ function CycleDots({ color }: { color: string }) {
   const timeLeft   = useTimerStore(s => s.timeLeft);
   const focusSecs  = useTimerStore(s => s.focusSecs);
   const endSitting = useTimerStore(s => s.endSitting);
+  const open       = useTimerStore(s => s.mode === 'open');
+
+  if (open) return null;
 
   const filled = focusCount === 0 ? 0 : (focusCount % 4 || 4);
   // A sitting is underway once a block has completed, or once there's time on the
@@ -757,6 +769,8 @@ export default function FocusMode() {
   const reset = useTimerStore(s => s.reset);
   const skip  = useTimerStore(s => s.skip);
   const awaitingReflection = useTimerStore(s => s.awaitingReflection);
+  // An open session counts up with no phases: Finish replaces Skip, and Reset steps aside.
+  const open = useTimerStore(s => s.mode === 'open');
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const parkingInputRef = useRef<HTMLInputElement | null>(null);
@@ -957,6 +971,11 @@ export default function FocusMode() {
 
               {/* Controls */}
               <div className="flex items-center gap-4">
+                {open ? (
+                  // Nothing to reset in an open session (reset finishes it, see the store);
+                  // the empty slot keeps Start centred between it and Finish.
+                  <span className="p-2.5" aria-hidden><span className="block h-[18px] w-[18px]" /></span>
+                ) : (
                 <button
                   onClick={reset}
                   title="Reset"
@@ -967,6 +986,7 @@ export default function FocusMode() {
                 >
                   <RotateCcw size={18} />
                 </button>
+                )}
                 <button
                   onClick={isRunning ? pause : start}
                   className="flex items-center gap-2 rounded-full px-10 py-3.5 text-sm font-medium transition-all hover:opacity-90 active:scale-95"
@@ -978,14 +998,14 @@ export default function FocusMode() {
                 {/* Skip fills the slot that was an empty spacer holding Start centred. */}
                 <button
                   onClick={skip}
-                  title={phase === 'focus' ? 'Skip to break — keeps the minutes you\'ve put in' : 'Skip the break — back to focus'}
-                  aria-label={phase === 'focus' ? 'Skip to break' : 'Skip break'}
+                  title={open ? 'Finish — log the time you studied' : phase === 'focus' ? 'Skip to break — keeps the minutes you\'ve put in' : 'Skip the break — back to focus'}
+                  aria-label={open ? 'Finish session' : phase === 'focus' ? 'Skip to break' : 'Skip break'}
                   className="rounded-full p-2.5 transition-colors hover:bg-white/[0.06]"
                   style={{ color: ROOM.muted }}
                   onMouseEnter={e => (e.currentTarget.style.color = ROOM.ink)}
                   onMouseLeave={e => (e.currentTarget.style.color = ROOM.muted)}
                 >
-                  <SkipForward size={18} />
+                  {open ? <Square size={16} fill="currentColor" strokeWidth={0} /> : <SkipForward size={18} />}
                 </button>
               </div>
 
@@ -1000,10 +1020,14 @@ export default function FocusMode() {
               <p className="max-w-lg text-center text-xs leading-relaxed" style={{ color: ROOM.muted }}>
                 <kbd className="rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Space</kbd>
                 <span className="mx-1.5">start / pause</span>·
-                <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>R</kbd>
-                <span className="mx-1.5">reset</span>·
+                {!open && (
+                  <>
+                    <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>R</kbd>
+                    <span className="mx-1.5">reset</span>·
+                  </>
+                )}
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>S</kbd>
-                <span className="mx-1.5">skip</span>·
+                <span className="mx-1.5">{open ? 'finish' : 'skip'}</span>·
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>P</kbd>
                 <span className="mx-1.5">park a thought</span>·
                 <kbd className="ml-1.5 rounded border px-1.5 py-0.5 font-sans" style={{ borderColor: ROOM.line }}>Esc</kbd>

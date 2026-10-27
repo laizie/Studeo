@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
-  formatClock, secondsLeft, msUntilClockChange, PHASE_LABELS, PHASE_COLORS, type MiniTimerState,
+  formatClock, formatElapsed, secondsLeft, clockSeconds, clockText, msUntilClockChange,
+  msUntilElapsedChange, PHASE_LABELS, PHASE_COLORS, type MiniTimerState,
 } from '../pomodoro';
 
 function state(over: Partial<MiniTimerState> = {}): MiniTimerState {
   return {
+    mode: 'pomodoro',
+    countsFrom: null,
     phase: 'focus',
     isRunning: false,
     timeLeft: 1500,
@@ -107,6 +110,61 @@ describe('msUntilClockChange', () => {
       const delay = inMs(ms);
       expect(shown(ms - delay)).not.toBe(shown(ms));
       expect(shown(ms - delay + 1)).toBe(shown(ms));
+    }
+  });
+});
+
+describe('formatElapsed', () => {
+  it('shows minutes and seconds under an hour', () => {
+    expect(formatElapsed(0)).toBe('0:00');
+    expect(formatElapsed(65)).toBe('1:05');
+    expect(formatElapsed(3599)).toBe('59:59');
+  });
+
+  it('adds hours once there are any', () => {
+    expect(formatElapsed(3600)).toBe('1:00:00');
+    expect(formatElapsed(3 * 3600 + 7 * 60 + 12)).toBe('3:07:12');
+  });
+
+  it('never goes negative and drops fractions', () => {
+    expect(formatElapsed(-5)).toBe('0:00');
+    expect(formatElapsed(59.9)).toBe('0:59');
+  });
+});
+
+describe('clockSeconds / clockText — open sessions', () => {
+  const now = 1_800_000_000_000;
+
+  it('counts up from countsFrom while running', () => {
+    const s = state({ mode: 'open', isRunning: true, countsFrom: now - 125_400, timeLeft: 0 });
+    expect(clockSeconds(s, now)).toBe(125);
+    expect(clockText(s, now)).toBe('2:05');
+  });
+
+  it('holds the banked time while paused', () => {
+    const s = state({ mode: 'open', isRunning: false, countsFrom: null, timeLeft: 4000 });
+    expect(clockSeconds(s, now)).toBe(4000);
+    expect(clockText(s, now)).toBe('1:06:40');
+  });
+
+  it('is the countdown, unchanged, in pomodoro mode', () => {
+    const s = state({ isRunning: true, endsAt: now + 90_000 });
+    expect(clockSeconds(s, now)).toBe(secondsLeft(s, now));
+    expect(clockText(s, now)).toBe('01:30');
+  });
+});
+
+describe('msUntilElapsedChange', () => {
+  it('lands exactly on the next whole second of the session', () => {
+    const from = 1_000_000;
+    for (let offset = 0; offset < 3000; offset += 7) {
+      const now = from + offset;
+      const wait = msUntilElapsedChange(from, now);
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(1000);
+      const before = Math.floor((now - from) / 1000);
+      expect(Math.floor((now + wait - from) / 1000)).toBe(before + 1);
+      expect(Math.floor((now + wait - 1 - from) / 1000)).toBe(before);
     }
   });
 });

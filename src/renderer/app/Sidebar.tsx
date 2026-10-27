@@ -13,7 +13,7 @@ import AppleMusicMiniPlayer from '../features/applemusic/AppleMusicMiniPlayer';
 import AutoNowPlaying from '../features/music/AutoNowPlaying';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { usePageFiltersStore } from '../store/usePageFiltersStore';
-import { useTimerStore, PHASE_LABELS, PHASE_COLORS, formatClock } from '../store/useTimerStore';
+import { useTimerStore, PHASE_COLORS, selectClockText, selectClockLabel } from '../store/useTimerStore';
 
 // Three small clusters instead of one long list: planning views, the things
 // being tracked, and the doing. Weekly Review isn't pinned here — it's a
@@ -101,9 +101,10 @@ function NotesNavSection() {
 
 /** Compact running-timer chip — visible from any screen, click to jump to Study. */
 function TimerChip() {
-  const isRunning = useTimerStore(s => s.isRunning);
-  const timeLeft  = useTimerStore(s => s.timeLeft);
-  const phase     = useTimerStore(s => s.phase);
+  const isRunning  = useTimerStore(s => s.isRunning);
+  const phase      = useTimerStore(s => s.phase);
+  const clockText  = useTimerStore(selectClockText);
+  const clockLabel = useTimerStore(selectClockLabel);
 
   if (!isRunning) return null;
 
@@ -118,8 +119,8 @@ function TimerChip() {
         style={{ backgroundColor: PHASE_COLORS[phase] }}
         aria-hidden="true"
       />
-      <span className="text-xs font-medium tabular-nums text-sidebar-ink">{formatClock(timeLeft)}</span>
-      <span className="text-xs text-sidebar-muted truncate">{PHASE_LABELS[phase]}</span>
+      <span className="text-xs font-medium tabular-nums text-sidebar-ink">{clockText}</span>
+      <span className="text-xs text-sidebar-muted truncate">{clockLabel}</span>
     </Link>
   );
 }

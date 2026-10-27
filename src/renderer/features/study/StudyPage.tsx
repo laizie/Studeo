@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, Timer, Music2, Maximize2, Activity, PictureInPicture2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Square, Timer, Music2, Maximize2, Activity, PictureInPicture2 } from 'lucide-react';
 import {
   useTimerStore, FOCUS_OPTIONS, BREAK_OPTIONS,
-  PHASE_LABELS, PHASE_COLORS, formatClock,
+  PHASE_LABELS, PHASE_COLORS, selectClockText, selectClockLabel, ringProgressOf,
   type Phase,
 } from '../../store/useTimerStore';
 import FocusListPanel from './FocusListPanel';
@@ -60,10 +60,18 @@ const TECHNIQUES: Technique[] = [
     breakMins: 0,
     desc:      'Set your own focus and break durations below',
   },
+  {
+    // Not a countdown at all: the timer's 'open' mode. No durations to apply.
+    id:        'open',
+    label:     'Open',
+    focusMins: 0,
+    breakMins: 0,
+    desc:      'No timer and no breaks — it counts up while you study. Finish when you\'re done and the time is logged',
+  },
 ];
 
 function detectTechnique(focusMins: number, breakMins: number): string {
-  const match = TECHNIQUES.find(t => t.id !== 'custom' && t.focusMins === focusMins && t.breakMins === breakMins);
+  const match = TECHNIQUES.find(t => t.id !== 'custom' && t.id !== 'open' && t.focusMins === focusMins && t.breakMins === breakMins);
   return match?.id ?? 'custom';
 }
 
@@ -122,28 +130,34 @@ function MusicStudyColumn() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function StudyPage() {
+  const timer = useTimerStore();
   const {
-    phase, isRunning, timeLeft, autoAdvance, focusSecs, breakSecs, longBreakSecs,
-    setPhase, start, pause, reset, skip, toggleAutoAdvance,
+    phase, isRunning, autoAdvance, focusSecs, breakSecs, mode,
+    setPhase, start, pause, reset, skip, toggleAutoAdvance, setMode,
     setFocusMins, setBreakMins,
     customTechnique, setCustomTechnique,
-  } = useTimerStore();
+  } = timer;
+  // An open session counts up with no phases (see the timer store's 'open' mode).
+  const open = mode === 'open';
+  const clockText  = selectClockText(timer);
+  const clockLabel = selectClockLabel(timer);
+  const ring       = ringProgressOf(timer);
 
   // The floating pop-out. It's a view onto this same store (see lib/useMiniTimer),
   // so there's nothing to keep in sync here beyond the button's own label.
   const miniTimer = useMiniTimerWindow();
 
-  const totalSecs =
-    phase === 'focus' ? focusSecs : phase === 'long_break' ? longBreakSecs : breakSecs;
   const focusMins = focusSecs / 60;
   const breakMins = breakSecs / 60;
 
   // Derived, never stored: the durations are the source of truth, plus one
   // persisted "user chose Custom" flag. Local state here went stale on
   // remount (navigate away + back snapped Custom back to a preset).
-  const techniqueId = customTechnique ? 'custom' : detectTechnique(focusMins, breakMins);
+  const techniqueId = open ? 'open' : customTechnique ? 'custom' : detectTechnique(focusMins, breakMins);
 
   function applyTechnique(t: Technique) {
+    if (t.id === 'open') { setMode('open'); return; }
+    setMode('pomodoro');
     setCustomTechnique(t.id === 'custom');
     if (t.id !== 'custom') {
       setFocusMins(t.focusMins);
@@ -230,7 +244,7 @@ export default function StudyPage() {
                   <button
                     key={t.id}
                     onClick={() => applyTechnique(t)}
-                    className={segBtn(techniqueId === t.id)}
+                    className={cn(segBtn(techniqueId === t.id), t.id === 'open' && 'col-span-2')}
                   >
                     {t.label}
                   </button>
@@ -246,7 +260,7 @@ export default function StudyPage() {
             {/* Phase tabs — just Focus and Break. A long break is granted automatically
                 every 4th focus session; while one is running, the Break tab relabels to
                 "Long break" rather than existing as a third button nobody selects. */}
-            <div className="flex items-center gap-1 p-1 bg-inset rounded-lg mb-7 self-stretch justify-center">
+            {!open && <div className="flex items-center gap-1 p-1 bg-inset rounded-lg mb-7 self-stretch justify-center">
               {(['focus', 'short_break'] as Phase[]).map(p => {
                 const isBreakTab   = p === 'short_break';
                 const inLongBreak  = phase === 'long_break';
@@ -271,32 +285,42 @@ export default function StudyPage() {
                   </button>
                 );
               })}
-            </div>
+            </div>}
 
             {/* Progress ring */}
             <div className="relative flex items-center justify-center mb-7">
-              <ProgressRing phase={phase} timeLeft={timeLeft} totalSecs={totalSecs} />
+              <ProgressRing phase={phase} timeLeft={ring.timeLeft} totalSecs={ring.totalSecs} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 {/* Ink digits, always AA on the white card; the ring and Start
                     button carry the phase color. */}
-                <span className="text-5xl lg:text-display font-semibold tabular-nums tracking-tight text-ink">
-                  {formatClock(timeLeft)}
+                <span className={cn(
+                  'font-semibold tabular-nums tracking-tight text-ink',
+                  // "1:05:42" is wider than "24:13"; a step smaller keeps it inside the ring.
+                  clockText.length > 5 ? 'text-4xl lg:text-5xl' : 'text-5xl lg:text-display',
+                )}>
+                  {clockText}
                 </span>
                 <span className="text-xs text-muted mt-1">
-                  {PHASE_LABELS[phase]}
+                  {clockLabel}
                 </span>
               </div>
             </div>
 
             {/* Controls */}
             <div className="flex items-center gap-4 mb-4">
-              <button
-                onClick={reset}
-                title="Reset"
-                className="p-2.5 text-muted hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
-              >
-                <RotateCcw size={17} />
-              </button>
+              {open ? (
+                // Nothing to reset in an open session (reset finishes it, see the store);
+                // the empty slot keeps Start centred between it and Finish.
+                <span className="p-2.5" aria-hidden><span className="block h-[17px] w-[17px]" /></span>
+              ) : (
+                <button
+                  onClick={reset}
+                  title="Reset"
+                  className="p-2.5 text-muted hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
+                >
+                  <RotateCcw size={17} />
+                </button>
+              )}
               <button
                 onClick={isRunning ? pause : start}
                 className="flex items-center gap-2 px-8 py-3 rounded-full font-medium text-sm shadow-sm transition-all hover:opacity-90 active:scale-95"
@@ -308,11 +332,11 @@ export default function StudyPage() {
               {/* Skip fills the slot that was an empty spacer holding Start centred. */}
               <button
                 onClick={skip}
-                title={phase === 'focus' ? "Skip to break — keeps the minutes you've put in" : 'Skip the break — back to focus'}
-                aria-label={phase === 'focus' ? 'Skip to break' : 'Skip break'}
+                title={open ? 'Finish — log the time you studied' : phase === 'focus' ? "Skip to break — keeps the minutes you've put in" : 'Skip the break — back to focus'}
+                aria-label={open ? 'Finish session' : phase === 'focus' ? 'Skip to break' : 'Skip break'}
                 className="p-2.5 text-muted hover:text-ink-soft rounded-full hover:bg-surface-hi transition-colors"
               >
-                <SkipForward size={17} />
+                {open ? <Square size={15} fill="currentColor" strokeWidth={0} /> : <SkipForward size={17} />}
               </button>
             </div>
 
@@ -320,14 +344,18 @@ export default function StudyPage() {
             <p className="text-center text-xs text-muted mb-4">
               <kbd className="px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">Space</kbd>
               <span className="mx-1.5">start / pause</span>·
-              <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">R</kbd>
-              <span className="mx-1.5">reset</span>·
+              {!open && (
+                <>
+                  <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">R</kbd>
+                  <span className="mx-1.5">reset</span>·
+                </>
+              )}
               <kbd className="ml-1.5 px-1.5 py-0.5 rounded border border-stone-200 dark:border-line font-sans">S</kbd>
-              <span className="ml-1.5">skip</span>
+              <span className="ml-1.5">{open ? 'finish' : 'skip'}</span>
             </p>
 
             {/* Auto-advance */}
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-muted mb-4">
+            {!open && <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-muted mb-4">
               <input
                 type="checkbox"
                 checked={autoAdvance}
@@ -335,7 +363,7 @@ export default function StudyPage() {
                 className="accent-stone-600 dark:accent-[#e2a53b]"
               />
               Auto-advance to next phase
-            </label>
+            </label>}
 
             {/* Custom duration pickers */}
             {techniqueId === 'custom' && (

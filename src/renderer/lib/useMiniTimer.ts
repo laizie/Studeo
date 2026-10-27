@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useTimerStore } from '../store/useTimerStore';
-import type { MiniTimerState } from '../../shared/pomodoro';
+import { useTimerStore, clockStateOf } from '../store/useTimerStore';
 
 /**
  * The main window's half of the pop-out timer.
@@ -12,18 +11,6 @@ import type { MiniTimerState } from '../../shared/pomodoro';
  * it publishes snapshots out, and runs the pill's button presses against the real
  * store actions. See main/timerWindow.ts for the other end of the relay.
  */
-
-function snapshotOf(s: ReturnType<typeof useTimerStore.getState>): MiniTimerState {
-  return {
-    phase: s.phase,
-    isRunning: s.isRunning,
-    timeLeft: s.timeLeft,
-    endsAt: s.endsAt,
-    totalSecs:
-      s.phase === 'focus' ? s.focusSecs : s.phase === 'long_break' ? s.longBreakSecs : s.breakSecs,
-    focusCount: s.focusCount,
-  };
-}
 
 /**
  * Publish timer state to the pop-out, and apply commands coming back from it.
@@ -39,7 +26,8 @@ export function useMiniTimerBridge(): void {
     let lastKey = '';
 
     const publish = (state: ReturnType<typeof useTimerStore.getState>) => {
-      const snap = snapshotOf(state);
+      // The same snapshot every clock in this window reads (useTimerStore's clockStateOf).
+      const snap = clockStateOf(state);
       const key = JSON.stringify({ ...snap, timeLeft: snap.isRunning ? 0 : snap.timeLeft });
       if (key === lastKey) return;
       lastKey = key;

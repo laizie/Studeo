@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useTimerStore, PHASE_LABELS, formatClock } from '../store/useTimerStore';
-import { msUntilClockChange } from '../../shared/pomodoro';
+import { useTimerStore, selectClockText, selectClockLabel } from '../store/useTimerStore';
+import { msUntilClockChange, msUntilElapsedChange } from '../../shared/pomodoro';
 
 const BASE_TITLE = 'Studeo';
 
@@ -11,10 +11,10 @@ const BASE_TITLE = 'Studeo';
  * self-corrects on the next fire instead of drifting. Mount once, in Layout.
  */
 export function useTimerDriver(): void {
-  const isRunning = useTimerStore(s => s.isRunning);
-  const timeLeft  = useTimerStore(s => s.timeLeft);
-  const phase     = useTimerStore(s => s.phase);
-  const tick      = useTimerStore(s => s.tick);
+  const isRunning  = useTimerStore(s => s.isRunning);
+  const clockText  = useTimerStore(selectClockText);
+  const clockLabel = useTimerStore(selectClockLabel);
+  const tick       = useTimerStore(s => s.tick);
 
   // Tick when the CLOCK CHANGES, not every 1000ms, and correct immediately when the
   // window becomes visible again after the OS may have throttled us.
@@ -34,10 +34,14 @@ export function useTimerDriver(): void {
 
     let timer: ReturnType<typeof setTimeout>;
     const scheduleNext = () => {
-      const { endsAt } = useTimerStore.getState();
-      // No end time is a paused timer mid-teardown; a hair over zero keeps a phase
-      // that has already run out from busy-looping until the tick that ends it lands.
-      const delay = endsAt == null ? 1_000 : Math.max(1, msUntilClockChange(endsAt));
+      const { endsAt, countsFrom } = useTimerStore.getState();
+      // An open session ticks on its own second boundaries (countsFrom), a countdown on
+      // its end time's. No anchor at all is a paused timer mid-teardown; a hair over zero
+      // keeps a phase that has already run out from busy-looping until the tick that ends it.
+      const delay =
+        countsFrom != null ? msUntilElapsedChange(countsFrom)
+          : endsAt == null ? 1_000
+            : Math.max(1, msUntilClockChange(endsAt));
       timer = setTimeout(() => { tick(); scheduleNext(); }, delay);
     };
     scheduleNext();
@@ -53,8 +57,8 @@ export function useTimerDriver(): void {
   // Surface a running session in the window title so it's glanceable from any screen.
   useEffect(() => {
     document.title = isRunning
-      ? `${formatClock(timeLeft)} · ${PHASE_LABELS[phase]} — ${BASE_TITLE}`
+      ? `${clockText} · ${clockLabel} — ${BASE_TITLE}`
       : BASE_TITLE;
     return () => { document.title = BASE_TITLE; };
-  }, [isRunning, timeLeft, phase]);
+  }, [isRunning, clockText, clockLabel]);
 }

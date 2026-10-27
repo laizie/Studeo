@@ -31,6 +31,8 @@ export const SETTING_KEYS = [
   'customTechnique',
   /** Whether the timer rolls straight into the next phase (Study page / Focus Mode). */
   'autoAdvance',
+  /** 'pomodoro' (counts down through blocks and breaks) or 'open' (counts up, no breaks). */
+  'timerMode',
 
   /** Last .ics feed URL used on the Import page, so a re-import is one click. */
   'canvasFeedUrl',

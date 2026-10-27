@@ -22,7 +22,7 @@ describe('setting keys allowlist', () => {
       'classRemindersEnabled', 'reminderLeadMinutes', 'dueDigestEnabled', 'dueDigestTime',
       'timerSound', 'reflectionPrompt', 'focusCandle', 'ambienceVolume',
       // Pomodoro
-      'focusMins', 'breakMins', 'longBreakMins', 'customTechnique', 'autoAdvance',
+      'focusMins', 'breakMins', 'longBreakMins', 'customTechnique', 'autoAdvance', 'timerMode',
       // Import
       'canvasFeedUrl',
       // Page view preferences (usePageFiltersStore)

@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import type { IpcMainEvent, IpcMainInvokeEvent } from 'electron';
 import { IPC } from '../../shared/types';
-import type { MiniTimerCommand, MiniTimerState, Phase } from '../../shared/pomodoro';
+import { TIMER_MODES, type MiniTimerCommand, type MiniTimerState, type Phase, type TimerMode } from '../../shared/pomodoro';
 import {
   openTimerWindow,
   closeTimerWindow,
@@ -31,17 +31,21 @@ const COMMANDS: readonly MiniTimerCommand[] = ['start', 'pause', 'skip'];
 function parseState(value: unknown): MiniTimerState | null {
   if (typeof value !== 'object' || value === null) return null;
   const s = value as Record<string, unknown>;
+  if (!TIMER_MODES.includes(s.mode as TimerMode)) return null;
   if (!PHASES.includes(s.phase as Phase)) return null;
   if (typeof s.isRunning !== 'boolean') return null;
   if (typeof s.timeLeft !== 'number' || !Number.isFinite(s.timeLeft)) return null;
   if (s.endsAt !== null && (typeof s.endsAt !== 'number' || !Number.isFinite(s.endsAt))) return null;
+  if (s.countsFrom !== null && (typeof s.countsFrom !== 'number' || !Number.isFinite(s.countsFrom))) return null;
   if (typeof s.totalSecs !== 'number' || !Number.isFinite(s.totalSecs)) return null;
   if (typeof s.focusCount !== 'number' || !Number.isFinite(s.focusCount)) return null;
   return {
+    mode: s.mode as TimerMode,
     phase: s.phase as Phase,
     isRunning: s.isRunning,
     timeLeft: s.timeLeft,
     endsAt: s.endsAt as number | null,
+    countsFrom: s.countsFrom as number | null,
     totalSecs: s.totalSecs,
     focusCount: s.focusCount,
   };

@@ -11,6 +11,17 @@
 
 export type Phase = 'focus' | 'short_break' | 'long_break';
 
+/**
+ * How the timer runs. 'pomodoro' counts down through focus blocks and breaks (every
+ * preset and Custom are this). 'open' is an open-ended study session: a stopwatch that
+ * counts up — no phases, no breaks — until you finish it.
+ */
+export type TimerMode = 'pomodoro' | 'open';
+export const TIMER_MODES: readonly TimerMode[] = ['pomodoro', 'open'];
+
+/** What an open session is called wherever a phase name would go. */
+export const OPEN_LABEL = 'Open study';
+
 // Phase presentation lives here (not in a component) so the Study page, the
 // sidebar chip, the pop-out, and the window title all agree on names and colors.
 export const PHASE_LABELS: Record<Phase, string> = {
@@ -35,6 +46,19 @@ export function formatClock(totalSeconds: number): string {
 }
 
 /**
+ * Time studied, for a clock that counts up: "M:SS" under an hour, "H:MM:SS" after.
+ * A countdown never runs past its block, so formatClock's "90:00" is fine there; an
+ * open session can run for hours, where "187:12" would be harder to read than "3:07:12".
+ */
+export function formatElapsed(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+}
+
+/**
  * Everything the pop-out window needs to draw itself.
  *
  * Deliberately a snapshot, not a stream of ticks: `endsAt` is a wall-clock instant, so
@@ -43,12 +67,21 @@ export function formatClock(totalSeconds: number): string {
  * message per transition instead of one per second.
  */
 export interface MiniTimerState {
+  /** Which kind of clock this is. In 'open' mode `timeLeft` holds the seconds studied
+   *  so far (authoritative while paused) and `countsFrom` stands in for `endsAt`. */
+  mode: TimerMode;
   phase: Phase;
   isRunning: boolean;
   /** Seconds left. Authoritative only while paused — see `endsAt`. */
   timeLeft: number;
   /** Wall-clock ms when the running phase ends; null when paused. */
   endsAt: number | null;
+  /**
+   * Open mode, running: the wall-clock ms the session would have started at had it
+   * never been paused, so time studied = now − countsFrom. The count-up twin of
+   * `endsAt` — one number any window can do the arithmetic on. Null otherwise.
+   */
+  countsFrom: number | null;
   /** The full length of this phase, so the pop-out can draw how far through it is
    *  without having to know the user's chosen durations. */
   totalSecs: number;
@@ -72,6 +105,36 @@ export function secondsLeft(state: MiniTimerState, now: number = Date.now()): nu
     return Math.max(0, Math.round((state.endsAt - now) / 1000));
   }
   return Math.max(0, state.timeLeft);
+}
+
+/**
+ * What the clock reads right now: seconds left on a countdown, or seconds studied so
+ * far in an open session. Open time is floored — a stopwatch shows a second once it
+ * has fully passed — where the countdown rounds (see msUntilClockChange).
+ */
+export function clockSeconds(state: MiniTimerState, now: number = Date.now()): number {
+  if (state.mode !== 'open') return secondsLeft(state, now);
+  if (state.isRunning && state.countsFrom != null) {
+    return Math.max(0, Math.floor((now - state.countsFrom) / 1000));
+  }
+  return Math.max(0, state.timeLeft);
+}
+
+/** The clock's text, in the right format for its mode. */
+export function clockText(state: MiniTimerState, now: number = Date.now()): string {
+  const secs = clockSeconds(state, now);
+  return state.mode === 'open' ? formatElapsed(secs) : formatClock(secs);
+}
+
+/**
+ * How long until an open session's clock next ticks over, in ms (1–1000). Elapsed is
+ * floor((now − countsFrom) / 1000), so it changes each time that difference crosses a
+ * whole second — the count-up counterpart of msUntilClockChange, for the same reason:
+ * every clock on the session flips at the same instant.
+ */
+export function msUntilElapsedChange(countsFrom: number, now: number = Date.now()): number {
+  const into = (((now - countsFrom) % 1000) + 1000) % 1000;
+  return 1000 - into;
 }
 
 /**
